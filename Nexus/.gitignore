@@ -1,0 +1,84 @@
+# =========================================
+# Unity - gitignore recomendado
+# =========================================
+
+# Archivos y carpetas generadas por Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+UserSettings/
+
+# Cache y dependencias de compilación
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de versiones anteriores
+*.bak
+*.old
+*.orig
+
+# Configuración local
+.vscode/
+.idea/
+*.swp
+
+# Archivos de paquetes descargados
+Packages/manifest-temp.json
+
+# Archivos de colaboración (Unity Collab, Plastic SCM)
+.collabignore
+PlasticWorkspace/
+.plastic/
+.plastic.workspace
+
+# Cache de renderizado
+[Ll]ightmapSnapshot
+[Ll]ibrary/ShaderCache/
+
+# Builds temporales de Android / iOS
+*.apk
+*.aab
+*.ipa
+*.xcuserstate
+*.xcuserdata/
+
+# Archivos de Unity Cloud Build
+unitycloud/
+
+# =========================================
+# Archivos que sí deben subirse
+# =========================================
+
+# Carpetas importantes del proyecto
+!Assets/
+!ProjectSettings/
+!Packages/
+
+# Si usas URP o HDRP, incluye sus configuraciones
+!*.shadergraph
+!*.renderpipeline
+!*.mat
+!*.asset
+!*.unity
+
+# =========================================
+# Fin del archivo
+# =========================================
