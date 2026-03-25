@@ -82,3 +82,6 @@ unitycloud/
 # =========================================
 # Fin del archivo
 # =========================================
+
+# ignora la carpeta del asset de la ciudad
+Assets/_DLNK/
