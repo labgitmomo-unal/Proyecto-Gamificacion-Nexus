@@ -123961,7 +123961,9 @@ PlayableDirector:
   m_WrapMode: 2
   m_DirectorUpdateMode: 1
   m_InitialTime: 0
-  m_SceneBindings: []
+  m_SceneBindings:
+  - key: {fileID: -6546523662764426338, guid: bb0c40b52a9b4334fa106b1ee1bc524e, type: 2}
+    value: {fileID: 1274558990}
   m_ExposedReferences:
     m_References: []
 --- !u!1001 &1098781351
@@ -146673,15 +146675,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3238262090300488488, guid: 33b2eb50eb4f7fb4581cf6a84b1d6741, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 23.587
+      value: 333
       objectReference: {fileID: 0}
     - target: {fileID: 3238262090300488488, guid: 33b2eb50eb4f7fb4581cf6a84b1d6741, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 77.145
+      value: 26
       objectReference: {fileID: 0}
     - target: {fileID: 3238262090300488488, guid: 33b2eb50eb4f7fb4581cf6a84b1d6741, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 2.685
+      value: 345
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
