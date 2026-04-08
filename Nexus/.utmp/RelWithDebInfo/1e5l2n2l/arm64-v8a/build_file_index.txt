@@ -1,0 +1,2 @@
+C:\Users\LabGIT\Documents\Proyectos Unity\Proyecto-Gamificacion-Nexus\Nexus\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\Users\LabGIT\Documents\Proyectos Unity\Proyecto-Gamificacion-Nexus\Nexus\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt

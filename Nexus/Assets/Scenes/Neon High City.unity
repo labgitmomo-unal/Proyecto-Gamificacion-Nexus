@@ -62282,19 +62282,11 @@ MonoBehaviour:
     roll: 0
   - position: {x: 354.5543, y: -152.12268, z: -207.71512}
     roll: 0
-  - position: {x: 453.08298, y: -209.30632, z: -284.8489}
+  - position: {x: 383.6885, y: -195.96544, z: -284.8489}
     roll: 0
-  - position: {x: 551.6117, y: -253.67944, z: -361.9827}
+  - position: {x: 422.7324, y: -263.36847, z: -419.33722}
     roll: 0
-  - position: {x: 634.3992, y: -290.54865, z: -467.9224}
-    roll: 0
-  - position: {x: 615.979, y: -327.41785, z: -573.86206}
-    roll: 0
-  - position: {x: 515.81116, y: -385.11478, z: -671.2902}
-    roll: 0
-  - position: {x: 483.30304, y: -395.57047, z: -706.53784}
-    roll: 0
-  - position: {x: 479.8722, y: -395.8246, z: -741.78546}
+  - position: {x: 494.71097, y: -308.73572, z: -553.82556}
     roll: 0
 --- !u!4 &503693006
 Transform:
@@ -239670,7 +239662,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1755050779}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.11873235, y: 0.82363796, z: -0.18736473, w: 0.5219365}
+  m_LocalRotation: {x: 0.118792124, y: 0.8236555, z: -0.18749464, w: 0.52184844}
   m_LocalPosition: {x: -319.8405, y: 436.9027, z: 616.37305}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

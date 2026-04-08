@@ -1,0 +1,5 @@
+C:/Users/LabGIT/Documents/Proyectos Unity/Proyecto-Gamificacion-Nexus/Nexus/.utmp/RelWithDebInfo/1e5l2n2l/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/LabGIT/Documents/Proyectos Unity/Proyecto-Gamificacion-Nexus/Nexus/.utmp/RelWithDebInfo/1e5l2n2l/arm64-v8a/CMakeFiles/rebuild_cache.dir
+C:/Users/LabGIT/Documents/Proyectos Unity/Proyecto-Gamificacion-Nexus/Nexus/.utmp/RelWithDebInfo/1e5l2n2l/arm64-v8a/GameActivity/CMakeFiles/game.dir
+C:/Users/LabGIT/Documents/Proyectos Unity/Proyecto-Gamificacion-Nexus/Nexus/.utmp/RelWithDebInfo/1e5l2n2l/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+C:/Users/LabGIT/Documents/Proyectos Unity/Proyecto-Gamificacion-Nexus/Nexus/.utmp/RelWithDebInfo/1e5l2n2l/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir

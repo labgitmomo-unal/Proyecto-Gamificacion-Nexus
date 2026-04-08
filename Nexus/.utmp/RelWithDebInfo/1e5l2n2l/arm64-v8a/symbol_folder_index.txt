@@ -1,0 +1,1 @@
+C:\Users\LabGIT\Documents\Proyectos Unity\Proyecto-Gamificacion-Nexus\Nexus\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\build\intermediates\cxx\RelWithDebInfo\1e5l2n2l\obj\arm64-v8a
