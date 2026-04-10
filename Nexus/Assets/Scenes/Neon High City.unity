@@ -169456,11 +169456,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3577517460249904000, guid: 76bc76969d62e49439b4f2e91270620a, type: 3}
   m_PrefabInstance: {fileID: 1357590927}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1360951076 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1680501586, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
-  m_PrefabInstance: {fileID: 1530597790}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1361168582
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -239826,8 +239821,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1755050779}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.088059664, y: -0.40612224, z: 0.039355595, w: 0.9087142}
-  m_LocalPosition: {x: 34.49774, y: 7.3600464, z: -17.352966}
+  m_LocalRotation: {x: 0.118742816, y: 0.8236755, z: -0.18741888, w: 0.5218554}
+  m_LocalPosition: {x: -319.8405, y: 436.9027, z: 616.37305}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -273134,7 +273129,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Cinematic_1_Controller
   director: {fileID: 1977354752}
   VirtualCamera: {fileID: 1188320145}
-  XrigCamera: {fileID: 1360951076}
+  XrigCamera: {fileID: 2119123001}
 --- !u!1001 &1978077322
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -303559,6 +303554,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 565325412803298291, guid: 5367b6c204cd604469a93d879bf54d3a, type: 3}
   m_PrefabInstance: {fileID: 2107878045}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &2119123001 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1767192433, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 1530597790}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &2119710049
 GameObject:
