@@ -16,7 +16,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         VirtualCamera.SetActive(true);
         director.stopped += OnCinematicEnd;
         MostrarCongestion();
-        StartCoroutine(RestoreTrafficAfterDelay(60f)); // Restaurar tráfico después de 10 segundos
+        // StartCoroutine(RestoreTrafficAfterDelay(60f)); // Restaurar tráfico después de 10 segundos
         
     }
 
