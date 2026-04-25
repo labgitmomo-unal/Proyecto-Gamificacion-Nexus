@@ -65498,6 +65498,71 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 362112704393942617, guid: f88dacb0f1b75774ea032b9028f553c4, type: 3}
   m_PrefabInstance: {fileID: 547850061}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &551659960
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 551659962}
+  - component: {fileID: 551659961}
+  m_Layer: 0
+  m_Name: OmitirIntro
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &551659961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 551659960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d78379346dbedd48a7cf29aeaad6302, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Omitir
+  botonA:
+    m_UseReference: 1
+    m_Action:
+      m_Name: Boton A
+      m_Type: 0
+      m_ExpectedControlType: 
+      m_Id: 92a43df8-b169-4059-a153-257f83037c91
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings:
+      - m_Name: 
+        m_Id: 44048e2a-29aa-40bf-bbe2-f3dc2a33b74c
+        m_Path: 
+        m_Interactions: 
+        m_Processors: 
+        m_Groups: 
+        m_Action: Boton A
+        m_Flags: 0
+      m_Flags: 0
+    m_Reference: {fileID: 3279264004350380116, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  director: {fileID: 1977354752}
+--- !u!4 &551659962
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 551659960}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 32.92276, y: 6.7948, z: -25.81128}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &552354431
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -215777,14 +215842,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GridLayoutGroup
   m_Padding:
-    m_Left: 0
-    m_Right: 0
-    m_Top: 0
-    m_Bottom: 0
+    m_Left: 20
+    m_Right: 20
+    m_Top: 20
+    m_Bottom: 20
   m_ChildAlignment: 0
   m_StartCorner: 0
   m_StartAxis: 0
-  m_CellSize: {x: 100, y: 100}
+  m_CellSize: {x: 250, y: 150}
   m_Spacing: {x: 5, y: 5}
   m_Constraint: 0
   m_ConstraintCount: 2
@@ -338777,3 +338842,4 @@ SceneRoots:
   - {fileID: 1391354490}
   - {fileID: 1751531908}
   - {fileID: 607521271}
+  - {fileID: 551659962}

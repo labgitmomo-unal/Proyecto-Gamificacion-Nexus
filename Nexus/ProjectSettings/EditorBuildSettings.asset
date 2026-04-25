@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/Neon High City.unity
     guid: 822d44c33d459af42866302ee08fbd88
   m_configObjects:
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 4e71d7616f5740c4f805281d1ac22cbe, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 2e15c2dd5912fb644bc246990a090537, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 53f8a3544b5068d4e894e69fe0cdf112, type: 2}
   m_UseUCBPForAssetBundles: 0
