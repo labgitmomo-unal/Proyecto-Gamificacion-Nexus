@@ -60179,6 +60179,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: XR Origin (XR Rig)
       objectReference: {fileID: 0}
+    - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 29.1
@@ -192202,15 +192206,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonSpawner
   buttonPrefab: {fileID: 1325212890578143468, guid: e16a2ab8c9576c6498eb34ed6dd36af0, type: 3}
   panel: {fileID: 1542714106}
-  botones:
-  - texto: Santiago
-    ponderacion: 15
-  - texto: Miguel
-    ponderacion: 20
-  - texto: Miguel
-    ponderacion: 20
-  - texto: Miguel
-    ponderacion: 20
 --- !u!1 &1477582971
 GameObject:
   m_ObjectHideFlags: 0
