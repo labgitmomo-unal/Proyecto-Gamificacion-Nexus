@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using TMPro;
@@ -22,16 +23,92 @@ public class ButtonSpawner : MonoBehaviour
     public GameObject buttonPrefab;
     public Transform panel;
 
-    // Nombre del archivo JSON (debe estar en la misma carpeta que el APK o en persistentDataPath)
-    private const string JSON_FILE_NAME = "niveles_abstraccion.json";
+    private const string JSON_FILE_NAME = "variables_abstraccion.json";
 
     void Start()
     {
-        List<BotonData> botones = CargarBotonesDesdeJSON();
+#if UNITY_EDITOR
+        // En el Editor siempre lee desde StreamingAssets
+        string ruta = Path.Combine(Application.streamingAssetsPath, JSON_FILE_NAME);
+        List<BotonData> botones = LeerJSON(ruta);
+        InstanciarBotones(botones);
 
+#elif UNITY_ANDROID
+        // En APK (Quest 3 / Android) lee desde persistentDataPath
+        StartCoroutine(CargarEnAndroid());
+#endif
+    }
+
+    // ---------------------------------------------------------------
+    // ANDROID / QUEST 3
+    // Lee desde persistentDataPath (archivo puesto via ADB)
+    // Si no existe aun, copia el JSON del APK como fallback inicial
+    // ---------------------------------------------------------------
+    IEnumerator CargarEnAndroid()
+    {
+        string destino = Path.Combine(Application.persistentDataPath, JSON_FILE_NAME);
+
+        if (!File.Exists(destino))
+        {
+            Debug.LogWarning("[ButtonSpawner] JSON no encontrado en persistentDataPath. Copiando desde StreamingAssets como fallback...");
+
+            string origen = Path.Combine(Application.streamingAssetsPath, JSON_FILE_NAME);
+
+            using (UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequest.Get(origen))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError("[ButtonSpawner] No se pudo copiar el JSON desde StreamingAssets: " + www.error);
+                    yield break;
+                }
+
+                File.WriteAllText(destino, www.downloadHandler.text);
+                Debug.Log("[ButtonSpawner] JSON copiado a: " + destino);
+            }
+        }
+        else
+        {
+            Debug.Log("[ButtonSpawner] JSON encontrado en: " + destino);
+        }
+
+        List<BotonData> botones = LeerJSON(destino);
+        InstanciarBotones(botones);
+    }
+
+    // ---------------------------------------------------------------
+    // Lee y parsea el JSON desde una ruta absoluta
+    // ---------------------------------------------------------------
+    List<BotonData> LeerJSON(string ruta)
+    {
+        if (!File.Exists(ruta))
+        {
+            Debug.LogError("[ButtonSpawner] Archivo JSON no encontrado en: " + ruta);
+            return null;
+        }
+
+        Debug.Log("[ButtonSpawner] Leyendo JSON desde: " + ruta);
+        string contenido = File.ReadAllText(ruta);
+        BotonDataList lista = JsonUtility.FromJson<BotonDataList>(contenido);
+
+        if (lista == null || lista.botones == null)
+        {
+            Debug.LogError("[ButtonSpawner] Formato incorrecto. El JSON debe tener la estructura: { \"botones\": [...] }");
+            return null;
+        }
+
+        return lista.botones;
+    }
+
+    // ---------------------------------------------------------------
+    // Instancia los botones en el panel
+    // ---------------------------------------------------------------
+    void InstanciarBotones(List<BotonData> botones)
+    {
         if (botones == null || botones.Count == 0)
         {
-            Debug.LogWarning("[ButtonSpawner] No se encontraron botones en el JSON o el archivo no existe.");
+            Debug.LogWarning("[ButtonSpawner] No hay botones para instanciar.");
             return;
         }
 
@@ -40,77 +117,17 @@ public class ButtonSpawner : MonoBehaviour
             Debug.Log("Creando botón " + i + " | Texto: " + botones[i].texto + " | Ponderación: " + botones[i].ponderacion);
             GameObject btn = Instantiate(buttonPrefab, panel);
 
-            // Asignar texto
             TextMeshProUGUI txt = btn.GetComponentInChildren<TextMeshProUGUI>();
             if (txt != null)
             {
                 txt.text = botones[i].texto;
             }
 
-            // Capturar datos del botón
             int index = i;
             float ponderacion = botones[i].ponderacion;
 
             btn.GetComponent<Button>().onClick.AddListener(() => ClickBoton(index, ponderacion));
         }
-    }
-
-    List<BotonData> CargarBotonesDesdeJSON()
-    {
-        string jsonPath = ObtenerRutaJSON();
-
-        if (string.IsNullOrEmpty(jsonPath) || !File.Exists(jsonPath))
-        {
-            Debug.LogError("[ButtonSpawner] Archivo JSON no encontrado en: " + jsonPath);
-            return null;
-        }
-
-        Debug.Log("[ButtonSpawner] Leyendo JSON desde: " + jsonPath);
-
-        string jsonContent = File.ReadAllText(jsonPath);
-        BotonDataList lista = JsonUtility.FromJson<BotonDataList>(jsonContent);
-
-        if (lista == null || lista.botones == null)
-        {
-            Debug.LogError("[ButtonSpawner] El JSON no tiene el formato correcto. Se esperaba { \"botones\": [...] }");
-            return null;
-        }
-
-        return lista.botones;
-    }
-
-    string ObtenerRutaJSON()
-    {
-        // 1. Busca junto al APK (en la carpeta persistente del dispositivo)
-        string persistentPath = Path.Combine(Application.persistentDataPath, JSON_FILE_NAME);
-        if (File.Exists(persistentPath))
-        {
-            return persistentPath;
-        }
-
-        // 2. Fallback: busca en StreamingAssets (incluido dentro del APK, solo lectura)
-        string streamingPath = Path.Combine(Application.streamingAssetsPath, JSON_FILE_NAME);
-
-#if UNITY_ANDROID && !UNITY_EDITOR
-        // En Android, StreamingAssets está comprimido en el APK y no se puede leer con File.Exists
-        // Se usa el persistentDataPath como ruta principal en Android
-        Debug.LogWarning("[ButtonSpawner] En Android usa persistentDataPath. Ruta: " + persistentPath);
-        return persistentPath;
-#else
-        if (File.Exists(streamingPath))
-        {
-            return streamingPath;
-        }
-#endif
-
-        // 3. Fallback editor: busca en la raíz del proyecto
-        string projectRootPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, JSON_FILE_NAME);
-        if (File.Exists(projectRootPath))
-        {
-            return projectRootPath;
-        }
-
-        return persistentPath; // Retorna la ruta esperada aunque no exista, para el log de error
     }
 
     void ClickBoton(int i, float ponderacion)
