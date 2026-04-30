@@ -1,137 +1,201 @@
-using UnityEngine;
-using UnityEngine.UI;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
+using UnityEngine.Networking;
+using UnityEngine.UI;
 using TMPro;
 
-[System.Serializable]
+[Serializable]
 public class BotonData
 {
     public string texto;
-    public float ponderacion;
+    public float  ponderacion;
 }
 
-[System.Serializable]
+[Serializable]
 public class BotonDataList
 {
     public List<BotonData> botones;
 }
 
+/// <summary>
+/// Colocar en la escena del RETO junto al panel holografico.
+///
+/// Siempre descarga el JSON fresco desde Drive (funciona en Editor y en APK).
+/// Si la descarga falla, usa la copia local "variables_abstraccion.json" como respaldo.
+///
+/// En el Inspector:
+///   - drivePublicUrl  -> la misma URL publica del JSON en Drive
+///   - buttonPrefab    -> prefab del boton (debe tener Button + TextMeshProUGUI)
+///   - panel           -> Transform del contenedor donde se instancian los botones
+///   - colorAlta       -> color para botones con ponderacion >= umbralAlta
+///   - colorBaja       -> color para botones con ponderacion < umbralAlta
+///   - umbralAlta      -> ponderacion minima para considerar un boton como relevante
+/// </summary>
 public class ButtonSpawner : MonoBehaviour
 {
-    public GameObject buttonPrefab;
-    public Transform panel;
+    [Header("Google Drive")]
+    [Tooltip("URL publica del JSON en Drive. Se descarga siempre al iniciar el reto.")]
+    public string drivePublicUrl = "";
 
-    private const string JSON_FILE_NAME = "variables_abstraccion.json";
+    [Header("Prefab y contenedor")]
+    public GameObject buttonPrefab;
+    public Transform  panel;
+
+    [Header("Visual por ponderacion")]
+    public Color colorAlta = new Color(0f, 1f, 1f, 1f);       // cyan  — alta relevancia
+    public Color colorBaja = new Color(1f, 1f, 1f, 0.55f);    // blanco tenue — baja relevancia
+    [Tooltip("Ponderacion minima para usar colorAlta")]
+    public float umbralAlta = 2f;
 
     void Start()
     {
-#if UNITY_EDITOR
-        // En el Editor siempre lee desde StreamingAssets
-        string ruta = Path.Combine(Application.streamingAssetsPath, JSON_FILE_NAME);
-        List<BotonData> botones = LeerJSON(ruta);
-        InstanciarBotones(botones);
-
-#elif UNITY_ANDROID
-        // En APK (Quest 3 / Android) lee desde persistentDataPath
-        StartCoroutine(CargarEnAndroid());
-#endif
+        StartCoroutine(CargarYSpawnear());
     }
 
-    // ---------------------------------------------------------------
-    // ANDROID / QUEST 3
-    // Lee desde persistentDataPath (archivo puesto via ADB)
-    // Si no existe aun, copia el JSON del APK como fallback inicial
-    // ---------------------------------------------------------------
-    IEnumerator CargarEnAndroid()
+    private IEnumerator CargarYSpawnear()
     {
-        string destino = Path.Combine(Application.persistentDataPath, JSON_FILE_NAME);
-
-        if (!File.Exists(destino))
+        // Sin URL configurada: usar datos locales directamente
+        if (string.IsNullOrEmpty(drivePublicUrl))
         {
-            Debug.LogWarning("[ButtonSpawner] JSON no encontrado en persistentDataPath. Copiando desde StreamingAssets como fallback...");
+            Debug.LogWarning("[ButtonSpawner] drivePublicUrl vacia. Intentando datos locales...");
+            LeerLocalYSpawnear();
+            yield break;
+        }
 
-            string origen = Path.Combine(Application.streamingAssetsPath, JSON_FILE_NAME);
+        string downloadUrl = ConvertToDirectDownloadUrl(drivePublicUrl);
+        Debug.Log($"[ButtonSpawner] Descargando JSON desde Drive: {downloadUrl}");
 
-            using (UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequest.Get(origen))
+        using (UnityWebRequest request = UnityWebRequest.Get(downloadUrl))
+        {
+            request.timeout = 15;
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
             {
-                yield return www.SendWebRequest();
-
-                if (www.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
-                {
-                    Debug.LogError("[ButtonSpawner] No se pudo copiar el JSON desde StreamingAssets: " + www.error);
-                    yield break;
-                }
-
-                File.WriteAllText(destino, www.downloadHandler.text);
-                Debug.Log("[ButtonSpawner] JSON copiado a: " + destino);
+                Debug.LogWarning($"[ButtonSpawner] Fallo la descarga ({request.error}). Usando datos locales...");
+                LeerLocalYSpawnear();
+                yield break;
             }
-        }
-        else
-        {
-            Debug.Log("[ButtonSpawner] JSON encontrado en: " + destino);
-        }
 
-        List<BotonData> botones = LeerJSON(destino);
-        InstanciarBotones(botones);
+            string json = request.downloadHandler.text;
+
+            // Actualizar la copia local como respaldo para la proxima vez
+            try { File.WriteAllText(DriveDataLoader.LocalFilePath, json); }
+            catch (Exception e) { Debug.LogWarning($"[ButtonSpawner] No se pudo actualizar local: {e.Message}"); }
+
+            SpawnBotones(json);
+        }
     }
 
-    // ---------------------------------------------------------------
-    // Lee y parsea el JSON desde una ruta absoluta
-    // ---------------------------------------------------------------
-    List<BotonData> LeerJSON(string ruta)
+    private void LeerLocalYSpawnear()
     {
-        if (!File.Exists(ruta))
+        string json = DriveDataLoader.ReadLocalJson();
+        if (json == null)
         {
-            Debug.LogError("[ButtonSpawner] Archivo JSON no encontrado en: " + ruta);
-            return null;
+            Debug.LogError("[ButtonSpawner] No hay datos disponibles ni en Drive ni localmente.");
+            return;
         }
-
-        Debug.Log("[ButtonSpawner] Leyendo JSON desde: " + ruta);
-        string contenido = File.ReadAllText(ruta);
-        BotonDataList lista = JsonUtility.FromJson<BotonDataList>(contenido);
-
-        if (lista == null || lista.botones == null)
-        {
-            Debug.LogError("[ButtonSpawner] Formato incorrecto. El JSON debe tener la estructura: { \"botones\": [...] }");
-            return null;
-        }
-
-        return lista.botones;
+        SpawnBotones(json);
     }
 
-    // ---------------------------------------------------------------
-    // Instancia los botones en el panel
-    // ---------------------------------------------------------------
-    void InstanciarBotones(List<BotonData> botones)
+    private void SpawnBotones(string json)
     {
-        if (botones == null || botones.Count == 0)
+        BotonDataList lista;
+        try
         {
-            Debug.LogWarning("[ButtonSpawner] No hay botones para instanciar.");
+            lista = JsonUtility.FromJson<BotonDataList>(json);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ButtonSpawner] Error al parsear el JSON: {e.Message}");
             return;
         }
 
-        for (int i = 0; i < botones.Count; i++)
+        if (lista == null || lista.botones == null || lista.botones.Count == 0)
         {
-            Debug.Log("Creando botón " + i + " | Texto: " + botones[i].texto + " | Ponderación: " + botones[i].ponderacion);
-            GameObject btn = Instantiate(buttonPrefab, panel);
+            Debug.LogWarning("[ButtonSpawner] El JSON no contiene botones.");
+            return;
+        }
 
-            TextMeshProUGUI txt = btn.GetComponentInChildren<TextMeshProUGUI>();
-            if (txt != null)
+        // Limpiar instancias previas si las hubiera
+        foreach (Transform child in panel)
+            Destroy(child.gameObject);
+
+        for (int i = 0; i < lista.botones.Count; i++)
+        {
+            BotonData datos = lista.botones[i];
+            Debug.Log($"[ButtonSpawner] Creando boton {i} | Texto: {datos.texto} | Ponderacion: {datos.ponderacion}");
+
+            GameObject instancia = Instantiate(buttonPrefab, panel);
+            ConfigurarBoton(instancia, datos, i);
+        }
+
+        Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados.");
+    }
+
+    private void ConfigurarBoton(GameObject instancia, BotonData datos, int index)
+    {
+        Color color = datos.ponderacion >= umbralAlta ? colorAlta : colorBaja;
+
+        // Soporta TextMeshPro y Text legacy
+        TextMeshProUGUI tmpText = instancia.GetComponentInChildren<TextMeshProUGUI>();
+        if (tmpText != null)
+        {
+            tmpText.text  = datos.texto;
+            tmpText.color = color;
+        }
+        else
+        {
+            Text legacyText = instancia.GetComponentInChildren<Text>();
+            if (legacyText != null)
             {
-                txt.text = botones[i].texto;
+                legacyText.text  = datos.texto;
+                legacyText.color = color;
             }
+        }
 
-            int index = i;
-            float ponderacion = botones[i].ponderacion;
-
-            btn.GetComponent<Button>().onClick.AddListener(() => ClickBoton(index, ponderacion));
+        // Click: ejecuta logica y destruye el boton
+        Button btn = instancia.GetComponent<Button>();
+        if (btn != null)
+        {
+            float ponderacion = datos.ponderacion;
+            btn.onClick.AddListener(() =>
+            {
+                ClickBoton(index, ponderacion);
+                Destroy(instancia);
+            });
+        }
+        else
+        {
+            Debug.LogWarning("[ButtonSpawner] El prefab no tiene componente Button.");
         }
     }
 
     void ClickBoton(int i, float ponderacion)
     {
-        Debug.Log("Click en botón " + i + " | Ponderación: " + ponderacion);
+        Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
+        // Aqui va la logica del reto cuando se amplie la mecanica
+    }
+
+    private string ConvertToDirectDownloadUrl(string url)
+    {
+        if (url.Contains("/file/d/"))
+        {
+            int start = url.IndexOf("/file/d/") + 8;
+            int end   = url.IndexOf("/", start);
+            if (end == -1) end = url.Length;
+            string fileId = url.Substring(start, end - start);
+            return $"https://drive.google.com/uc?export=download&id={fileId}";
+        }
+        if (url.Contains("id="))
+        {
+            int start     = url.IndexOf("id=") + 3;
+            string fileId = url.Substring(start);
+            return $"https://drive.google.com/uc?export=download&id={fileId}";
+        }
+        return url;
     }
 }
