@@ -20,14 +20,7 @@ public class BotonDataList
 /// <summary>
 /// Colocar en la escena del RETO junto al panel holografico.
 /// Lee el JSON local guardado previamente por DriveDataLoader.
-/// La URL de Drive se maneja unicamente en DriveDataLoader.
-///
-/// En el Inspector:
-///   - buttonPrefab -> prefab del boton (debe tener Button + TextMeshProUGUI)
-///   - panel        -> Transform del contenedor donde se instancian los botones
-///   - colorAlta    -> color para botones con ponderacion >= umbralAlta
-///   - colorBaja    -> color para botones con ponderacion < umbralAlta
-///   - umbralAlta   -> ponderacion minima para considerar un boton como relevante
+/// Usa OnEnable para que se ejecute cada vez que el panel se activa.
 /// </summary>
 public class ButtonSpawner : MonoBehaviour
 {
@@ -39,11 +32,15 @@ public class ButtonSpawner : MonoBehaviour
     public Color colorAlta = new Color(0f, 1f, 1f, 1f);
     public Color colorBaja = new Color(1f, 1f, 1f, 0.55f);
     [Tooltip("Ponderacion minima para usar colorAlta")]
-    public float umbralAlta = 2f;
+    public float umbralAlta = 0.75f;
 
-    // ---------------------------------------------------------------
+    [Header("Texto")]
+    [Tooltip("Tamaño maximo del texto")]
+    public float fontSizeMax = 24f;
+    [Tooltip("Tamaño minimo del texto (auto-size)")]
+    public float fontSizeMin = 8f;
 
-    void Start()
+    void OnEnable()
     {
         string json = DriveDataLoader.ReadLocalJson();
 
@@ -55,8 +52,6 @@ public class ButtonSpawner : MonoBehaviour
 
         SpawnBotones(json);
     }
-
-    // ---------------------------------------------------------------
 
     private void SpawnBotones(string json)
     {
@@ -77,7 +72,6 @@ public class ButtonSpawner : MonoBehaviour
             return;
         }
 
-        // Limpiar instancias previas si las hubiera
         foreach (Transform child in panel)
             Destroy(child.gameObject);
 
@@ -86,34 +80,45 @@ public class ButtonSpawner : MonoBehaviour
             BotonData datos = lista.botones[i];
             GameObject instancia = Instantiate(buttonPrefab, panel);
             ConfigurarBoton(instancia, datos, i);
-            Debug.Log($"[ButtonSpawner] Boton {i} creado | Texto: {datos.texto} | Ponderacion: {datos.ponderacion}");
         }
 
-        Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados correctamente.");
+        Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados.");
     }
 
     private void ConfigurarBoton(GameObject instancia, BotonData datos, int index)
     {
         Color color = datos.ponderacion >= umbralAlta ? colorAlta : colorBaja;
 
-        // Soporta TextMeshPro y Text legacy
         TextMeshProUGUI tmpText = instancia.GetComponentInChildren<TextMeshProUGUI>();
         if (tmpText != null)
         {
-            tmpText.text  = datos.texto;
+            tmpText.text = datos.texto;
             tmpText.color = color;
+
+            // Ajuste automatico de texto
+            tmpText.enableWordWrapping = true;
+            tmpText.overflowMode = TextOverflowModes.Truncate;
+            tmpText.enableAutoSizing = true;
+            tmpText.fontSizeMin = fontSizeMin;
+            tmpText.fontSizeMax = fontSizeMax;
+            tmpText.alignment = TextAlignmentOptions.Center;
         }
         else
         {
             Text legacyText = instancia.GetComponentInChildren<Text>();
             if (legacyText != null)
             {
-                legacyText.text  = datos.texto;
+                legacyText.text = datos.texto;
                 legacyText.color = color;
+                legacyText.resizeTextForBestFit = true;
+                legacyText.resizeTextMinSize = (int)fontSizeMin;
+                legacyText.resizeTextMaxSize = (int)fontSizeMax;
+                legacyText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                legacyText.verticalOverflow = VerticalWrapMode.Truncate;
+                legacyText.alignment = TextAnchor.MiddleCenter;
             }
         }
 
-        // Click: ejecuta logica y destruye el boton
         Button btn = instancia.GetComponent<Button>();
         if (btn != null)
         {
@@ -133,6 +138,5 @@ public class ButtonSpawner : MonoBehaviour
     private void ClickBoton(int i, float ponderacion)
     {
         Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
-        // Aqui va la logica del reto cuando se amplie la mecanica
     }
 }

@@ -1,8 +1,0 @@
-{
-  "botones": [
-    { "texto": "Nivel 1 - Básico", "ponderacion": 0.25 },
-    { "texto": "Nivel 2 - Intermedio", "ponderacion": 0.50 },
-    { "texto": "Nivel 3 - Avanzado", "ponderacion": 0.75 },
-    { "texto": "Nivel 4 - Experto", "ponderacion": 1.0 }
-  ]
-}
