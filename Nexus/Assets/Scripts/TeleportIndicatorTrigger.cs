@@ -12,11 +12,12 @@ public class TeleportIndicatorTrigger : MonoBehaviour
 
     private Coroutine fadeCoroutine;
 
-    void Start()
+void Start()
     {
-        // Asegurarse que el Canvas empieza invisible e inactivo
         if (canvasGroup != null)
         {
+            // Asegurar escala correcta para VR WorldSpace (0.001 = 1px por mm)
+            canvasGroup.transform.localScale = new Vector3(0.001f, 0.001f, 0.001f);
             canvasGroup.alpha = 0f;
             canvasGroup.gameObject.SetActive(false);
         }

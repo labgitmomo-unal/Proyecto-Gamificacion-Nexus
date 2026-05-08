@@ -40,6 +40,10 @@ public class ButtonSpawner : MonoBehaviour
     [Tooltip("Tamaño minimo del texto (auto-size)")]
     public float fontSizeMin = 8f;
 
+    // Referencia al ScrollRect para resetear al top cada vez que se abre
+    private ScrollRect _scrollRect;
+
+
     void OnEnable()
     {
         string json = DriveDataLoader.ReadLocalJson();
@@ -51,36 +55,54 @@ public class ButtonSpawner : MonoBehaviour
         }
 
         SpawnBotones(json);
+
+        // Resetear scroll al tope despues de instanciar
+        if (_scrollRect != null)
+            _scrollRect.verticalNormalizedPosition = 1f;
     }
 
     private void SpawnBotones(string json)
     {
         BotonDataList lista;
+
         try
         {
             lista = JsonUtility.FromJson<BotonDataList>(json);
         }
         catch (Exception e)
         {
-            Debug.LogError($"[ButtonSpawner] Error al parsear el JSON: {e.Message}");
+            Debug.LogError($"[ButtonSpawner] Error al parsear JSON: {e.Message}");
             return;
         }
 
         if (lista == null || lista.botones == null || lista.botones.Count == 0)
         {
-            Debug.LogWarning("[ButtonSpawner] El JSON no contiene botones.");
+            Debug.LogWarning("[ButtonSpawner] JSON vacío.");
             return;
         }
 
-        foreach (Transform child in panel)
-            Destroy(child.gameObject);
+        // Limpiar hijos
+        for (int i = panel.childCount - 1; i >= 0; i--)
+        {
+            Destroy(panel.GetChild(i).gameObject);
+        }
 
+        // Instanciar botones
         for (int i = 0; i < lista.botones.Count; i++)
         {
-            BotonData datos = lista.botones[i];
             GameObject instancia = Instantiate(buttonPrefab, panel);
-            ConfigurarBoton(instancia, datos, i);
+
+            instancia.transform.localScale = Vector3.one;
+
+            ConfigurarBoton(instancia, lista.botones[i], i);
         }
+
+        // Forzar actualización layout
+        Canvas.ForceUpdateCanvases();
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(
+            panel.GetComponent<RectTransform>()
+        );
 
         Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados.");
     }
@@ -138,5 +160,12 @@ public class ButtonSpawner : MonoBehaviour
     private void ClickBoton(int i, float ponderacion)
     {
         Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
+    }
+
+
+    void Awake()
+    {
+        if (panel != null)
+            _scrollRect = panel.GetComponentInParent<ScrollRect>();
     }
 }
