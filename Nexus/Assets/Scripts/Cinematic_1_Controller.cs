@@ -39,6 +39,7 @@ public class Cinematic_1_Controller : MonoBehaviour
             spawner.minSpawnInterval = 0.1f;
             spawner.maxSpawnInterval = 0.5f;
         }
+        
     }
 
     public void RestaurarTrafico()
