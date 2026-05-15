@@ -5,23 +5,12 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 /// <summary>
-/// Colocar en la escena del MENU.
-/// Descarga el JSON desde Google Drive y lo guarda en persistentDataPath
-/// para que ButtonSpawner lo consuma en la escena del reto.
-///
-/// Estructura del JSON:
-/// {
-///   "botones": [
-///     { "texto": "Texto del boton", "ponderacion": 3.0 },
-///     { "texto": "Otro texto",      "ponderacion": 1.0 }
-///   ]
-/// }
-///
-/// Conexion con la UI (cuando este lista):
-///   - SetDriveUrl(string url)  -> llamar cuando el encargado pega la URL en el InputField
-///   - RefreshData()            -> llamar desde el boton "Actualizar"
-///   - OnDataLoaded             -> evento para habilitar el boton de continuar / ocultar loading
-///   - OnDataLoadFailed         -> evento para mostrar mensaje de error en pantalla
+/// FIX DEFINITIVO:
+///   - DataReady es ESTATICO: persiste entre escenas. ButtonSpawner lo consulta
+///     en OnEnable para saber si la descarga ya termino sin necesitar el evento.
+///   - NO se borra el archivo local antes de descargar: ButtonSpawner siempre
+///     tiene algo que mostrar mientras llega el nuevo JSON.
+///   - Start() resetea DataReady=false para forzar re-descarga en cada Play.
 /// </summary>
 public class DriveDataLoader : MonoBehaviour
 {
@@ -32,24 +21,24 @@ public class DriveDataLoader : MonoBehaviour
     [Tooltip("Descargar automaticamente al iniciar la escena del menu")]
     public bool autoLoadOnStart = true;
 
-    // Ruta local compartida con ButtonSpawner
     public static string LocalFilePath =>
         Path.Combine(Application.persistentDataPath, "variables_abstraccion.json");
 
-    // Eventos para la UI
     public static event Action OnDataLoaded;
     public static event Action<string> OnDataLoadFailed;
 
     public bool IsLoading { get; private set; }
-    public bool DataReady { get; private set; }
+
+    // ESTATICO: ButtonSpawner lo lee desde cualquier escena
+    public static bool DataReady { get; private set; }
 
     void Start()
     {
+        DataReady = false; // Resetear cada sesion para forzar descarga fresca
         if (autoLoadOnStart)
             LoadFromDrive();
     }
 
-    // Llama esto para iniciar la descarga con la URL actual
     public void LoadFromDrive()
     {
         if (string.IsNullOrEmpty(drivePublicUrl))
@@ -61,23 +50,21 @@ public class DriveDataLoader : MonoBehaviour
         StartCoroutine(DownloadAndSave(drivePublicUrl));
     }
 
-    // Fuerza re-descarga — conectar al boton "Actualizar" del encargado
     public void RefreshData()
     {
         DataReady = false;
         LoadFromDrive();
     }
 
-    // La UI llama esto cuando el encargado escribe/pega la URL en el InputField
-    public void SetDriveUrl(string url)
-    {
-        drivePublicUrl = url;
-    }
+    public void SetDriveUrl(string url) => drivePublicUrl = url;
 
     private IEnumerator DownloadAndSave(string rawUrl)
     {
         IsLoading = true;
         DataReady = false;
+
+        // NO borramos el archivo local: ButtonSpawner puede mostrar datos del run anterior
+        // mientras la descarga nueva llega. Cuando termina, HandleDataLoaded lo regenera.
 
         string downloadUrl = ConvertToDirectDownloadUrl(rawUrl);
         Debug.Log($"[DriveDataLoader] Descargando desde: {downloadUrl}");
@@ -113,7 +100,7 @@ public class DriveDataLoader : MonoBehaviour
                 Debug.Log($"[DriveDataLoader] JSON guardado en: {LocalFilePath}");
                 DataReady = true;
                 IsLoading = false;
-                OnDataLoaded?.Invoke();
+                OnDataLoaded?.Invoke(); // ButtonSpawner regenera si esta en escena
             }
             catch (Exception e)
             {
@@ -125,10 +112,8 @@ public class DriveDataLoader : MonoBehaviour
         }
     }
 
-    // Convierte cualquier formato de link publico de Drive a descarga directa
     private string ConvertToDirectDownloadUrl(string url)
     {
-        // Formato: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
         if (url.Contains("/file/d/"))
         {
             int start = url.IndexOf("/file/d/") + 8;
@@ -137,7 +122,6 @@ public class DriveDataLoader : MonoBehaviour
             string fileId = url.Substring(start, end - start);
             return $"https://drive.google.com/uc?export=download&id={fileId}";
         }
-        // Formato: https://drive.google.com/open?id=FILE_ID
         if (url.Contains("id="))
         {
             int start     = url.IndexOf("id=") + 3;
@@ -154,7 +138,6 @@ public class DriveDataLoader : MonoBehaviour
                (json.StartsWith("[") && json.EndsWith("]"));
     }
 
-    // Utilidades estaticas para que ButtonSpawner acceda al archivo local
     public static bool HasLocalData() => File.Exists(LocalFilePath);
 
     public static string ReadLocalJson()

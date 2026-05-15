@@ -18,9 +18,10 @@ public class BotonDataList
 }
 
 /// <summary>
-/// Colocar en la escena del RETO junto al panel holografico.
-/// Lee el JSON local guardado previamente por DriveDataLoader.
-/// Usa OnEnable para que se ejecute cada vez que el panel se activa.
+/// FIX DEFINITIVO: Cubre los tres casos posibles:
+///   A) Descarga ya termino antes de cargar esta escena (DataReady=true) -> genera inmediato
+///   B) Descarga termina despues de OnEnable                             -> HandleDataLoaded genera
+///   C) Panel se reactiva (OnEnable de nuevo)                           -> siempre relee el disco
 /// </summary>
 public class ButtonSpawner : MonoBehaviour
 {
@@ -40,23 +41,56 @@ public class ButtonSpawner : MonoBehaviour
     [Tooltip("Tamaño minimo del texto (auto-size)")]
     public float fontSizeMin = 8f;
 
-    // Referencia al ScrollRect para resetear al top cada vez que se abre
     private ScrollRect _scrollRect;
 
+    void Awake()
+    {
+        if (panel != null)
+            _scrollRect = panel.GetComponentInParent<ScrollRect>();
+    }
 
     void OnEnable()
     {
-        string json = DriveDataLoader.ReadLocalJson();
+        // Suscribirse PRIMERO para no perder el evento
+        DriveDataLoader.OnDataLoaded += HandleDataLoaded;
 
-        if (json == null)
+        // CASO A: La descarga ya termino (DataReady=true) O el archivo existe del run anterior
+        // En ambos casos generamos los botones de inmediato con lo que hay en disco.
+        if (DriveDataLoader.DataReady || DriveDataLoader.HasLocalData())
         {
-            Debug.LogError("[ButtonSpawner] No hay datos locales. Asegurate de que DriveDataLoader haya descargado el JSON desde el menu.");
+            string json = DriveDataLoader.ReadLocalJson();
+            if (json != null)
+            {
+                SpawnBotones(json);
+                ResetScroll();
+            }
+            // Quedarse suscrito por si RefreshData() se llama durante la sesion
             return;
         }
 
-        SpawnBotones(json);
+        // CASO B: No hay nada aun. HandleDataLoaded() generara cuando termine la descarga.
+        Debug.Log("[ButtonSpawner] Esperando descarga de DriveDataLoader...");
+    }
 
-        // Resetear scroll al tope despues de instanciar
+    void OnDisable()
+    {
+        DriveDataLoader.OnDataLoaded -= HandleDataLoaded;
+    }
+
+    // CASO B: llega cuando DriveDataLoader termina de guardar el JSON nuevo
+    private void HandleDataLoaded()
+    {
+        Debug.Log("[ButtonSpawner] JSON actualizado recibido, regenerando botones...");
+        string json = DriveDataLoader.ReadLocalJson();
+        if (json != null)
+        {
+            SpawnBotones(json);
+            ResetScroll();
+        }
+    }
+
+    private void ResetScroll()
+    {
         if (_scrollRect != null)
             _scrollRect.verticalNormalizedPosition = 1f;
     }
@@ -64,11 +98,7 @@ public class ButtonSpawner : MonoBehaviour
     private void SpawnBotones(string json)
     {
         BotonDataList lista;
-
-        try
-        {
-            lista = JsonUtility.FromJson<BotonDataList>(json);
-        }
+        try { lista = JsonUtility.FromJson<BotonDataList>(json); }
         catch (Exception e)
         {
             Debug.LogError($"[ButtonSpawner] Error al parsear JSON: {e.Message}");
@@ -77,33 +107,22 @@ public class ButtonSpawner : MonoBehaviour
 
         if (lista == null || lista.botones == null || lista.botones.Count == 0)
         {
-            Debug.LogWarning("[ButtonSpawner] JSON vacío.");
+            Debug.LogWarning("[ButtonSpawner] JSON vacio o sin botones.");
             return;
         }
 
-        // Limpiar hijos
         for (int i = panel.childCount - 1; i >= 0; i--)
-        {
             Destroy(panel.GetChild(i).gameObject);
-        }
 
-        // Instanciar botones
         for (int i = 0; i < lista.botones.Count; i++)
         {
             GameObject instancia = Instantiate(buttonPrefab, panel);
-
             instancia.transform.localScale = Vector3.one;
-
             ConfigurarBoton(instancia, lista.botones[i], i);
         }
 
-        // Forzar actualización layout
         Canvas.ForceUpdateCanvases();
-
-        LayoutRebuilder.ForceRebuildLayoutImmediate(
-            panel.GetComponent<RectTransform>()
-        );
-
+        LayoutRebuilder.ForceRebuildLayoutImmediate(panel.GetComponent<RectTransform>());
         Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados.");
     }
 
@@ -114,30 +133,28 @@ public class ButtonSpawner : MonoBehaviour
         TextMeshProUGUI tmpText = instancia.GetComponentInChildren<TextMeshProUGUI>();
         if (tmpText != null)
         {
-            tmpText.text = datos.texto;
-            tmpText.color = color;
-
-            // Ajuste automatico de texto
+            tmpText.text               = datos.texto;
+            tmpText.color              = color;
             tmpText.enableWordWrapping = true;
-            tmpText.overflowMode = TextOverflowModes.Truncate;
-            tmpText.enableAutoSizing = true;
-            tmpText.fontSizeMin = fontSizeMin;
-            tmpText.fontSizeMax = fontSizeMax;
-            tmpText.alignment = TextAlignmentOptions.Center;
+            tmpText.overflowMode       = TextOverflowModes.Truncate;
+            tmpText.enableAutoSizing   = true;
+            tmpText.fontSizeMin        = fontSizeMin;
+            tmpText.fontSizeMax        = fontSizeMax;
+            tmpText.alignment          = TextAlignmentOptions.Center;
         }
         else
         {
             Text legacyText = instancia.GetComponentInChildren<Text>();
             if (legacyText != null)
             {
-                legacyText.text = datos.texto;
-                legacyText.color = color;
+                legacyText.text                 = datos.texto;
+                legacyText.color                = color;
                 legacyText.resizeTextForBestFit = true;
-                legacyText.resizeTextMinSize = (int)fontSizeMin;
-                legacyText.resizeTextMaxSize = (int)fontSizeMax;
-                legacyText.horizontalOverflow = HorizontalWrapMode.Wrap;
-                legacyText.verticalOverflow = VerticalWrapMode.Truncate;
-                legacyText.alignment = TextAnchor.MiddleCenter;
+                legacyText.resizeTextMinSize    = (int)fontSizeMin;
+                legacyText.resizeTextMaxSize    = (int)fontSizeMax;
+                legacyText.horizontalOverflow   = HorizontalWrapMode.Wrap;
+                legacyText.verticalOverflow     = VerticalWrapMode.Truncate;
+                legacyText.alignment            = TextAnchor.MiddleCenter;
             }
         }
 
@@ -145,27 +162,11 @@ public class ButtonSpawner : MonoBehaviour
         if (btn != null)
         {
             float ponderacion = datos.ponderacion;
-            btn.onClick.AddListener(() =>
-            {
-                ClickBoton(index, ponderacion);
-                Destroy(instancia);
-            });
+            btn.onClick.AddListener(() => { ClickBoton(index, ponderacion); Destroy(instancia); });
         }
-        else
-        {
-            Debug.LogWarning("[ButtonSpawner] El prefab no tiene componente Button.");
-        }
+        else Debug.LogWarning("[ButtonSpawner] El prefab no tiene componente Button.");
     }
 
     private void ClickBoton(int i, float ponderacion)
-    {
-        Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
-    }
-
-
-    void Awake()
-    {
-        if (panel != null)
-            _scrollRect = panel.GetComponentInParent<ScrollRect>();
-    }
+        => Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
 }
