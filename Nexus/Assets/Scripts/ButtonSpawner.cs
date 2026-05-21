@@ -114,6 +114,15 @@ public class ButtonSpawner : MonoBehaviour
         for (int i = panel.childCount - 1; i >= 0; i--)
             Destroy(panel.GetChild(i).gameObject);
 
+        // Mezclar lista aleatoriamente (Fisher-Yates)
+        for (int i = lista.botones.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            var temp = lista.botones[i];
+            lista.botones[i] = lista.botones[j];
+            lista.botones[j] = temp;
+        }
+
         for (int i = 0; i < lista.botones.Count; i++)
         {
             GameObject instancia = Instantiate(buttonPrefab, panel);
@@ -123,7 +132,19 @@ public class ButtonSpawner : MonoBehaviour
 
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(panel.GetComponent<RectTransform>());
-        Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados.");
+
+        // Contar botones con ponderacion 1.0 y notificar al panel de progreso
+        int totalObjetivo = 0;
+        foreach (var b in lista.botones)
+            if (Mathf.Approximately(b.ponderacion, 1f)) totalObjetivo++;
+
+        var progreso = UnityEngine.Object.FindObjectOfType<ProgresoAbstraccion>();
+        if (progreso != null)
+            progreso.InicializarConTotal(totalObjetivo);
+        else
+            Debug.LogWarning("[ButtonSpawner] ProgresoAbstraccion no encontrado en escena.");
+
+        Debug.Log($"[ButtonSpawner] {lista.botones.Count} botones instanciados. Objetivos (pond=1): {totalObjetivo}");
     }
 
     private void ConfigurarBoton(GameObject instancia, BotonData datos, int index)
@@ -168,5 +189,13 @@ public class ButtonSpawner : MonoBehaviour
     }
 
     private void ClickBoton(int i, float ponderacion)
-        => Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
+    {
+        // Si el scroll esta bloqueado (100% alcanzado), no procesar mas eliminaciones
+        if (_scrollRect != null && !_scrollRect.enabled) return;
+
+        Debug.Log($"[ButtonSpawner] Click en boton {i} | Ponderacion: {ponderacion}");
+
+        if (Mathf.Approximately(ponderacion, 1f))
+            ProgresoAbstraccion.NotificarEliminacion();
+    }
 }
