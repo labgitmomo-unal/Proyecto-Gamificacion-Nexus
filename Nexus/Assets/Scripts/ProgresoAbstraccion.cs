@@ -22,14 +22,25 @@ public class ProgresoAbstraccion : MonoBehaviour
     private int _totalObjetivo = 0;
     private int _eliminados    = 0;
 
-    public static event Action OnBotonObjetivoEliminado;    public static event Action OnFaseCompletada;
+    public static event Action OnBotonObjetivoEliminado;
+    public static event Action OnFaseCompletada;
+    // Flag para que paneles que arrancan tarde sepan si la fase ya se completo
+    public static bool FaseCompletada { get; private set; }
 
 
-    void OnEnable()
-    {
-        OnBotonObjetivoEliminado += HandleBotonEliminado;
-        ActualizarUI();
-    }
+	void OnEnable()
+	{
+		FaseCompletada = false; // Resetear al inicio de sesion
+		OnBotonObjetivoEliminado += HandleBotonEliminado;
+
+		// Resetear el PanelPonderacionCero antes de empezar la ronda
+		// para evitar que aparezca "Completado" de una sesion anterior
+		var panel = UnityEngine.Object.FindObjectOfType<PanelPonderacionCero>();
+		if (panel != null)
+			panel.Resetear();
+
+		ActualizarUI();
+	}
 
     void OnDisable()
     {
@@ -113,20 +124,25 @@ public class ProgresoAbstraccion : MonoBehaviour
         Transform viewport = scrollView.viewport;
         if (viewport != null)
         {
+            // Contenedor del mensaje
             var msgGO = new GameObject("MsgFaseCompletada");
             msgGO.transform.SetParent(viewport, false);
+            var msgRT = msgGO.AddComponent<RectTransform>();
+            msgRT.anchorMin = Vector2.zero; msgRT.anchorMax = Vector2.one;
+            msgRT.offsetMin = msgRT.offsetMax = Vector2.zero;
+            msgGO.AddComponent<UnityEngine.UI.Image>().color = new Color(0f, 0.03f, 0.08f, 0.95f);
 
-            var rt = msgGO.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-
-            var tmp = msgGO.AddComponent<TMPro.TextMeshProUGUI>();
+            // Texto en hijo separado (TMP no puede compartir GO con otros componentes UI)
+            var txtGO = new GameObject("Texto");
+            txtGO.transform.SetParent(msgGO.transform, false);
+            var txtRT = txtGO.AddComponent<RectTransform>();
+            txtRT.anchorMin = new Vector2(0.05f, 0.05f); txtRT.anchorMax = new Vector2(0.95f, 0.95f);
+            txtRT.offsetMin = txtRT.offsetMax = Vector2.zero;
+            var tmp = txtGO.AddComponent<TMPro.TextMeshProUGUI>();
             tmp.text = "Fase\nCompletada";
             tmp.alignment = TMPro.TextAlignmentOptions.Center;
             tmp.enableAutoSizing = true;
-            tmp.fontSizeMin = 10;
-            tmp.fontSizeMax = 300;
+            tmp.fontSizeMin = 10; tmp.fontSizeMax = 300;
             tmp.color = new Color(1f, 1f, 1f, 1f);
             tmp.fontStyle = TMPro.FontStyles.Bold;
         }
@@ -135,8 +151,8 @@ public class ProgresoAbstraccion : MonoBehaviour
         if (fillImage != null) fillImage.color = colorBloqueado;
         if (textoporcentaje != null) textoporcentaje.text = "COMPLETO";
 
-        
-        // Notificar a otros paneles que la fase se completo
+        // 5. Notificar al panel de la segunda mesa
+        FaseCompletada = true;
         OnFaseCompletada?.Invoke();
 Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%.");
     }

@@ -9,6 +9,7 @@ public class BotonData
 {
     public string texto;
     public float  ponderacion;
+    public string categoria;
 }
 
 [Serializable]
@@ -28,12 +29,6 @@ public class ButtonSpawner : MonoBehaviour
     [Header("Prefab y contenedor")]
     public GameObject buttonPrefab;
     public Transform  panel;
-
-    [Header("Visual por ponderacion")]
-    public Color colorAlta = new Color(0f, 1f, 1f, 1f);
-    public Color colorBaja = new Color(1f, 1f, 1f, 0.55f);
-    [Tooltip("Ponderacion minima para usar colorAlta")]
-    public float umbralAlta = 0.75f;
 
     [Header("Texto")]
     [Tooltip("Tamaño maximo del texto")]
@@ -149,7 +144,7 @@ public class ButtonSpawner : MonoBehaviour
 
     private void ConfigurarBoton(GameObject instancia, BotonData datos, int index)
     {
-        Color color = datos.ponderacion >= umbralAlta ? colorAlta : colorBaja;
+        Color color = Color.white;
 
         TextMeshProUGUI tmpText = instancia.GetComponentInChildren<TextMeshProUGUI>();
         if (tmpText != null)

@@ -3,7 +3,7 @@
   "mcp": {
     "unityMCP": {
       "type": "remote",
-      "url": "http://localhost:8080/mcp",
+      "url": "http://localhost:8081/mcp",
       "enabled": true
     }
   }
