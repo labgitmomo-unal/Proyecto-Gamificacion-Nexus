@@ -17,8 +17,8 @@ public class PanelPonderacionCero : MonoBehaviour
     public Color colorFondoCol    = new Color(0f, 0.08f, 0.15f, 0.9f);
 
     [Header("Tipografia")]
-    public float fontSizeMaxBoton = 28f;
-    public float fontSizeMinBoton = 8f;
+    public float fontSizeMaxBoton = 36f;
+    public float fontSizeMinBoton = 14f;
 
     private CanvasGroup _cg;
     private bool _inicializado = false;
@@ -209,7 +209,7 @@ public class PanelPonderacionCero : MonoBehaviour
         var header = new GameObject("Header");
         header.transform.SetParent(col.transform, false);
         var headerRT = header.AddComponent<RectTransform>();
-        var hLE = header.AddComponent<LayoutElement>(); hLE.minHeight=70; hLE.preferredHeight=70;
+        var hLE = header.AddComponent<LayoutElement>(); hLE.minHeight=90; hLE.preferredHeight=90;
         header.AddComponent<Image>().color = new Color(0f,0.15f,0.22f,1f);
         // Texto en hijo separado para evitar conflicto Image+TMP en mismo GO
         var hTextoGO = new GameObject("HeaderTexto");
@@ -279,10 +279,10 @@ public class PanelPonderacionCero : MonoBehaviour
         go.name = $"Btn|{datos.categoria}";
 
         var rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(240f, 90f);
+        rt.sizeDelta = new Vector2(280f, 110f);
 
         var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
-        le.preferredWidth=240f; le.preferredHeight=90f; le.minHeight=60f;
+        le.preferredWidth=280f; le.preferredHeight=110f; le.minHeight=70f;
 
         // Quitar Button
         var btn = go.GetComponent<Button>();
