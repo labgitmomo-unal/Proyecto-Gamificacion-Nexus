@@ -154,7 +154,7 @@ public class ProgresoAbstraccion : MonoBehaviour
         // 5. Notificar al panel de la segunda mesa
         FaseCompletada = true;
         OnFaseCompletada?.Invoke();
-Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%.");
+        Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%.");
     }
 
     private void DesbloquearScrollView()

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 /// <summary>
 /// Physics-based XR grab behavior for UI buttons in the PanelPonderacionCero.
@@ -70,12 +71,12 @@ public class AbductionGrabbable : MonoBehaviour
         if (_img == null) _img = GetComponentInChildren<Image>();
 
         // ── Pad XRGrabInteractable para comportamiento de agarre suave ──────
-        xrg.trackPosition             = false;
-        xrg.trackRotation             = false;
-        xrg.snapToColliderVolume      = true;
-        xrg.throwVelocityScale        = 1.2f;
-        xrg.throwAngularVelocityScale = 0.8f;
-        xrg.matchAttachRotation       = false;
+        _xrg.trackPosition             = false;
+        _xrg.trackRotation             = false;
+        _xrg.snapToColliderVolume      = true;
+        _xrg.throwVelocityScale        = 1.2f;
+        _xrg.throwAngularVelocityScale = 0.8f;
+        _xrg.matchAttachRotation       = false;
 
         // Kinematic off: XR grab usa MovePosition interno; physics activa al soltar
         _rb.isKinematic = false;
@@ -97,8 +98,9 @@ public class AbductionGrabbable : MonoBehaviour
     {
         if (!_isGrabbed) return;
 
-        // ── track controller velocity ──────────────────────────────────────
-        var interactor = _xrg.interactorsSelecting.FirstActive();
+        // ── read the first active selecting interactor (controller that holds this button)
+        if (_xrg.interactorsSelecting == null || _xrg.interactorsSelecting.Count == 0) return;
+        var interactor = _xrg.interactorsSelecting[0];
         if (interactor == null) return;
 
         Vector3 ctrlPos = interactor.transform.position;
