@@ -2,10 +2,24 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using TMPro;
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit;
 
+/// <summary>
+/// Panel de categorias mezcladas (ponderacion == 0).
+///
+/// Mecanica: dos toques selectivos XR.
+///   1. Tocar/Seleccionar un boton → BotonDato se resalta AMARILLO
+///   2. Tocar/Seleccionar una categoria (header) → se evalua el match:
+///        Coincide   → boton VERDE → destruye → notifica progreso
+///        No coincide → boton ROJO  → deselecciona
+///
+/// La sincronizacion entre pasos se hace a traves de BotonSeleccionado (estatico).
+///
+/// Layout (igual que aebb882):
+///   - Zona superior (57%): titulos de categoria + CategoriaHeader interactivos
+///   - Zona inferior (43%): botones mezclados + ScrollRect horizontal
+/// </summary>
 [RequireComponent(typeof(CanvasGroup))]
 public class PanelPonderacionCero : MonoBehaviour
 {
@@ -13,9 +27,9 @@ public class PanelPonderacionCero : MonoBehaviour
     public GameObject buttonPrefab;
 
     [Header("Colores")]
-    public Color colorBoton       = new Color(0f, 0.85f, 1f, 1f);
-    public Color colorHeader      = new Color(0f, 1f, 1f, 1f);
-    public Color colorFondoCol    = new Color(0f, 0.08f, 0.15f, 0.9f);
+    public Color colorBoton    = new Color(0f, 0.85f, 1f, 1f);
+    public Color colorHeader   = new Color(0f, 1f, 1f, 1f);
+    public Color colorFondoCol = new Color(0f, 0.08f, 0.15f, 0.9f);
 
     [Header("Tipografia")]
     public float fontSizeMaxBoton = 36f;
@@ -23,23 +37,26 @@ public class PanelPonderacionCero : MonoBehaviour
 
     private CanvasGroup _cg;
     private bool _inicializado = false;
-    private Dictionary<string, CategoriaDropHandler> _destinosCategoria;
 
-	void Awake()
-	{
-		_cg = GetComponent<CanvasGroup>();
-		_cg.alpha = 0f;
-		_cg.interactable = false;
-		_cg.blocksRaycasts = false;
-		_inicializado = false;
-	}
+    /// <summary>Boton actualmente seleccionado por el jugador (estatico, compartido).</summary>
+    public static BotonDato BotonSeleccionado { get; private set; }
+
+    /// <summary>Evento estatico: disparado cuando un boton es tocado y presionado por XR.</summary>
+    public static event Action<BotonDato> OnBotonTocado;
+
+    void Awake()
+    {
+        _cg            = GetComponent<CanvasGroup>();
+        _cg.alpha      = 0f;
+        _cg.interactable= false;
+        _cg.blocksRaycasts = false;
+        _inicializado  = false;
+        BotonSeleccionado = null;
+    }
 
     void Start()
     {
-        // Suscribirse al evento
         ProgresoAbstraccion.OnFaseCompletada += Inicializar;
-
-        // Si la fase ya se completo antes de que este panel arrancara, inicializar ya
         if (ProgresoAbstraccion.FaseCompletada)
             Inicializar();
     }
@@ -51,7 +68,7 @@ public class PanelPonderacionCero : MonoBehaviour
         if (_inicializado) return;
         _inicializado = true;
 
-        // Limpiar hijos duplicados por si acaso
+        // Limpiar hijos existentes
         for (int i = transform.childCount - 1; i >= 0; i--)
             Destroy(transform.GetChild(i).gameObject);
 
@@ -62,7 +79,7 @@ public class PanelPonderacionCero : MonoBehaviour
         try { lista = JsonUtility.FromJson<BotonDataList>(json); }
         catch (Exception e) { Debug.LogError($"[Panel] JSON error: {e.Message}"); return; }
 
-        // Filtrar ponderacion==0 CON categoria
+        // Filtrar solo ponderacion == 0 Y con categoria
         var items = new List<BotonData>();
         var categorias = new List<string>();
         foreach (var b in lista.botones)
@@ -75,7 +92,7 @@ public class PanelPonderacionCero : MonoBehaviour
 
         if (items.Count == 0) { Debug.LogWarning("[Panel] Sin items."); return; }
 
-        // Mezclar Fisher-Yates
+        // Mezclar (Fisher-Yates)
         for (int i = items.Count - 1; i > 0; i--)
         {
             int j = UnityEngine.Random.Range(0, i + 1);
@@ -86,35 +103,36 @@ public class PanelPonderacionCero : MonoBehaviour
 
         ConstruirUI(items, categorias);
 
-		_cg.alpha = 1f;
-		_cg.interactable = true;
-		_cg.blocksRaycasts = true;
+        _cg.alpha         = 1f;
+        _cg.interactable  = true;
+        _cg.blocksRaycasts= true;
 
-		Debug.Log("[PanelPonderacionCero] Panel visible.");
-	}
+        Debug.Log("[PanelPonderacionCero] Panel visible.");
+    }
 
-	/// <summary>
-	/// Resetea el panel para una nueva sesion de juego.
-	/// Llamado por ProgresoAbstraccion en OnEnable para limpiar el estado anterior.
-	/// </summary>
-	public void Resetear()
-	{
-		if (_inicializado)
-		{
-			// Limpiar hijos (botones, titulos, etc.)
-			for (int i = transform.childCount - 1; i >= 0; i--)
-				Destroy(transform.GetChild(i).gameObject);
+    /// <summary>Resetea el panel (borra hijos, oculta, deselecciona boton activo).</summary>
+    public void Resetear()
+    {
+        // Deseleccionar primero
+        if (BotonSeleccionado != null)
+        {
+            BotonSeleccionado.Deseleccionar();
+            BotonSeleccionado = null;
+        }
 
-			_inicializado = false;
-		}
+        if (_inicializado)
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+                Destroy(transform.GetChild(i).gameObject);
+            _inicializado = false;
+        }
 
-		// Ocultar el panel mientras no se complete la fase
-		_cg.alpha = 0f;
-		_cg.interactable = false;
-		_cg.blocksRaycasts = false;
+        _cg.alpha         = 0f;
+        _cg.interactable  = false;
+        _cg.blocksRaycasts= false;
 
-		Debug.Log("[PanelPonderacionCero] Panel reseteado.");
-	}
+        Debug.Log("[PanelPonderacionCero] Panel reseteado.");
+    }
 
     private void ConstruirUI(List<BotonData> items, List<string> categorias)
     {
@@ -122,25 +140,24 @@ public class PanelPonderacionCero : MonoBehaviour
         CrearImagen("Fondo", transform, new Color(0f,0.03f,0.08f,0.97f),
                     Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
-        // === ZONA SUPERIOR (arriba): titulos de categoria ===
-        // Los titulos ocupan la mitad superior del panel (anchorMin.y=0.57)
+        // === ZONA SUPERIOR: titulos de categoria + CategoriaHeader ===
         var zonaTitulos = CrearNodo("ZonaTitulos", transform,
                               new Vector2(0f,0.57f), new Vector2(1f,1f),
                               new Vector2(6f,6f), new Vector2(-6f,-6f));
-        var ztl = zonaTitulos.AddComponent<HorizontalLayoutGroup>();
-        ztl.spacing=6; ztl.padding=new RectOffset(6,6,6,6);
-        ztl.childControlWidth=true; ztl.childControlHeight=true;
-        ztl.childForceExpandWidth=true; ztl.childForceExpandHeight=true;
-
-        _destinosCategoria = new Dictionary<string, CategoriaDropHandler>();
-        foreach (var cat in categorias)
         {
-            var dh = CrearTituloCategoria(cat, zonaTitulos.transform);
-            _destinosCategoria[cat] = dh;
+            var hlg = zonaTitulos.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing     = 6;
+            hlg.padding     = new RectOffset(6, 6, 6, 6);
+            hlg.childControlWidth  = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth  = true;
+            hlg.childForceExpandHeight = true;
         }
 
-        // === ZONA INFERIOR (abajo): botones mezclados en scroll horizontal ===
-        // anchorMin=(0,0), anchorMax=(1,0.57) — ocupa el 57% inferior
+        foreach (var cat in categorias)
+            CrearTituloCategoria(cat, zonaTitulos.transform);
+
+        // === ZONA INFERIOR: botones mezclados ===
         var zonaMix = CrearNodo("ZonaMezclados", transform,
                                 new Vector2(0f,0f), new Vector2(1f,0.57f),
                                 new Vector2(6f,6f), new Vector2(-6f,-6f));
@@ -149,181 +166,230 @@ public class PanelPonderacionCero : MonoBehaviour
 
         // Instruccion
         var tituloGO = CrearNodo("Titulo", zonaMix.transform,
-                                 new Vector2(0f,0.90f), new Vector2(1f,1f),
+                                 new Vector2(0f,0.92f), new Vector2(1f,1f),
                                  new Vector2(8f,2f), new Vector2(-8f,-2f));
         var tTMP = tituloGO.AddComponent<TextMeshProUGUI>();
-        tTMP.text = "Arrastra cada dato a su categoria";
+        tTMP.text = "Toca un dato, luego toca su categoria";
         tTMP.alignment = TextAlignmentOptions.Center;
-        tTMP.enableAutoSizing = true; tTMP.fontSizeMin=8; tTMP.fontSizeMax=40;
-        tTMP.color = new Color(0.7f,0.9f,1f,0.8f);
+        tTMP.enableAutoSizing = true;
+        tTMP.fontSizeMin = 8;
+        tTMP.fontSizeMax = 40;
+        tTMP.color = new Color(0.7f, 0.9f, 1f, 0.8f);
         tTMP.fontStyle = FontStyles.Italic;
         tTMP.textWrappingMode = TMPro.TextWrappingModes.Normal;
 
-        // ScrollRect horizontal para los botones mezclados
+        // ScrollRect horizontal
         var mixScrollGO = CrearNodo("MixScroll", zonaMix.transform,
                                      new Vector2(0f,0f), new Vector2(1f,0.88f),
                                      new Vector2(4f,4f), new Vector2(-4f,-4f));
-        var mixBg = mixScrollGO.AddComponent<Image>();
-        mixBg.color = new Color(0,0,0,0.01f);
-        var mixScroll = mixScrollGO.AddComponent<ScrollRect>();
+        {
+            var bg = mixScrollGO.AddComponent<Image>();
+            bg.color = new Color(0f,0f,0f,0.01f);
 
-        var mixVP = CrearNodo("Viewport", mixScrollGO.transform,
+            var sr = mixScrollGO.AddComponent<ScrollRect>();
+            var vp = CrearNodo("Viewport", mixScrollGO.transform,
                                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-        var mixVPImg = mixVP.AddComponent<Image>(); mixVPImg.color = new Color(0,0,0,0.01f);
-        var mixMask = mixVP.AddComponent<Mask>(); mixMask.showMaskGraphic = false;
+            var vpImg = vp.AddComponent<Image>();
+            vpImg.color = new Color(0f,0f,0f,0.01f);
+            var mask = vp.AddComponent<Mask>();
+            mask.showMaskGraphic = false;
 
-        var mixContent = CrearNodo("Content", mixVP.transform, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
-        var mixContentRT = mixContent.GetComponent<RectTransform>();
-        mixContentRT.anchorMin = new Vector2(0,0); mixContentRT.anchorMax = new Vector2(0,1);
-        mixContentRT.pivot     = new Vector2(0,0.5f);
-        mixContentRT.offsetMin = mixContentRT.offsetMax = Vector2.zero;
-        mixContentRT.sizeDelta = Vector2.zero;
-        var hlg = mixContent.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing=10; hlg.padding=new RectOffset(10,10,6,6);
-        hlg.childControlWidth=false; hlg.childControlHeight=false;
-        hlg.childForceExpandWidth=false; hlg.childForceExpandHeight=false;
-        var mixCSF = mixContent.AddComponent<ContentSizeFitter>();
-        mixCSF.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var content = CrearNodo("Content", vp.transform, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
+            var contentRT = content.GetComponent<RectTransform>();
+            contentRT.anchorMin = new Vector2(0f,0f);
+            contentRT.anchorMax = new Vector2(0f,1f);
+            contentRT.pivot     = new Vector2(0f,0.5f);
+            contentRT.offsetMin = contentRT.offsetMax = Vector2.zero;
+            contentRT.sizeDelta = Vector2.zero;
 
-        mixScroll.viewport=mixVP.GetComponent<RectTransform>();
-        mixScroll.content=mixContentRT;
-        mixScroll.horizontal=true; mixScroll.vertical=false;
-        mixScroll.movementType=ScrollRect.MovementType.Elastic;
-        mixScroll.scrollSensitivity=30f;
+            var hlg = content.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing              = 10;
+            hlg.padding              = new RectOffset(10, 10, 6, 6);
+            hlg.childControlWidth    = false;
+            hlg.childControlHeight   = false;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight= false;
+
+            var csf = content.AddComponent<ContentSizeFitter>();
+            csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            sr.viewport = vp.GetComponent<RectTransform>();
+            sr.content  = contentRT;
+            sr.horizontal = true;
+            sr.vertical   = false;
+            sr.movementType = ScrollRect.MovementType.Elastic;
+            sr.scrollSensitivity = 30f;
+        }
 
         // Instanciar botones mezclados
         foreach (var item in items)
-            CrearBoton(item, mixContentRT);
+            CrearBoton(item, mixScrollGO.transform.GetChild(0).GetChild(0).GetComponent<RectTransform>());
     }
 
-     private CategoriaDropHandler CrearTituloCategoria(string categoria, Transform parent)
-     {
-         // ── Header visual ──────────────────────────────────────────────
-         var headerGO = new GameObject($"Header_{categoria}");
-         headerGO.transform.SetParent(parent, false);
-         headerGO.AddComponent<RectTransform>();
-         headerGO.AddComponent<Image>().color = new Color(0f,0.15f,0.22f,1f);
-         var hLE = headerGO.AddComponent<LayoutElement>(); hLE.minHeight=90; hLE.preferredHeight=90;
- 
-         // Texto en hijo separado para evitar conflicto Image+TMP en mismo GO
-         var hTextoGO = new GameObject("HeaderTexto");
-         hTextoGO.transform.SetParent(headerGO.transform, false);
-         var hTextoRT = hTextoGO.AddComponent<RectTransform>();
-         hTextoRT.anchorMin = Vector2.zero; hTextoRT.anchorMax = Vector2.one;
-         hTextoRT.offsetMin = hTextoRT.offsetMax = Vector2.zero;
-         var hTMP = hTextoGO.AddComponent<TextMeshProUGUI>();
-         hTMP.text = categoria; hTMP.alignment=TextAlignmentOptions.Center;
-         hTMP.enableAutoSizing=true; hTMP.fontSizeMin=10; hTMP.fontSizeMax=52;
-         hTMP.color=colorHeader; hTMP.fontStyle=FontStyles.Bold;
-         hTMP.textWrappingMode = TMPro.TextWrappingModes.Normal;
- 
-         // DropHandler en el propio header
-         var dh = headerGO.AddComponent<CategoriaDropHandler>();
-         dh.categoria = categoria;
- 
-         // ── Sphere trigger para deteccion de zona al soltar ─────────────
-         // Hijo aparte para no interferir con el RectTransform del header
-         var triggerGO = new GameObject($"Trigger_{categoria}");
-         triggerGO.transform.SetParent(headerGO.transform, false);
-         var tr = triggerGO.AddComponent<SphereCollider>();
-         tr.isTrigger  = true;
-         tr.radius     = 0.35f;           // radio en unidades de mundo
-         tr.center     = new Vector3(0f, -0.30f, 0.15f);
- 
-         triggerGO.AddComponent<CategoriaGrabbableZone>();
- 
-         return dh;
-     }
+    /// <summary>
+    /// Crea el header de una categoria con CategoriaHeader para interaccion XR.
+    /// El BoxCollider se calcula desde el RectTransform en world space.
+    /// </summary>
+    private CategoriaHeader CrearTituloCategoria(string categoria, Transform parent)
+    {
+        // Header visual
+        var headerGO = new GameObject($"Header_{categoria}");
+        headerGO.transform.SetParent(parent, false);
+        headerGO.AddComponent<RectTransform>();
+        headerGO.AddComponent<Image>().color = new Color(0f, 0.15f, 0.22f, 1f);
+        var hLE = headerGO.AddComponent<LayoutElement>();
+        hLE.minHeight = 90;
+        hLE.preferredHeight = 90;
 
-     private void CrearBoton(BotonData datos, RectTransform parent)
-     {
-         GameObject go;
-         if (buttonPrefab != null)
-             go = Instantiate(buttonPrefab, parent);
-         else
-         {
-             go = new GameObject("Btn");
-             go.transform.SetParent(parent, false);
-             go.AddComponent<Image>().color = new Color(0f,0.12f,0.2f,1f);
-         }
-         go.transform.localScale = Vector3.one;
-         go.name = $"Btn|{datos.categoria}";
- 
-         var rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
-         rt.sizeDelta = new Vector2(280f, 110f);
- 
-         var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
-         le.preferredWidth=280f; le.preferredHeight=110f; le.minHeight=70f;
- 
-         // Quitar Button (usaremos XR grab en su lugar)
-         var btn = go.GetComponent<Button>();
-         if (btn != null) Destroy(btn);
- 
-         // ── Physics components para XR grab ────────────────────────────
-         // Puedes desactivarlos si usas un prefab prefabricado con rig
-         var rb = go.GetComponent<Rigidbody>();
-         if (rb == null) rb = go.AddComponent<Rigidbody>();
-         rb.isKinematic = true;
-         rb.useGravity  = false;
- 
-         var box = go.GetComponent<BoxCollider>();
-         if (box == null)
-         {
-             box = go.AddComponent<BoxCollider>();
-             // El tamaño en mundo esta pensado para canvas WorldSpace a escala 0.001
-             box.size = new Vector3(0.28f, 0.11f, 0.01f);
-             box.center = Vector3.forward * 0.005f;
-         }
- 
-          var xrg = go.GetComponent<XRGrabInteractable>();
-          if (xrg == null)
-          {
-              xrg = go.AddComponent<XRGrabInteractable>();
-              xrg.throwVelocityScale        = 1.2f;
-              xrg.throwAngularVelocityScale = 0.8f;
-              xrg.trackPosition             = true;
-              xrg.trackRotation             = false;
-              xrg.snapToColliderVolume      = true;
-              xrg.matchAttachRotation       = false;
-          }
- 
-          // ── AbductionGrabbable: control de follow + drop zone logic ──────
-          var grab = go.GetComponent<AbductionGrabbable>();
-          if (grab == null) grab = go.AddComponent<AbductionGrabbable>();
-          grab.categoria  = datos.categoria;
-          grab.normalColor = colorBoton;
-          grab.ponderacionEsUno = Mathf.Approximately(datos.ponderacion, 1f);
- 
-         // ── Texto ────────────────────────────────────────────────────────
-         var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
-         if (tmp == null)
-         {
-             var tGO = new GameObject("Text");
-             tGO.transform.SetParent(go.transform, false);
-             var tRT = tGO.AddComponent<RectTransform>();
-             tRT.anchorMin=new Vector2(0.04f,0.04f); tRT.anchorMax=new Vector2(0.96f,0.96f);
-             tRT.offsetMin=tRT.offsetMax=Vector2.zero;
-             tmp = tGO.AddComponent<TextMeshProUGUI>();
-         }
-         tmp.text=datos.texto; tmp.color=colorBoton;
-         tmp.textWrappingMode=TMPro.TextWrappingModes.Normal; tmp.overflowMode=TextOverflowModes.Truncate;
-         tmp.enableAutoSizing=true; tmp.fontSizeMin=fontSizeMinBoton; tmp.fontSizeMax=fontSizeMaxBoton;
-         tmp.alignment=TextAlignmentOptions.Center;
- 
-         // Asegurar que el boton tenga Image para raycast
-         var img = go.GetComponent<Image>();
-         if (img == null) img = go.AddComponent<Image>();
-     }
+        // Texto en hijo separado
+        var hTextoGO = new GameObject("HeaderTexto");
+        hTextoGO.transform.SetParent(headerGO.transform, false);
+        {
+            var hTextoRT = hTextoGO.AddComponent<RectTransform>();
+            hTextoRT.anchorMin = Vector2.zero;
+            hTextoRT.anchorMax = Vector2.one;
+            hTextoRT.offsetMin = hTextoRT.offsetMax = Vector2.zero;
 
-    // Helpers
+            var hTMP = hTextoGO.AddComponent<TextMeshProUGUI>();
+            hTMP.text = categoria;
+            hTMP.alignment = TextAlignmentOptions.Center;
+            hTMP.enableAutoSizing = true;
+            hTMP.fontSizeMin = 10;
+            hTMP.fontSizeMax = 52;
+            hTMP.color = colorHeader;
+            hTMP.fontStyle = FontStyles.Bold;
+            hTMP.textWrappingMode = TMPro.TextWrappingModes.Normal;
+        }
+
+        // XR interaction: select cuando el controlador toca el header
+        var xri = headerGO.AddComponent<XRBaseInteractable>();
+        xri.selectMode = InteractableSelectMode.Multiple;
+
+        // Logica de categoria
+        var cata = headerGO.AddComponent<CategoriaHeader>();
+        cata.categoria      = categoria;
+        cata.textoCategoria = hTextoGO.GetComponentInChildren<TextMeshProUGUI>();
+        cata.colorNormal    = new Color(0f, 0.15f, 0.22f, 1f);
+        cata.colorHover     = new Color(0f, 0.30f, 0.38f, 1f);
+        cata.colorAcierto   = new Color(0f, 0.55f, 0.12f, 1f);
+        cata.colorError     = new Color(0.75f, 0.10f, 0.05f, 1f);
+
+        // Ajustar BoxCollider al tamano visual en world space
+        AjustarColliderHeader(headerGO, cata);
+
+        return cata;
+    }
+
+    /// <summary>
+    /// Calcula el box collider en world space a partir del RectTransform.
+    /// </summary>
+    private void AjustarColliderHeader(GameObject headerGO, CategoriaHeader cata)
+    {
+        var rt  = headerGO.GetComponent<RectTransform>();
+        var box = headerGO.GetComponent<BoxCollider>();
+        Camera cam = Camera.main ?? FindObjectOfType<Camera>();
+
+        if (cam != null)
+        {
+            Vector3[] corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+
+            Vector3 localMin = headerGO.transform.InverseTransformPoint(corners[0]);
+            Vector3 localMax = headerGO.transform.InverseTransformPoint(corners[2]);
+
+            box.center = (localMin + localMax) * 0.5f;
+            box.size   = localMax - localMin;
+        }
+        else
+        {
+            box.size   = new Vector3(2.5f, 0.45f, 0.01f);
+            box.center = Vector3.forward * 0.005f;
+        }
+    }
+
+    /// <summary>
+    /// Crea un boton de dato en la zona inferior con BotonDato + XRBaseInteractable.
+    /// Sin XRGrabInteractable ni Rigidbody (el boton NO se mueve al tocarlo).
+    /// </summary>
+    private void CrearBoton(BotonData datos, RectTransform parent)
+    {
+        GameObject go;
+        if (buttonPrefab != null)
+            go = Instantiate(buttonPrefab, parent);
+        else
+        {
+            go = new GameObject($"Btn|{datos.categoria}");
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0f, 0.12f, 0.20f, 1f);
+        }
+        go.transform.localScale = Vector3.one;
+        go.name = $"Btn|{datos.categoria}";
+
+        var rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(280f, 110f);
+
+        var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+        le.preferredWidth  = 280f;
+        le.preferredHeight = 110f;
+        le.minHeight       = 70f;
+
+        // Eliminar Button (usamos XR select events en su lugar)
+        var btn = go.GetComponent<Button>();
+        if (btn != null) Destroy(btn);
+
+        // ── XR interaction ─────────────────────────────────────────────
+        var xr = go.GetComponent<XRBaseInteractable>();
+        if (xr == null) xr = go.AddComponent<XRBaseInteractable>();
+        xr.selectMode           = InteractableSelectMode.Multiple;
+        xr.hoverToSelect        = true;
+        xr.hoverToActivate      = false;
+
+        // ── BotonDato: logica de seleccion y feedback visual ───────────
+        var botonDato = go.GetComponent<BotonDato>();
+        if (botonDato == null) botonDato = go.AddComponent<BotonDato>();
+        botonDato.categoria       = datos.categoria;
+        botonDato.colorNormal     = new Color(0f, 0.12f, 0.22f, 1f);
+        botonDato.colorTextoNormal= colorBoton;
+        botonDato.colorSeleccionado= new Color(1f, 0.82f, 0f, 1f);  // amarillo
+        botonDato.colorCorrecto   = new Color(0f, 1f, 0.30f, 1f);    // verde
+        botonDato.colorIncorrecto = new Color(0.9f, 0.1f, 0.1f, 1f);  // rojo
+
+        // ── Texto ────────────────────────────────────────────────────────
+        var tmp = go.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (tmp == null)
+        {
+            var tGO = new GameObject("Text");
+            tGO.transform.SetParent(go.transform, false);
+            var tRT = tGO.AddComponent<RectTransform>();
+            tRT.anchorMin = new Vector2(0.04f, 0.04f);
+            tRT.anchorMax = new Vector2(0.96f, 0.96f);
+            tRT.offsetMin = tRT.offsetMax = Vector2.zero;
+            tmp = tGO.AddComponent<TextMeshProUGUI>();
+        }
+        tmp.text               = datos.texto;
+        tmp.color              = colorBoton;
+        tmp.textWrappingMode   = TMPro.TextWrappingModes.Normal;
+        tmp.overflowMode       = TextOverflowModes.Truncate;
+        tmp.enableAutoSizing   = true;
+        tmp.fontSizeMin        = fontSizeMinBoton;
+        tmp.fontSizeMax        = fontSizeMaxBoton;
+        tmp.alignment          = TextAlignmentOptions.Center;
+
+        // Asegurar Image para raycast/graficos
+        var img = go.GetComponent<Image>();
+        if (img == null) img = go.AddComponent<Image>();
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
     private GameObject CrearNodo(string nombre, Transform parent,
         Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
     {
-        var go = new GameObject(nombre);
+        var go   = new GameObject(nombre);
         go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin=anchorMin; rt.anchorMax=anchorMax;
-        rt.offsetMin=offsetMin; rt.offsetMax=offsetMax;
+        var rt   = go.AddComponent<RectTransform>();
+        rt.anchorMin = anchorMin; rt.anchorMax = anchorMax;
+        rt.offsetMin = offsetMin; rt.offsetMax = offsetMax;
         return go;
     }
 
@@ -336,111 +402,18 @@ public class PanelPonderacionCero : MonoBehaviour
 }
 
 // ================================================================
-// Drag & Drop
+// Data model
 // ================================================================
-public class BotonArrastrable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+[Serializable]
+public class BotonData
 {
+    public string texto;
+    public float  ponderacion;
     public string categoria;
-    public Dictionary<string, CategoriaDropHandler> destinosCategoria;
-    public Color colorNormal, colorArrastrando, colorCorrecto, colorIncorrecto;
-
-    private RectTransform _rt;
-    private Canvas        _canvas;
-    private CanvasGroup   _cg;
-    private Transform     _parentOriginal;
-    private int           _siblingOriginal;
-    private Vector2       _posOriginal;
-    private Image         _img;
-
-    void Awake()
-    {
-        _rt  = GetComponent<RectTransform>();
-        _img = GetComponent<Image>();
-        _cg  = gameObject.AddComponent<CanvasGroup>();
-        // Subir hasta el Canvas raiz
-        _canvas = GetComponentInParent<Canvas>();
-        if (_canvas != null)
-            while (!_canvas.isRootCanvas && _canvas.transform.parent != null)
-            {
-                var parent = _canvas.transform.parent.GetComponentInParent<Canvas>();
-                if (parent == null) break;
-                _canvas = parent;
-            }
-    }
-
-    public void OnBeginDrag(PointerEventData e)
-    {
-        _parentOriginal  = _rt.parent;
-        _siblingOriginal = _rt.GetSiblingIndex();
-        _posOriginal     = _rt.position;
-
-        _rt.SetParent(_canvas.transform, true);
-        _rt.SetAsLastSibling();
-        _cg.blocksRaycasts = false;
-        if (_img != null) _img.color = colorArrastrando;
-    }
-
-    public void OnDrag(PointerEventData e)
-    {
-        _rt.position += (Vector3)(e.delta);
-    }
-
-    public void OnEndDrag(PointerEventData e)
-    {
-        _cg.blocksRaycasts = true;
-
-        // Buscar CategoriaDropHandler bajo el cursor
-        var hits = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(e, hits);
-        CategoriaDropHandler destino = null;
-        foreach (var h in hits)
-        {
-            destino = h.gameObject.GetComponent<CategoriaDropHandler>()
-                   ?? h.gameObject.GetComponentInParent<CategoriaDropHandler>();
-            if (destino != null) break;
-        }
-
-        if (destino != null)
-        {
-            bool correcto = destino.categoria == categoria;
-            if (correcto)
-            {
-                // Categoria correcta: destruir el boton
-                Destroy(gameObject);
-            }
-            else
-            {
-                // Categoria incorrecta: volver a la zona de botones mezclados
-                _rt.SetParent(_parentOriginal, true);
-                _rt.SetSiblingIndex(_siblingOriginal);
-                _rt.position = _posOriginal;
-                if (_img != null) _img.color = colorIncorrecto;
-
-                // Volver al color normal despues de un breve feedback
-                StartCoroutine(VolverColorNormal());
-            }
-        }
-        else
-        {
-            // No se solto sobre ningun titulo: volver al origen
-            _rt.SetParent(_parentOriginal, true);
-            _rt.SetSiblingIndex(_siblingOriginal);
-            _rt.position = _posOriginal;
-            if (_img != null) _img.color = colorNormal;
-        }
-    }
-
-    private System.Collections.IEnumerator VolverColorNormal()
-    {
-        yield return new WaitForSeconds(0.3f);
-        if (_img != null) _img.color = colorNormal;
-    }
 }
 
-// ================================================================
-// Receptor de drops: titulo de categoria
-// ================================================================
-public class CategoriaDropHandler : MonoBehaviour
+[Serializable]
+public class BotonDataList
 {
-    public string categoria;
+    public List<BotonData> botones;
 }
