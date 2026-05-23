@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 [RequireComponent(typeof(CanvasGroup))]
 public class PanelPonderacionCero : MonoBehaviour
@@ -195,87 +196,124 @@ public class PanelPonderacionCero : MonoBehaviour
             CrearBoton(item, mixContentRT);
     }
 
-    private CategoriaDropHandler CrearTituloCategoria(string categoria, Transform parent)
-    {
-        // Header visual
-        var headerGO = new GameObject($"Header_{categoria}");
-        headerGO.transform.SetParent(parent, false);
-        headerGO.AddComponent<RectTransform>();
-        headerGO.AddComponent<Image>().color = new Color(0f,0.15f,0.22f,1f);
-        var hLE = headerGO.AddComponent<LayoutElement>(); hLE.minHeight=90; hLE.preferredHeight=90;
+     private CategoriaDropHandler CrearTituloCategoria(string categoria, Transform parent)
+     {
+         // ── Header visual ──────────────────────────────────────────────
+         var headerGO = new GameObject($"Header_{categoria}");
+         headerGO.transform.SetParent(parent, false);
+         headerGO.AddComponent<RectTransform>();
+         headerGO.AddComponent<Image>().color = new Color(0f,0.15f,0.22f,1f);
+         var hLE = headerGO.AddComponent<LayoutElement>(); hLE.minHeight=90; hLE.preferredHeight=90;
+ 
+         // Texto en hijo separado para evitar conflicto Image+TMP en mismo GO
+         var hTextoGO = new GameObject("HeaderTexto");
+         hTextoGO.transform.SetParent(headerGO.transform, false);
+         var hTextoRT = hTextoGO.AddComponent<RectTransform>();
+         hTextoRT.anchorMin = Vector2.zero; hTextoRT.anchorMax = Vector2.one;
+         hTextoRT.offsetMin = hTextoRT.offsetMax = Vector2.zero;
+         var hTMP = hTextoGO.AddComponent<TextMeshProUGUI>();
+         hTMP.text = categoria; hTMP.alignment=TextAlignmentOptions.Center;
+         hTMP.enableAutoSizing=true; hTMP.fontSizeMin=10; hTMP.fontSizeMax=52;
+         hTMP.color=colorHeader; hTMP.fontStyle=FontStyles.Bold;
+         hTMP.textWrappingMode = TMPro.TextWrappingModes.Normal;
+ 
+         // DropHandler en el propio header
+         var dh = headerGO.AddComponent<CategoriaDropHandler>();
+         dh.categoria = categoria;
+ 
+         // ── Sphere trigger para deteccion de zona al soltar ─────────────
+         // Hijo aparte para no interferir con el RectTransform del header
+         var triggerGO = new GameObject($"Trigger_{categoria}");
+         triggerGO.transform.SetParent(headerGO.transform, false);
+         var tr = triggerGO.AddComponent<SphereCollider>();
+         tr.isTrigger  = true;
+         tr.radius     = 0.35f;           // radio en unidades de mundo
+         tr.center     = new Vector3(0f, -0.30f, 0.15f);
+ 
+         triggerGO.AddComponent<CategoriaGrabbableZone>();
+ 
+         return dh;
+     }
 
-        // Texto en hijo separado para evitar conflicto Image+TMP en mismo GO
-        var hTextoGO = new GameObject("HeaderTexto");
-        hTextoGO.transform.SetParent(headerGO.transform, false);
-        var hTextoRT = hTextoGO.AddComponent<RectTransform>();
-        hTextoRT.anchorMin = Vector2.zero; hTextoRT.anchorMax = Vector2.one;
-        hTextoRT.offsetMin = hTextoRT.offsetMax = Vector2.zero;
-        var hTMP = hTextoGO.AddComponent<TextMeshProUGUI>();
-        hTMP.text = categoria; hTMP.alignment=TextAlignmentOptions.Center;
-        hTMP.enableAutoSizing=true; hTMP.fontSizeMin=10; hTMP.fontSizeMax=52;
-        hTMP.color=colorHeader; hTMP.fontStyle=FontStyles.Bold;
-        hTMP.textWrappingMode = TMPro.TextWrappingModes.Normal;
-
-        // DropHandler en el propio header (recibe raycast por la Image)
-        var dh = headerGO.AddComponent<CategoriaDropHandler>();
-        dh.categoria = categoria;
-
-        return dh;
-    }
-
-    private void CrearBoton(BotonData datos, RectTransform parent)
-    {
-        GameObject go;
-        if (buttonPrefab != null)
-            go = Instantiate(buttonPrefab, parent);
-        else
-        {
-            go = new GameObject("Btn");
-            go.transform.SetParent(parent, false);
-            go.AddComponent<Image>().color = new Color(0f,0.12f,0.2f,1f);
-        }
-        go.transform.localScale = Vector3.one;
-        go.name = $"Btn|{datos.categoria}";
-
-        var rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(280f, 110f);
-
-        var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
-        le.preferredWidth=280f; le.preferredHeight=110f; le.minHeight=70f;
-
-        // Quitar Button
-        var btn = go.GetComponent<Button>();
-        if (btn != null) Destroy(btn);
-
-        // Texto
-        var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
-        if (tmp == null)
-        {
-            var tGO = new GameObject("Text");
-            tGO.transform.SetParent(go.transform, false);
-            var tRT = tGO.AddComponent<RectTransform>();
-            tRT.anchorMin=new Vector2(0.04f,0.04f); tRT.anchorMax=new Vector2(0.96f,0.96f);
-            tRT.offsetMin=tRT.offsetMax=Vector2.zero;
-            tmp = tGO.AddComponent<TextMeshProUGUI>();
-        }
-        tmp.text=datos.texto; tmp.color=colorBoton;
-        tmp.textWrappingMode=TMPro.TextWrappingModes.Normal; tmp.overflowMode=TextOverflowModes.Truncate;
-        tmp.enableAutoSizing=true; tmp.fontSizeMin=fontSizeMinBoton; tmp.fontSizeMax=fontSizeMaxBoton;
-        tmp.alignment=TextAlignmentOptions.Center;
-
-        // Asegurar que el boton tenga Image para raycast
-        var img = go.GetComponent<Image>();
-        if (img == null) img = go.AddComponent<Image>();
-
-        // Arrastre
-        var drag = go.AddComponent<BotonArrastrable>();
-        drag.categoria=datos.categoria;
-        drag.destinosCategoria=_destinosCategoria;
-        drag.colorNormal      = colorBoton;
-        drag.colorArrastrando = new Color(0f,1f,0.5f,0.85f);
-        drag.colorCorrecto    = new Color(0f,1f,0.3f,1f);
-        drag.colorIncorrecto  = new Color(1f,0.3f,0.2f,1f);
-    }
+     private void CrearBoton(BotonData datos, RectTransform parent)
+     {
+         GameObject go;
+         if (buttonPrefab != null)
+             go = Instantiate(buttonPrefab, parent);
+         else
+         {
+             go = new GameObject("Btn");
+             go.transform.SetParent(parent, false);
+             go.AddComponent<Image>().color = new Color(0f,0.12f,0.2f,1f);
+         }
+         go.transform.localScale = Vector3.one;
+         go.name = $"Btn|{datos.categoria}";
+ 
+         var rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
+         rt.sizeDelta = new Vector2(280f, 110f);
+ 
+         var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+         le.preferredWidth=280f; le.preferredHeight=110f; le.minHeight=70f;
+ 
+         // Quitar Button (usaremos XR grab en su lugar)
+         var btn = go.GetComponent<Button>();
+         if (btn != null) Destroy(btn);
+ 
+         // ── Physics components para XR grab ────────────────────────────
+         // Puedes desactivarlos si usas un prefab prefabricado con rig
+         var rb = go.GetComponent<Rigidbody>();
+         if (rb == null) rb = go.AddComponent<Rigidbody>();
+         rb.isKinematic = true;
+         rb.useGravity  = false;
+ 
+         var box = go.GetComponent<BoxCollider>();
+         if (box == null)
+         {
+             box = go.AddComponent<BoxCollider>();
+             // El tamaño en mundo esta pensado para canvas WorldSpace a escala 0.001
+             box.size = new Vector3(0.28f, 0.11f, 0.01f);
+             box.center = Vector3.forward * 0.005f;
+         }
+ 
+          var xrg = go.GetComponent<XRGrabInteractable>();
+          if (xrg == null)
+          {
+              xrg = go.AddComponent<XRGrabInteractable>();
+              xrg.throwVelocityScale        = 1.2f;
+              xrg.throwAngularVelocityScale = 0.8f;
+              xrg.trackPosition             = true;
+              xrg.trackRotation             = false;
+              xrg.snapToColliderVolume      = true;
+              xrg.matchAttachRotation       = false;
+          }
+ 
+          // ── AbductionGrabbable: control de follow + drop zone logic ──────
+          var grab = go.GetComponent<AbductionGrabbable>();
+          if (grab == null) grab = go.AddComponent<AbductionGrabbable>();
+          grab.categoria  = datos.categoria;
+          grab.normalColor = colorBoton;
+          grab.ponderacionEsUno = Mathf.Approximately(datos.ponderacion, 1f);
+ 
+         // ── Texto ────────────────────────────────────────────────────────
+         var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
+         if (tmp == null)
+         {
+             var tGO = new GameObject("Text");
+             tGO.transform.SetParent(go.transform, false);
+             var tRT = tGO.AddComponent<RectTransform>();
+             tRT.anchorMin=new Vector2(0.04f,0.04f); tRT.anchorMax=new Vector2(0.96f,0.96f);
+             tRT.offsetMin=tRT.offsetMax=Vector2.zero;
+             tmp = tGO.AddComponent<TextMeshProUGUI>();
+         }
+         tmp.text=datos.texto; tmp.color=colorBoton;
+         tmp.textWrappingMode=TMPro.TextWrappingModes.Normal; tmp.overflowMode=TextOverflowModes.Truncate;
+         tmp.enableAutoSizing=true; tmp.fontSizeMin=fontSizeMinBoton; tmp.fontSizeMax=fontSizeMaxBoton;
+         tmp.alignment=TextAlignmentOptions.Center;
+ 
+         // Asegurar que el boton tenga Image para raycast
+         var img = go.GetComponent<Image>();
+         if (img == null) img = go.AddComponent<Image>();
+     }
 
     // Helpers
     private GameObject CrearNodo(string nombre, Transform parent,
