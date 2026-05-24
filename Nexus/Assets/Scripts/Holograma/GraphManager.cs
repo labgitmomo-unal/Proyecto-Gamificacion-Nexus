@@ -7,7 +7,9 @@ using UnityEngine;
 public enum TipoPivote
 {
     SemaforoInteligente,
-    SistemaPrioridad
+    SistemaPrioridad,
+    BusRapido,
+    PeajeElectronico
 }
 
 /// <summary>
@@ -26,11 +28,20 @@ public class RutaMovilidad
     [Tooltip("Densidad vehicular actual en veh/km³.")]
     public float densidadVehicular = 0f;
 
+    /// <summary>Snapshot del volumen base antes de aplicar mejoras. Usado para revertir exactamente.</summary>
+    [HideInInspector] public float volumenBase;
+
+    /// <summary>Snapshot de la densidad base antes de aplicar mejoras. Usado para revertir exactamente.</summary>
+    [HideInInspector] public float densidadBase;
+
     /// <summary>
-    /// Umbral de densidad crítica según la especificación del dominio.
-    /// Por encima de este valor la ruta se considera congestionada.
+    /// Densidad máxima de referencia para normalizar el gradiente de congestión.
+    /// Una densidad igual a este valor produce t=1 (color más congestionado).
+    /// Ajusta este valor para que el rango real de tus datos ocupe todo el gradiente.
     /// </summary>
-    public const float DensidadCritica = 0.12f;
+    [Tooltip("Densidad vehicular máxima de referencia (veh/km³). " +
+             "Valores iguales a este producen el color más rojo del gradiente.")]
+    public float densidadMaxReferencia = 15f;
 
     /// <summary>Nodo origen de la arista.</summary>
     public HologramNodeFeedback nodoOrigen;
@@ -39,25 +50,47 @@ public class RutaMovilidad
     public HologramNodeFeedback nodoDestino;
 
     /// <summary>
-    /// Devuelve true cuando la densidad vehicular supera el umbral crítico.
+    /// Devuelve true cuando la densidad vehicular supera el máximo de referencia.
     /// </summary>
-    public bool EstaCongestionada => densidadVehicular >= DensidadCritica;
+    public bool EstaCongestionada => densidadVehicular >= densidadMaxReferencia;
 
     /// <summary>
-    /// Nivel de congestión normalizado [0, 1], donde 1 = saturación máxima.
+    /// Nivel de congestión normalizado [0, 1] basado en densidadMaxReferencia.
+    /// 0 = sin tráfico, 1 = densidad máxima → color más rojo del gradiente.
     /// </summary>
     public float NivelCongestionNormalizado =>
-        Mathf.Clamp01(densidadVehicular / DensidadCritica);
+        densidadMaxReferencia > 0f
+            ? Mathf.Clamp01(densidadVehicular / densidadMaxReferencia)
+            : 0f;
+}
+
+/// <summary>
+/// Guarda los deltas de un impacto activo para poder revertirlo exactamente.
+/// </summary>
+public class ImpactoMejora
+{
+    public HologramNodeFeedback Nodo;
+    public MejoraMovilidad MejoraRef;
+    public Dictionary<RutaMovilidad, (float deltaVolumen, float deltaDensidad)> Deltas
+        = new Dictionary<RutaMovilidad, (float, float)>();
 }
 
 /// <summary>
 /// Vincula nodos (HologramNodeFeedback) con aristas (LineRenderers / RutaMovilidad).
 /// Maneja el resaltado visual del grafo al hover y la aplicación de mejoras.
 /// </summary>
-public class GraphManager : MonoBehaviour
+public class GraphManager : MonoBehaviour, IGraphManager
 {
     // ─── Singleton ────────────────────────────────────────────────────────────
     public static GraphManager Instance { get; private set; }
+
+    // ─── Evento de presupuesto ────────────────────────────────────────────────
+    /// <summary>
+    /// Se dispara cada vez que cambia el número de mejoras activas.
+    /// El parámetro bool indica si el presupuesto ALOM está agotado.
+    /// NodoSnapZone se suscribe para habilitar/deshabilitar sus sockets.
+    /// </summary>
+    public static event System.Action<bool> OnPresupuestoCambiado;
 
     // ─── Configuración Inspector ──────────────────────────────────────────────
     [Header("Rutas de Movilidad")]
@@ -71,9 +104,8 @@ public class GraphManager : MonoBehaviour
     [Tooltip("Ancho mínimo del LineRenderer (en unidades de mundo) cuando el volumen es cercano a cero.")]
     public float anchoMinimo = 0.05f;
 
-    // CAMBIO: aumentado de 0.8f a 2.0f para líneas más gruesas
     [Tooltip("Ancho máximo del LineRenderer (en unidades de mundo) para el 70 % del flujo al Centro.")]
-    public float anchoMaximo = 2.0f;
+    public float anchoMaximo = 15.0f;
 
     [Header("Gradiente de Congestión")]
     // CAMBIO: tooltip actualizado para reflejar Verde en vez de Cian
@@ -96,6 +128,17 @@ public class GraphManager : MonoBehaviour
     [Range(0f, 1f)]
     public float factorReduccionPrioridad = 0.35f;
 
+    [Tooltip("Factor de reducción al aplicar un Peaje Electrónico (0–1).")]
+    [Range(0f, 1f)]
+    public float factorReduccionPeaje = 0.45f;
+
+    [Header("Presupuesto ALOM")]
+    [Tooltip("Número máximo de mejoras que el jugador puede colocar simultáneamente.")]
+    public int maxMedidas = 3;
+
+    [Header("UI de Nodos (opcional)")]
+    public List<GameObject> nodosUI = new List<GameObject>();
+
     // ─── Estado Interno ───────────────────────────────────────────────────────
     /// <summary>Índice rápido: nodo → rutas conectadas.</summary>
     private readonly Dictionary<HologramNodeFeedback, List<RutaMovilidad>>
@@ -105,12 +148,25 @@ public class GraphManager : MonoBehaviour
     private readonly Dictionary<LineRenderer, Material> _materialesInstancia
         = new Dictionary<LineRenderer, Material>();
 
+    /// <summary>Impactos activos por nodo, para poder revertirlos exactamente.</summary>
+    private readonly Dictionary<HologramNodeFeedback, ImpactoMejora>
+        _impactosActivos = new Dictionary<HologramNodeFeedback, ImpactoMejora>();
+
     /// <summary>True una vez que Awake completó la inicialización completa.</summary>
     private bool _inicializado;
 
     // ─── Colores constantes para mejoras ─────────────────────────────────────
-    private static readonly Color ColorSemaforo = new Color(0f, 0.8f, 1f, 1f);   // Azul cian
-    private static readonly Color ColorPrioridad = new Color(0.1f, 1f, 0.2f, 1f); // Verde
+    private static readonly Color ColorSemaforo  = new Color(0f, 0.8f, 1f, 1f);
+    private static readonly Color ColorPrioridad = new Color(0.1f, 1f, 0.2f, 1f);
+    private static readonly Color ColorBus       = new Color(1f, 0.6f, 0f, 1f);
+    private static readonly Color ColorPeaje     = new Color(0.8f, 0f, 1f, 1f);
+
+    // ─── Propiedades de presupuesto ───────────────────────────────────────────
+    /// <summary>Número de mejoras actualmente colocadas.</summary>
+    public int MedidasActivas => _impactosActivos.Count;
+
+    /// <summary>True cuando se alcanzó el límite ALOM y no se pueden añadir más mejoras.</summary>
+    public bool PresupuestoAgotado => _impactosActivos.Count >= maxMedidas;
 
     // ─── Unity Lifecycle ──────────────────────────────────────────────────────
     private void Awake()
@@ -125,6 +181,7 @@ public class GraphManager : MonoBehaviour
         InicializarGradientePorDefecto();
         ConstruirIndice();
         InstanciarMateriales();
+        GuardarSnapshotsBase();
         AplicarEstadoVisualInicial();
         _inicializado = true;
     }
@@ -205,6 +262,19 @@ public class GraphManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Guarda el volumen y densidad originales de cada ruta para poder revertir mejoras exactamente.
+    /// </summary>
+    private void GuardarSnapshotsBase()
+    {
+        foreach (RutaMovilidad ruta in rutas)
+        {
+            if (ruta == null) continue;
+            ruta.volumenBase  = ruta.volumenPasajerosMillon;
+            ruta.densidadBase = ruta.densidadVehicular;
+        }
+    }
+
     // ─── API Pública ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -237,23 +307,93 @@ public class GraphManager : MonoBehaviour
     {
         if (!_rutasPorNodo.TryGetValue(nodo, out List<RutaMovilidad> conectadas)) return;
 
-        float factor = tipo == TipoPivote.SemaforoInteligente
-            ? factorReduccionSemaforo
-            : factorReduccionPrioridad;
+        float factor = tipo switch
+        {
+            TipoPivote.SemaforoInteligente => factorReduccionSemaforo,
+            TipoPivote.SistemaPrioridad    => factorReduccionPrioridad,
+            TipoPivote.PeajeElectronico    => factorReduccionPeaje,
+            _                              => factorReduccionSemaforo
+        };
 
-        Color colorMejora = tipo == TipoPivote.SemaforoInteligente
-            ? ColorSemaforo
-            : ColorPrioridad;
+        Color colorMejora = ObtenerColorMejora(tipo);
 
         foreach (RutaMovilidad ruta in conectadas)
         {
             if (ruta.lineRenderer == null) continue;
-
             float anchoBase = CalcularAnchoPorVolumen(ruta.volumenPasajerosMillon);
             AplicarAnchoLinea(ruta.lineRenderer, anchoBase * factor);
             AplicarColorLinea(ruta.lineRenderer, colorMejora * 2f);
             ruta.densidadVehicular *= factor;
         }
+    }
+
+    /// <summary>
+    /// Aplica el impacto de una MejoraMovilidad sobre las rutas conectadas al nodo.
+    /// Reduce volumenPasajerosMillon y densidadVehicular según los factores definidos
+    /// en el componente MejoraMovilidad, amplificados por el factorPrioridad del nodo.
+    /// Llamado automáticamente por NodoSnapZone.
+    /// </summary>
+    public void AplicarPivoteEnNodo(HologramNodeFeedback nodo, MejoraMovilidad mejora)
+    {
+        if (nodo == null || mejora == null) return;
+        if (_impactosActivos.ContainsKey(nodo)) return;
+        if (!_rutasPorNodo.TryGetValue(nodo, out List<RutaMovilidad> conectadas)) return;
+
+        ImpactoMejora impacto = new ImpactoMejora { Nodo = nodo, MejoraRef = mejora };
+        Color colorMejora     = ObtenerColorMejora(mejora.tipoPivote);
+
+        foreach (RutaMovilidad ruta in conectadas)
+        {
+            if (ruta.lineRenderer == null) continue;
+
+            float deltaVolumen  = ruta.volumenPasajerosMillon * mejora.factorReduccionVolumen  * nodo.factorPrioridad;
+            float deltaDensidad = ruta.densidadVehicular      * mejora.factorReduccionDensidad * nodo.factorPrioridad;
+
+            ruta.volumenPasajerosMillon = Mathf.Max(0f, ruta.volumenPasajerosMillon - deltaVolumen);
+            ruta.densidadVehicular      = Mathf.Max(0f, ruta.densidadVehicular      - deltaDensidad);
+
+            impacto.Deltas[ruta] = (deltaVolumen, deltaDensidad);
+
+            AplicarAnchoLinea(ruta.lineRenderer, CalcularAnchoPorVolumen(ruta.volumenPasajerosMillon));
+            AplicarColorLinea(ruta.lineRenderer, colorMejora * 2f);
+        }
+
+        _impactosActivos[nodo] = impacto;
+        OnPresupuestoCambiado?.Invoke(PresupuestoAgotado);
+
+        Debug.Log($"[GraphManager] '{mejora.tipoPivote}' aplicado en '{nodo.name}' " +
+                  $"(prioridad x{nodo.factorPrioridad}). Medidas: {MedidasActivas}/{maxMedidas}");
+    }
+
+    /// <summary>
+    /// Revierte el impacto de una MejoraMovilidad retirada, restaurando los valores exactos
+    /// previos y actualizando los visuales de las rutas.
+    /// Llamado automáticamente por NodoSnapZone.
+    /// </summary>
+    public void RevertirPivoteDeNodo(HologramNodeFeedback nodo, MejoraMovilidad mejora)
+    {
+        if (nodo == null || mejora == null) return;
+        if (!_impactosActivos.TryGetValue(nodo, out ImpactoMejora impacto)) return;
+        if (!ReferenceEquals(impacto.MejoraRef, mejora)) return;
+
+        foreach (KeyValuePair<RutaMovilidad, (float deltaVolumen, float deltaDensidad)> par in impacto.Deltas)
+        {
+            RutaMovilidad ruta = par.Key;
+            ruta.volumenPasajerosMillon += par.Value.deltaVolumen;
+            ruta.densidadVehicular      += par.Value.deltaDensidad;
+
+            if (ruta.lineRenderer != null)
+            {
+                AplicarAnchoLinea(ruta.lineRenderer, CalcularAnchoPorVolumen(ruta.volumenPasajerosMillon));
+                AplicarColorCongestión(ruta);
+            }
+        }
+
+        _impactosActivos.Remove(nodo);
+        OnPresupuestoCambiado?.Invoke(PresupuestoAgotado);
+
+        Debug.Log($"[GraphManager] Mejora revertida en '{nodo.name}'. " +
+                  $"Medidas: {MedidasActivas}/{maxMedidas}");
     }
 
     /// <summary>
@@ -278,13 +418,16 @@ public class GraphManager : MonoBehaviour
 
     private float CalcularAnchoPorVolumen(float volumenMillon)
     {
-        float t = Mathf.Clamp01(volumenMillon / volumenMaxReferencia);
-        return Mathf.Lerp(anchoMinimo, anchoMaximo, t);
+        if (volumenMaxReferencia <= 0f) return anchoMinimo;
+        // Sin Clamp01: volúmenes por encima del máximo de referencia
+        // producen anchos mayores que anchoMaximo, reflejando rutas de alto flujo.
+        float t = volumenMillon / volumenMaxReferencia;
+        return Mathf.Max(anchoMinimo, Mathf.Lerp(anchoMinimo, anchoMaximo, t));
     }
 
     private static void AplicarAnchoLinea(LineRenderer lr, float ancho)
     {
-        lr.widthCurve = AnimationCurve.Constant(0f, 1f, 1f);
+        lr.widthCurve      = AnimationCurve.Constant(0f, 1f, 1f);
         lr.widthMultiplier = ancho;
     }
 
@@ -294,10 +437,26 @@ public class GraphManager : MonoBehaviour
         AplicarColorLinea(ruta.lineRenderer, colorCongestión);
     }
 
+    /// <summary>
+    /// Aplica el color al LineRenderer instanciado.
+    /// En URP se escribe tanto _BaseColor como _EmissionColor para que el cambio
+    /// sea visible tanto en la emisión HDR como en el color base del material.
+    /// </summary>
     private void AplicarColorLinea(LineRenderer lr, Color color)
     {
         if (lr == null) return;
-        if (_materialesInstancia.TryGetValue(lr, out Material mat))
-            mat.SetColor("_EmissionColor", color);
+        if (!_materialesInstancia.TryGetValue(lr, out Material mat)) return;
+
+        mat.SetColor("_EmissionColor", color);
+        mat.SetColor("_BaseColor", new Color(color.r, color.g, color.b, color.a));
     }
+
+    private static Color ObtenerColorMejora(TipoPivote tipo) => tipo switch
+    {
+        TipoPivote.SemaforoInteligente => ColorSemaforo,
+        TipoPivote.SistemaPrioridad    => ColorPrioridad,
+        TipoPivote.BusRapido           => ColorBus,
+        TipoPivote.PeajeElectronico    => ColorPeaje,
+        _                              => ColorSemaforo
+    };
 }
