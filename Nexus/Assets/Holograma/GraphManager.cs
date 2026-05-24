@@ -7,7 +7,6 @@ using UnityEngine;
 public enum TipoPivote
 {
     SemaforoInteligente,
-    SistemaPrioridad,
     BusRapido,
     PeajeElectronico
 }
@@ -34,15 +33,6 @@ public class RutaMovilidad
     /// <summary>Snapshot de la densidad base antes de aplicar mejoras. Usado para revertir exactamente.</summary>
     [HideInInspector] public float densidadBase;
 
-    /// <summary>
-    /// Densidad máxima de referencia para normalizar el gradiente de congestión.
-    /// Una densidad igual a este valor produce t=1 (color más congestionado).
-    /// Ajusta este valor para que el rango real de tus datos ocupe todo el gradiente.
-    /// </summary>
-    [Tooltip("Densidad vehicular máxima de referencia (veh/km³). " +
-             "Valores iguales a este producen el color más rojo del gradiente.")]
-    public float densidadMaxReferencia = 15f;
-
     /// <summary>Nodo origen de la arista.</summary>
     public HologramNodeFeedback nodoOrigen;
 
@@ -52,16 +42,23 @@ public class RutaMovilidad
     /// <summary>
     /// Devuelve true cuando la densidad vehicular supera el máximo de referencia.
     /// </summary>
-    public bool EstaCongestionada => densidadVehicular >= densidadMaxReferencia;
+    public bool EstaCongestionada => densidadVehicular >= ObtenerDensidadMaxReferencia();
 
     /// <summary>
     /// Nivel de congestión normalizado [0, 1] basado en densidadMaxReferencia.
     /// 0 = sin tráfico, 1 = densidad máxima → color más rojo del gradiente.
     /// </summary>
     public float NivelCongestionNormalizado =>
-        densidadMaxReferencia > 0f
-            ? Mathf.Clamp01(densidadVehicular / densidadMaxReferencia)
+        ObtenerDensidadMaxReferencia() > 0f
+            ? Mathf.Clamp01(densidadVehicular / ObtenerDensidadMaxReferencia())
             : 0f;
+
+    private float ObtenerDensidadMaxReferencia()
+    {
+        return GraphManager.Instance != null
+            ? GraphManager.Instance.densidadMaxReferencia
+            : 15f;
+    }
 }
 
 /// <summary>
@@ -108,9 +105,11 @@ public class GraphManager : MonoBehaviour, IGraphManager
     public float anchoMaximo = 15.0f;
 
     [Header("Gradiente de Congestión")]
-    // CAMBIO: tooltip actualizado para reflejar Verde en vez de Cian
     [Tooltip("Gradiente aplicado al LineRenderer según el nivel de congestión (0=Verde, 1=Rojo HDR).")]
     public Gradient gradienteCongestión = new Gradient();
+
+    [Tooltip("Densidad vehicular máxima de referencia (veh/km³). Este valor se usa para todas las rutas.")]
+    public float densidadMaxReferencia = 15f;
 
     [Header("Feedback al Hover")]
     [Tooltip("Intensidad de brillo adicional aplicada a las líneas al hacer hover sobre un nodo conectado.")]
@@ -123,10 +122,6 @@ public class GraphManager : MonoBehaviour, IGraphManager
     [Tooltip("Factor de reducción del ancho al aplicar un Semáforo Inteligente (0–1).")]
     [Range(0f, 1f)]
     public float factorReduccionSemaforo = 0.5f;
-
-    [Tooltip("Factor de reducción del ancho al aplicar un Sistema de Prioridad (0–1).")]
-    [Range(0f, 1f)]
-    public float factorReduccionPrioridad = 0.35f;
 
     [Tooltip("Factor de reducción al aplicar un Peaje Electrónico (0–1).")]
     [Range(0f, 1f)]
@@ -157,7 +152,6 @@ public class GraphManager : MonoBehaviour, IGraphManager
 
     // ─── Colores constantes para mejoras ─────────────────────────────────────
     private static readonly Color ColorSemaforo  = new Color(0f, 0.8f, 1f, 1f);
-    private static readonly Color ColorPrioridad = new Color(0.1f, 1f, 0.2f, 1f);
     private static readonly Color ColorBus       = new Color(1f, 0.6f, 0f, 1f);
     private static readonly Color ColorPeaje     = new Color(0.8f, 0f, 1f, 1f);
 
@@ -300,34 +294,6 @@ public class GraphManager : MonoBehaviour, IGraphManager
     }
 
     /// <summary>
-    /// Aplica la mejora de un pivote al nodo indicado: reduce el grosor de
-    /// sus rutas conectadas y cambia su color a azul/verde según el tipo.
-    /// </summary>
-    public void AplicarMejora(TipoPivote tipo, HologramNodeFeedback nodo)
-    {
-        if (!_rutasPorNodo.TryGetValue(nodo, out List<RutaMovilidad> conectadas)) return;
-
-        float factor = tipo switch
-        {
-            TipoPivote.SemaforoInteligente => factorReduccionSemaforo,
-            TipoPivote.SistemaPrioridad    => factorReduccionPrioridad,
-            TipoPivote.PeajeElectronico    => factorReduccionPeaje,
-            _                              => factorReduccionSemaforo
-        };
-
-        Color colorMejora = ObtenerColorMejora(tipo);
-
-        foreach (RutaMovilidad ruta in conectadas)
-        {
-            if (ruta.lineRenderer == null) continue;
-            float anchoBase = CalcularAnchoPorVolumen(ruta.volumenPasajerosMillon);
-            AplicarAnchoLinea(ruta.lineRenderer, anchoBase * factor);
-            AplicarColorLinea(ruta.lineRenderer, colorMejora * 2f);
-            ruta.densidadVehicular *= factor;
-        }
-    }
-
-    /// <summary>
     /// Aplica el impacto de una MejoraMovilidad sobre las rutas conectadas al nodo.
     /// Reduce volumenPasajerosMillon y densidadVehicular según los factores definidos
     /// en el componente MejoraMovilidad, amplificados por el factorPrioridad del nodo.
@@ -454,7 +420,6 @@ public class GraphManager : MonoBehaviour, IGraphManager
     private static Color ObtenerColorMejora(TipoPivote tipo) => tipo switch
     {
         TipoPivote.SemaforoInteligente => ColorSemaforo,
-        TipoPivote.SistemaPrioridad    => ColorPrioridad,
         TipoPivote.BusRapido           => ColorBus,
         TipoPivote.PeajeElectronico    => ColorPeaje,
         _                              => ColorSemaforo
