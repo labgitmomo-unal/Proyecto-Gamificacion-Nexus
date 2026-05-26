@@ -35,11 +35,11 @@ public class ProgresoAbstraccion : MonoBehaviour
 
 		// Resetear el PanelPonderacionCero antes de empezar la ronda
 		// para evitar que aparezca "Completado" de una sesion anterior
-		var panel = UnityEngine.Object.FindObjectOfType<PanelPonderacionCero>();
-		if (panel != null)
-			panel.Resetear();
+		// var panel = UnityEngine.Object.FindObjectOfType<PanelPonderacionCero>();
+		// if (panel != null)
+		// 	panel.Resetear();
 
-		ActualizarUI();
+		// ActualizarUI();
 	}
 
     void OnDisable()
