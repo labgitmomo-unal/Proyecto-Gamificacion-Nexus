@@ -14,7 +14,6 @@ public class Category_Spawner : MonoBehaviour
     {
         DriveDataLoader.OnDataLoaded += HandleDataLoaded;
 
-        // Si ya existe data lista
         if (DriveDataLoader.DataReady ||
             DriveDataLoader.HasLocalData())
         {
@@ -34,6 +33,10 @@ public class Category_Spawner : MonoBehaviour
 
     private void SpawnCategories()
     {
+        // Limpiar columnas anteriores antes de instanciar
+        // (evita duplicados cuando cambia el JSON)
+        ClearPanel();
+
         List<string> categorias =
             Read_Json.GetUniqueCategories();
 
@@ -55,5 +58,11 @@ public class Category_Spawner : MonoBehaviour
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(
             panel.GetComponent<RectTransform>());
+    }
+
+    private void ClearPanel()
+    {
+        for (int i = panel.childCount - 1; i >= 0; i--)
+            Destroy(panel.GetChild(i).gameObject);
     }
 }

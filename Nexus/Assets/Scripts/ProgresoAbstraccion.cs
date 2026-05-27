@@ -10,51 +10,42 @@ public class ProgresoAbstraccion : MonoBehaviour
     public TextMeshProUGUI textoporcentaje;
     public ScrollRect scrollView;
 
+    [Header("Panel 2 - se activa al completar")]
+    public GameObject panel2Canvas;
+
     [Header("Colores de progreso")]
     public Color colorInicio    = new Color(0f, 1f, 1f, 1f);
     public Color colorFinal     = new Color(0f, 1f, 0.4f, 1f);
     public Color colorBloqueado = new Color(1f, 0.8f, 0f, 1f);
 
-    // Color gris que se aplica al Viewport/Content cuando se bloquea
     private static readonly Color colorGrisBloqueado = new Color(0.35f, 0.35f, 0.35f, 1f);
 
-    // Total leido automaticamente desde ButtonSpawner al parsear el JSON
     private int _totalObjetivo = 0;
     private int _eliminados    = 0;
 
     public static event Action OnBotonObjetivoEliminado;
     public static event Action OnFaseCompletada;
-    // Flag para que paneles que arrancan tarde sepan si la fase ya se completo
     public static bool FaseCompletada { get; private set; }
 
+    void OnEnable()
+    {
+        FaseCompletada = false;
+        OnBotonObjetivoEliminado += HandleBotonEliminado;
 
-	void OnEnable()
-	{
-		FaseCompletada = false; // Resetear al inicio de sesion
-		OnBotonObjetivoEliminado += HandleBotonEliminado;
-
-		// Resetear el PanelPonderacionCero antes de empezar la ronda
-		// para evitar que aparezca "Completado" de una sesion anterior
-		// var panel = UnityEngine.Object.FindObjectOfType<PanelPonderacionCero>();
-		// if (panel != null)
-		// 	panel.Resetear();
-
-		// ActualizarUI();
-	}
+        // Panel 2 empieza oculto
+        if (panel2Canvas != null)
+            panel2Canvas.SetActive(false);
+    }
 
     void OnDisable()
     {
         OnBotonObjetivoEliminado -= HandleBotonEliminado;
     }
 
-
-    // Recibe el total directamente desde ButtonSpawner
     public void InicializarConTotal(int total)
     {
         _totalObjetivo = total;
         _eliminados    = 0;
-
-        // Desbloquear scroll visualmente por si se reinicia
         DesbloquearScrollView();
         ActualizarUI();
         Debug.Log($"[ProgresoAbstraccion] Total botones objetivo leido del JSON: {_totalObjetivo}");
@@ -63,10 +54,8 @@ public class ProgresoAbstraccion : MonoBehaviour
     private void HandleBotonEliminado()
     {
         if (_totalObjetivo <= 0) return;
-
         _eliminados = Mathf.Min(_eliminados + 1, _totalObjetivo);
         ActualizarUI();
-
         if (_eliminados >= _totalObjetivo)
             BloquearScrollView();
     }
@@ -102,30 +91,28 @@ public class ProgresoAbstraccion : MonoBehaviour
     {
         if (scrollView == null) return;
 
-        // 1. Aplicar gris a todos los Graphic del ScrollView (aspecto bloqueado)
+        // 1. Gris en todos los Graphic del ScrollView
         scrollView.velocity = Vector2.zero;
         foreach (var graphic in scrollView.GetComponentsInChildren<Graphic>(true))
             graphic.color = colorGrisBloqueado;
 
-        // 2. Destruir todos los botones del Content
+        // 2. Destruir botones del Content
         Transform content = scrollView.content;
         if (content != null)
             for (int i = content.childCount - 1; i >= 0; i--)
                 Destroy(content.GetChild(i).gameObject);
 
-        // 3. Mostrar mensaje "Fase Completada" dentro del Viewport
+        // 3. Mensaje "Fase Completada" dentro del Viewport
         Transform viewport = scrollView.viewport;
         if (viewport != null)
         {
-            // Contenedor del mensaje
             var msgGO = new GameObject("MsgFaseCompletada");
             msgGO.transform.SetParent(viewport, false);
             var msgRT = msgGO.AddComponent<RectTransform>();
             msgRT.anchorMin = Vector2.zero; msgRT.anchorMax = Vector2.one;
             msgRT.offsetMin = msgRT.offsetMax = Vector2.zero;
-            msgGO.AddComponent<UnityEngine.UI.Image>().color = new Color(0f, 0.03f, 0.08f, 0.95f);
+            msgGO.AddComponent<Image>().color = new Color(0f, 0.03f, 0.08f, 0.95f);
 
-            // Texto en hijo separado (TMP no puede compartir GO con otros componentes UI)
             var txtGO = new GameObject("Texto");
             txtGO.transform.SetParent(msgGO.transform, false);
             var txtRT = txtGO.AddComponent<RectTransform>();
@@ -140,14 +127,18 @@ public class ProgresoAbstraccion : MonoBehaviour
             tmp.fontStyle = TMPro.FontStyles.Bold;
         }
 
-        // 4. Actualizar fill y texto del panel de progreso
+        // 4. Actualizar fill y texto
         if (fillImage != null) fillImage.color = colorBloqueado;
         if (textoporcentaje != null) textoporcentaje.text = "COMPLETO";
 
-        // 5. Notificar al panel de la segunda mesa
+        // 5. Activar Panel 2
+        if (panel2Canvas != null)
+            panel2Canvas.SetActive(true);
+
+        // 6. Notificar
         FaseCompletada = true;
         OnFaseCompletada?.Invoke();
-        Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%.");
+        Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%. Panel 2 activado.");
     }
 
     private void DesbloquearScrollView()
