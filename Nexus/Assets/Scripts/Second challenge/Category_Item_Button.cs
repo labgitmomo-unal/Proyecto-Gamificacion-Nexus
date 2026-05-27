@@ -32,7 +32,7 @@ public class Category_Item_Button : MonoBehaviour
 
     private void OnSelected()
     {
-        manager.SelectItem(this);
+        Relation_Manager.Instance.SelectItem(this);
     }
 
     public void SetSelected(bool value)
@@ -42,5 +42,15 @@ public class Category_Item_Button : MonoBehaviour
         background.color = value
             ? Color.yellow
             : Color.white;
+    }
+
+    public void SetCorrect()
+    {
+        background.color = Color.green;
+    }
+
+    public void SetIncorrect()
+    {
+        background.color = Color.red;
     }
 }
