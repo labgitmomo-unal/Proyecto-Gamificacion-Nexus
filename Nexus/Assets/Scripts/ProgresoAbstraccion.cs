@@ -47,13 +47,6 @@ public class ProgresoAbstraccion : MonoBehaviour
         OnBotonObjetivoEliminado -= HandleBotonEliminado;
     }
 
-    // ButtonSpawner llama esto justo despues de parsear el JSON
-    public static void SetTotalObjetivo(int total)
-    {
-        // Propagar a la instancia activa via evento no es necesario;
-        // la instancia lo recibe directo porque ButtonSpawner la busca con FindObjectOfType
-        // -- ver ButtonSpawner.SpawnBotones()
-    }
 
     // Recibe el total directamente desde ButtonSpawner
     public void InicializarConTotal(int total)
