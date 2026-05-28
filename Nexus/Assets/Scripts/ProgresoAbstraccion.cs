@@ -32,9 +32,6 @@ public class ProgresoAbstraccion : MonoBehaviour
         FaseCompletada = false;
         OnBotonObjetivoEliminado += HandleBotonEliminado;
 
-        // Panel 2 empieza oculto
-        if (panel2Canvas != null)
-            panel2Canvas.SetActive(false);
     }
 
     void OnDisable()
