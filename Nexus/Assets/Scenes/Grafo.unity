@@ -5468,9 +5468,6 @@ GameObject:
   - component: {fileID: 36189985}
   - component: {fileID: 36189980}
   - component: {fileID: 36189984}
-  - component: {fileID: 36189979}
-  - component: {fileID: 36189982}
-  - component: {fileID: 36189981}
   - component: {fileID: 36189987}
   - component: {fileID: 36189988}
   - component: {fileID: 36189989}
@@ -5481,25 +5478,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &36189979
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 36189978}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ff1b132ed0523f144b89c63e89874a6f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HologramNodeFeedback
-  nodeRenderer: {fileID: 36189980}
-  hoverColor: {r: 0, g: 1, b: 1, a: 1}
-  normalIntensity: 1
-  hoverIntensity: 4
-  factorPrioridad: 1
-  colorPulsoConfirmacion: {r: 0, g: 1, b: 1, a: 1}
-  duracionPulso: 0.4
 --- !u!23 &36189980
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5549,67 +5527,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &36189981
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 36189978}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a24a6f3a28e85cc40bd3071ef469d0ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NodoSnapZone
-  nodoAsociado: {fileID: 36189979}
---- !u!114 &36189982
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 36189978}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60523e0647cc6ab43acc73cb266a32a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactors.XRSocketInteractor
-  m_InteractionManager: {fileID: 0}
-  m_InteractionLayers:
-    m_Bits: 4
-  m_Handedness: 0
-  m_AttachTransform: {fileID: 0}
-  m_KeepSelectedTargetValid: 1
-  m_DisableVisualsWhenBlockedInGroup: 1
-  m_StartingSelectedInteractable: {fileID: 0}
-  m_StartingTargetFilter: {fileID: 0}
-  m_AutoFindParentInteractableInHierarchy: 0
-  m_ParentInteractableObject: {fileID: 0}
-  m_HoverEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_HoverExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_StartingHoverFilters: []
-  m_StartingSelectFilters: []
-  m_ShowInteractableHoverMeshes: 1
-  m_InteractableHoverMeshMaterial: {fileID: 0}
-  m_InteractableCantHoverMeshMaterial: {fileID: 0}
-  m_SocketActive: 1
-  m_InteractableHoverScale: 1
-  m_RecycleDelayTime: 1
-  m_HoverSocketSnapping: 0
-  m_SocketSnappingRadius: 0.1
-  m_SocketScaleMode: 0
-  m_FixedScale: {x: 1, y: 1, z: 1}
-  m_TargetBoundsSize: {x: 1, y: 1, z: 1}
 --- !u!135 &36189984
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -5648,7 +5565,7 @@ Transform:
   m_GameObject: {fileID: 36189978}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.7262003, y: 0.75, z: -0.28069}
+  m_LocalPosition: {x: -0.7262003, y: 0.75, z: 0.11930999}
   m_LocalScale: {x: 0.05000001, y: 0.25, z: 0.049999997}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5822,12 +5739,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1002fde14d29c14aa5e9c6706026799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
-  nodeID: 0
-  _renderer: {fileID: 0}
-  _colorBase: {r: 0, g: 0.8, b: 1, a: 1}
-  _colorHover: {r: 1, g: 1, b: 1, a: 1}
-  _intensidadBase: 2
-  _intensidadHover: 5
+  _renderer: {fileID: 36189980}
+  _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
+  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
+  _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
+  _intensidadBase: -1
+  _intensidadHover: 4
+  _intensidadEnBase: 2
 --- !u!1 &155348072
 GameObject:
   m_ObjectHideFlags: 0
@@ -6340,13 +6258,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 11, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &410087042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12099,7 +12017,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -0.7261999, y: 0.5, z: 0}
-  m_LocalScale: {x: 0.36, y: 0.2, z: 0.96000004}
+  m_LocalScale: {x: 0.36, y: 0.2, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1954594416}
@@ -17290,7 +17208,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 75350b4798261bd4dbd4f26c8702fc28, type: 2}
+  - {fileID: 2100000, guid: cfb5e6aefaaf38745bc2a005344c12e8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -33912,11 +33830,8 @@ GameObject:
   m_Component:
   - component: {fileID: 933476402}
   - component: {fileID: 933476409}
-  - component: {fileID: 933476408}
   - component: {fileID: 933476407}
   - component: {fileID: 933476406}
-  - component: {fileID: 933476404}
-  - component: {fileID: 933476403}
   - component: {fileID: 933476410}
   - component: {fileID: 933476411}
   - component: {fileID: 933476412}
@@ -33936,73 +33851,12 @@ Transform:
   m_GameObject: {fileID: 933476401}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.7262003, y: 0.75, z: 0.21930997}
+  m_LocalPosition: {x: -0.35, y: 1, z: 0.35}
   m_LocalScale: {x: 0.05000001, y: 0.25, z: 0.049999997}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1954594416}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &933476403
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933476401}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a24a6f3a28e85cc40bd3071ef469d0ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NodoSnapZone
-  nodoAsociado: {fileID: 933476408}
---- !u!114 &933476404
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933476401}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60523e0647cc6ab43acc73cb266a32a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactors.XRSocketInteractor
-  m_InteractionManager: {fileID: 0}
-  m_InteractionLayers:
-    m_Bits: 4
-  m_Handedness: 0
-  m_AttachTransform: {fileID: 0}
-  m_KeepSelectedTargetValid: 1
-  m_DisableVisualsWhenBlockedInGroup: 1
-  m_StartingSelectedInteractable: {fileID: 0}
-  m_StartingTargetFilter: {fileID: 0}
-  m_AutoFindParentInteractableInHierarchy: 0
-  m_ParentInteractableObject: {fileID: 0}
-  m_HoverEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_HoverExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_StartingHoverFilters: []
-  m_StartingSelectFilters: []
-  m_ShowInteractableHoverMeshes: 1
-  m_InteractableHoverMeshMaterial: {fileID: 0}
-  m_InteractableCantHoverMeshMaterial: {fileID: 0}
-  m_SocketActive: 1
-  m_InteractableHoverScale: 1
-  m_RecycleDelayTime: 1
-  m_HoverSocketSnapping: 0
-  m_SocketSnappingRadius: 0.1
-  m_SocketScaleMode: 0
-  m_FixedScale: {x: 1, y: 1, z: 1}
-  m_TargetBoundsSize: {x: 1, y: 1, z: 1}
 --- !u!135 &933476406
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -34073,25 +33927,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &933476408
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 933476401}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ff1b132ed0523f144b89c63e89874a6f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HologramNodeFeedback
-  nodeRenderer: {fileID: 933476407}
-  hoverColor: {r: 0, g: 1, b: 1, a: 1}
-  normalIntensity: 1
-  hoverIntensity: 4
-  factorPrioridad: 1
-  colorPulsoConfirmacion: {r: 0, g: 1, b: 1, a: 1}
-  duracionPulso: 0.4
 --- !u!33 &933476409
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -34268,12 +34103,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1002fde14d29c14aa5e9c6706026799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
-  nodeID: 0
-  _renderer: {fileID: 0}
-  _colorBase: {r: 0, g: 0.8, b: 1, a: 1}
-  _colorHover: {r: 1, g: 1, b: 1, a: 1}
-  _intensidadBase: 2
-  _intensidadHover: 5
+  _renderer: {fileID: 933476407}
+  _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
+  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
+  _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
+  _intensidadBase: -1
+  _intensidadHover: 4
+  _intensidadEnBase: 2
 --- !u!1 &981592056
 GameObject:
   m_ObjectHideFlags: 0
@@ -34286,9 +34122,6 @@ GameObject:
   - component: {fileID: 981592064}
   - component: {fileID: 981592063}
   - component: {fileID: 981592062}
-  - component: {fileID: 981592061}
-  - component: {fileID: 981592059}
-  - component: {fileID: 981592058}
   - component: {fileID: 981592065}
   - component: {fileID: 981592066}
   - component: {fileID: 981592067}
@@ -34308,92 +34141,12 @@ Transform:
   m_GameObject: {fileID: 981592056}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.7262003, y: 0.75, z: 0.11930998}
+  m_LocalPosition: {x: -0.35, y: 1, z: 0}
   m_LocalScale: {x: 0.05000001, y: 0.25, z: 0.049999997}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1954594416}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &981592058
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 981592056}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a24a6f3a28e85cc40bd3071ef469d0ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NodoSnapZone
-  nodoAsociado: {fileID: 981592061}
---- !u!114 &981592059
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 981592056}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60523e0647cc6ab43acc73cb266a32a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactors.XRSocketInteractor
-  m_InteractionManager: {fileID: 0}
-  m_InteractionLayers:
-    m_Bits: 4
-  m_Handedness: 0
-  m_AttachTransform: {fileID: 0}
-  m_KeepSelectedTargetValid: 1
-  m_DisableVisualsWhenBlockedInGroup: 1
-  m_StartingSelectedInteractable: {fileID: 0}
-  m_StartingTargetFilter: {fileID: 0}
-  m_AutoFindParentInteractableInHierarchy: 0
-  m_ParentInteractableObject: {fileID: 0}
-  m_HoverEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_HoverExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_StartingHoverFilters: []
-  m_StartingSelectFilters: []
-  m_ShowInteractableHoverMeshes: 1
-  m_InteractableHoverMeshMaterial: {fileID: 0}
-  m_InteractableCantHoverMeshMaterial: {fileID: 0}
-  m_SocketActive: 1
-  m_InteractableHoverScale: 1
-  m_RecycleDelayTime: 1
-  m_HoverSocketSnapping: 0
-  m_SocketSnappingRadius: 0.1
-  m_SocketScaleMode: 0
-  m_FixedScale: {x: 1, y: 1, z: 1}
-  m_TargetBoundsSize: {x: 1, y: 1, z: 1}
---- !u!114 &981592061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 981592056}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ff1b132ed0523f144b89c63e89874a6f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HologramNodeFeedback
-  nodeRenderer: {fileID: 981592063}
-  hoverColor: {r: 0, g: 1, b: 1, a: 1}
-  normalIntensity: 1
-  hoverIntensity: 4
-  factorPrioridad: 1
-  colorPulsoConfirmacion: {r: 0, g: 1, b: 1, a: 1}
-  duracionPulso: 0.4
 --- !u!135 &981592062
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -34640,12 +34393,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1002fde14d29c14aa5e9c6706026799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
-  nodeID: 0
-  _renderer: {fileID: 0}
-  _colorBase: {r: 0, g: 0.8, b: 1, a: 1}
-  _colorHover: {r: 1, g: 1, b: 1, a: 1}
-  _intensidadBase: 2
-  _intensidadHover: 5
+  _renderer: {fileID: 981592063}
+  _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
+  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
+  _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
+  _intensidadBase: -1
+  _intensidadHover: 4
+  _intensidadEnBase: 2
 --- !u!1 &1008031016
 GameObject:
   m_ObjectHideFlags: 0
@@ -51422,9 +51176,6 @@ GameObject:
   - component: {fileID: 1266896162}
   - component: {fileID: 1266896161}
   - component: {fileID: 1266896160}
-  - component: {fileID: 1266896159}
-  - component: {fileID: 1266896157}
-  - component: {fileID: 1266896156}
   - component: {fileID: 1266896163}
   - component: {fileID: 1266896164}
   - component: {fileID: 1266896165}
@@ -51450,86 +51201,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1954594416}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1266896156
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1266896154}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a24a6f3a28e85cc40bd3071ef469d0ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NodoSnapZone
-  nodoAsociado: {fileID: 1266896159}
---- !u!114 &1266896157
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1266896154}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60523e0647cc6ab43acc73cb266a32a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactors.XRSocketInteractor
-  m_InteractionManager: {fileID: 0}
-  m_InteractionLayers:
-    m_Bits: 4
-  m_Handedness: 0
-  m_AttachTransform: {fileID: 0}
-  m_KeepSelectedTargetValid: 1
-  m_DisableVisualsWhenBlockedInGroup: 1
-  m_StartingSelectedInteractable: {fileID: 0}
-  m_StartingTargetFilter: {fileID: 0}
-  m_AutoFindParentInteractableInHierarchy: 0
-  m_ParentInteractableObject: {fileID: 0}
-  m_HoverEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_HoverExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_StartingHoverFilters: []
-  m_StartingSelectFilters: []
-  m_ShowInteractableHoverMeshes: 1
-  m_InteractableHoverMeshMaterial: {fileID: 0}
-  m_InteractableCantHoverMeshMaterial: {fileID: 0}
-  m_SocketActive: 1
-  m_InteractableHoverScale: 1
-  m_RecycleDelayTime: 1
-  m_HoverSocketSnapping: 0
-  m_SocketSnappingRadius: 0.1
-  m_SocketScaleMode: 0
-  m_FixedScale: {x: 1, y: 1, z: 1}
-  m_TargetBoundsSize: {x: 1, y: 1, z: 1}
---- !u!114 &1266896159
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1266896154}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ff1b132ed0523f144b89c63e89874a6f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HologramNodeFeedback
-  nodeRenderer: {fileID: 1266896161}
-  hoverColor: {r: 0, g: 1, b: 1, a: 1}
-  normalIntensity: 1
-  hoverIntensity: 4
-  factorPrioridad: 1
-  colorPulsoConfirmacion: {r: 0, g: 1, b: 1, a: 1}
-  duracionPulso: 0.4
 --- !u!135 &1266896160
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -51776,12 +51447,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1002fde14d29c14aa5e9c6706026799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
-  nodeID: 0
-  _renderer: {fileID: 0}
-  _colorBase: {r: 0, g: 0.8, b: 1, a: 1}
-  _colorHover: {r: 1, g: 1, b: 1, a: 1}
-  _intensidadBase: 2
-  _intensidadHover: 5
+  _renderer: {fileID: 1266896161}
+  _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
+  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
+  _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
+  _intensidadBase: -1
+  _intensidadHover: 4
+  _intensidadEnBase: 2
 --- !u!43 &1322847602
 Mesh:
   m_ObjectHideFlags: 0
@@ -52328,9 +52000,6 @@ GameObject:
   - component: {fileID: 1704294903}
   - component: {fileID: 1704294902}
   - component: {fileID: 1704294901}
-  - component: {fileID: 1704294900}
-  - component: {fileID: 1704294898}
-  - component: {fileID: 1704294897}
   - component: {fileID: 1704294904}
   - component: {fileID: 1704294905}
   - component: {fileID: 1704294906}
@@ -52356,86 +52025,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1954594416}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1704294897
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1704294895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a24a6f3a28e85cc40bd3071ef469d0ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NodoSnapZone
-  nodoAsociado: {fileID: 1704294900}
---- !u!114 &1704294898
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1704294895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60523e0647cc6ab43acc73cb266a32a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactors.XRSocketInteractor
-  m_InteractionManager: {fileID: 0}
-  m_InteractionLayers:
-    m_Bits: 4
-  m_Handedness: 0
-  m_AttachTransform: {fileID: 0}
-  m_KeepSelectedTargetValid: 1
-  m_DisableVisualsWhenBlockedInGroup: 1
-  m_StartingSelectedInteractable: {fileID: 0}
-  m_StartingTargetFilter: {fileID: 0}
-  m_AutoFindParentInteractableInHierarchy: 0
-  m_ParentInteractableObject: {fileID: 0}
-  m_HoverEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_HoverExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  m_SelectExited:
-    m_PersistentCalls:
-      m_Calls: []
-  m_StartingHoverFilters: []
-  m_StartingSelectFilters: []
-  m_ShowInteractableHoverMeshes: 1
-  m_InteractableHoverMeshMaterial: {fileID: 0}
-  m_InteractableCantHoverMeshMaterial: {fileID: 0}
-  m_SocketActive: 1
-  m_InteractableHoverScale: 1
-  m_RecycleDelayTime: 1
-  m_HoverSocketSnapping: 0
-  m_SocketSnappingRadius: 0.1
-  m_SocketScaleMode: 0
-  m_FixedScale: {x: 1, y: 1, z: 1}
-  m_TargetBoundsSize: {x: 1, y: 1, z: 1}
---- !u!114 &1704294900
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1704294895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ff1b132ed0523f144b89c63e89874a6f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HologramNodeFeedback
-  nodeRenderer: {fileID: 1704294902}
-  hoverColor: {r: 1, g: 0.014767134, b: 0, a: 1}
-  normalIntensity: 1
-  hoverIntensity: 5
-  factorPrioridad: 1.4
-  colorPulsoConfirmacion: {r: 0, g: 1, b: 1, a: 1}
-  duracionPulso: 0.4
 --- !u!135 &1704294901
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -52682,12 +52271,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1002fde14d29c14aa5e9c6706026799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
-  nodeID: 0
-  _renderer: {fileID: 0}
-  _colorBase: {r: 0, g: 0.8, b: 1, a: 1}
-  _colorHover: {r: 1, g: 1, b: 1, a: 1}
-  _intensidadBase: 2
-  _intensidadHover: 5
+  _renderer: {fileID: 1704294902}
+  _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
+  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
+  _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
+  _intensidadBase: -1
+  _intensidadHover: 4
+  _intensidadEnBase: 2
 --- !u!1 &1731731045
 GameObject:
   m_ObjectHideFlags: 0
@@ -58732,7 +58322,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 75350b4798261bd4dbd4f26c8702fc28, type: 2}
+  - {fileID: 2100000, guid: cfb5e6aefaaf38745bc2a005344c12e8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -58807,54 +58397,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84cca6a6ba670a04e9410d6b7f912e0e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseConnectionManager
-  _conexiones:
-  - slotA: {fileID: 507109286}
-    slotB: {fileID: 14232564}
-    lineRenderer: {fileID: 1231219008}
-  - slotA: {fileID: 507109286}
-    slotB: {fileID: 1098558268}
-    lineRenderer: {fileID: 2088198568}
-  - slotA: {fileID: 14232564}
-    slotB: {fileID: 417960446}
-    lineRenderer: {fileID: 1744774439}
-  - slotA: {fileID: 14232564}
-    slotB: {fileID: 607254680}
-    lineRenderer: {fileID: 1731731047}
-  - slotA: {fileID: 417960446}
-    slotB: {fileID: 1948066024}
-    lineRenderer: {fileID: 177020975}
-  - slotA: {fileID: 1098558268}
-    slotB: {fileID: 607254680}
-    lineRenderer: {fileID: 155348074}
-  - slotA: {fileID: 1098558268}
-    slotB: {fileID: 1185098541}
-    lineRenderer: {fileID: 1012388434}
-  - slotA: {fileID: 607254680}
-    slotB: {fileID: 1948066024}
-    lineRenderer: {fileID: 1008031018}
-  - slotA: {fileID: 607254680}
-    slotB: {fileID: 1080726409}
-    lineRenderer: {fileID: 1257096569}
-  - slotA: {fileID: 1948066024}
-    slotB: {fileID: 714114311}
-    lineRenderer: {fileID: 2109124476}
-  - slotA: {fileID: 1185098541}
-    slotB: {fileID: 1080726409}
-    lineRenderer: {fileID: 668484329}
-  - slotA: {fileID: 1080726409}
-    slotB: {fileID: 714114311}
-    lineRenderer: {fileID: 1252238120}
-  _slots:
-  - {fileID: 507109286}
-  - {fileID: 14232564}
-  - {fileID: 417960446}
-  - {fileID: 1098558268}
-  - {fileID: 607254680}
-  - {fileID: 1948066024}
-  - {fileID: 1185098541}
-  - {fileID: 1080726409}
-  - {fileID: 714114311}
   _alturaOffset: 0.28
+  _anchoInactivo: 0.005
+  _anchoActivo: 0.018
   _gradienteInactivo:
     serializedVersion: 2
     key0: {r: 0.2905661, g: 0.2905661, b: 0.2905661, a: 1}
