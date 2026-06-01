@@ -20,7 +20,7 @@ public class Timer : MonoBehaviour
 
     private void OnEnable()
     {
-        
+
         if (!initialized)
         {
             Start_Timer();
@@ -45,7 +45,7 @@ public class Timer : MonoBehaviour
             int seconds = Mathf.FloorToInt(remaining % 60);
             tiempo.text = string.Format("{0:00}:{1:00}", minutes, seconds);
 
-            if (remaining <= 0)
+            if (remaining <= 0.00f)
             {
                 Ender_Time();
             }
@@ -55,11 +55,7 @@ public class Timer : MonoBehaviour
     {
         Under_Way = false;
         tiempo.text = "00:00";
-
-        if (progreso != null)
-        {
-            progreso.TiempoAgotado();
-        }
+        progreso.TiempoAgotado();
     }
 
     private void UpdateColor()

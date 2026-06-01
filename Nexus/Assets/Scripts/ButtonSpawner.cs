@@ -32,7 +32,7 @@ public class ButtonSpawner : MonoBehaviour
 
     [Header("Texto")]
     [Tooltip("Tamaño maximo del texto")]
-    public float fontSizeMax = 30f;
+    public float fontSizeMax = 40f;
     [Tooltip("Tamaño minimo del texto (auto-size)")]
     public float fontSizeMin = 8f;
 
