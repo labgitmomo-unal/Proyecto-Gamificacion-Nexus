@@ -9,6 +9,10 @@ public class Category_Challenger_Manager : MonoBehaviour
 
     private Category_Item_Button currentSelected;
 
+    [SerializeField]
+    private Challenge_Progress challenge_Progress;
+
+    
     void OnEnable()
     {
         DriveDataLoader.OnDataLoaded += HandleDataLoaded;
@@ -68,6 +72,8 @@ public class Category_Challenger_Manager : MonoBehaviour
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(
             panel.GetComponent<RectTransform>());
+        
+        challenge_Progress.Initialize();
     }
 
     private void SpawnButton(BotonData data)
@@ -100,4 +106,6 @@ public class Category_Challenger_Manager : MonoBehaviour
 
         Debug.Log("Seleccionado: " + item.texto);
     }
+
+public void ItemRemoved() { challenge_Progress.ItemSolved(); }
 }

@@ -3,7 +3,9 @@ using UnityEngine;
 
 public class Relation_Manager : MonoBehaviour
 {
-     public static Relation_Manager Instance;
+    [SerializeField]
+    private Challenge_Progress progress;
+    public static Relation_Manager Instance;
 
     private Category_Item_Button selectedItem;
 
@@ -61,6 +63,8 @@ public class Relation_Manager : MonoBehaviour
         selectedItem.SetCorrect();
 
         category.SetCorrect();
+
+        progress.ItemSolved();
 
         Destroy(selectedItem.gameObject, 0.5f);
 
