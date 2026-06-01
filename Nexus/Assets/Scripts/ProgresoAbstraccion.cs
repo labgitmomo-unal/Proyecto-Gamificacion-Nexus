@@ -56,10 +56,7 @@ public class ProgresoAbstraccion : MonoBehaviour
         ActualizarUI();
         if (_eliminados >= _totalObjetivo)
             BloquearScrollView("Fase\nCompletada");
-            if (timer != null)
-            {
-                timer.StopTimer();
-            }
+            
     }
 
     public void Reiniciar()
@@ -91,6 +88,7 @@ public class ProgresoAbstraccion : MonoBehaviour
 
     private void BloquearScrollView(string mensaje)
     {
+        timer.StopTimer();
         if (scrollView == null) return;
 
         // 1. Gris en todos los Graphic del ScrollView
