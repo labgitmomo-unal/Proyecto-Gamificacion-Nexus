@@ -1,0 +1,103 @@
+using System;
+using UnityEngine;
+using UnityEngine.UI;
+public class Category_Challenger_Manager : MonoBehaviour
+{
+    [Header("Prefab y panel")]
+    public GameObject categoryButtonPrefab;
+    public Transform panel;
+
+    private Category_Item_Button currentSelected;
+
+    void OnEnable()
+    {
+        DriveDataLoader.OnDataLoaded += HandleDataLoaded;
+
+        if (DriveDataLoader.DataReady || DriveDataLoader.HasLocalData())
+        {
+            LoadButtons();
+        }
+    }
+
+    void OnDisable()
+    {
+        DriveDataLoader.OnDataLoaded -= HandleDataLoaded;
+    }
+
+    private void HandleDataLoaded()
+    {
+        LoadButtons();
+    }
+
+    private void LoadButtons()
+    {
+        string json = DriveDataLoader.ReadLocalJson();
+
+        if (json == null)
+        {
+            Debug.LogError("No se pudo leer JSON.");
+            return;
+        }
+
+        BotonDataList lista;
+
+        try
+        {
+            lista = JsonUtility.FromJson<BotonDataList>(json);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+            return;
+        }
+
+        if (lista == null || lista.botones == null)
+            return;
+
+        ClearButtons();
+
+        foreach (var boton in lista.botones)
+        {
+            if (string.IsNullOrEmpty(boton.categoria))
+                continue;
+
+            SpawnButton(boton);
+        }
+
+        Canvas.ForceUpdateCanvases();
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(
+            panel.GetComponent<RectTransform>());
+    }
+
+    private void SpawnButton(BotonData data)
+    {
+        GameObject instancia =
+            Instantiate(categoryButtonPrefab, panel);
+        instancia.transform.localScale = Vector3.one;
+        Category_Item_Button item =
+            instancia.GetComponent<Category_Item_Button>();
+
+        item.Setup(data, this);
+    }
+
+    private void ClearButtons()
+    {
+        for (int i = panel.childCount - 1; i >= 0; i--)
+        {
+            Destroy(panel.GetChild(i).gameObject);
+        }
+    }
+
+    public void SelectItem(Category_Item_Button item)
+    {
+        if (currentSelected != null)
+            currentSelected.SetSelected(false);
+
+        currentSelected = item;
+
+        currentSelected.SetSelected(true);
+
+        Debug.Log("Seleccionado: " + item.texto);
+    }
+}
