@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-// using UnityEngine.XR.Interaction.Toolkit.Interactors; // not needed here
 
 /// <summary>
 /// Gestiona las conexiones adyacentes del grid de bases holográficas.
@@ -11,7 +10,7 @@ using UnityEngine;
 ///     con el formato "Conexion_BX_BY".
 ///
 /// Cuando ambas bases extremo están ocupadas por una bola, la conexión
-/// cambia a _gradienteActivo y aumenta su ancho.
+/// aplica la configuración manual de la línea.
 /// </summary>
 public class BaseConnectionManager : MonoBehaviour
 {
@@ -22,6 +21,7 @@ public class BaseConnectionManager : MonoBehaviour
         public BaseSlot     slotA;
         public BaseSlot     slotB;
         public LineRenderer lineRenderer;
+        public BaseConnectionLine lineaConfig;
         public bool         eraActiva;   // Estado previo para detectar cambios.
     }
 
@@ -31,29 +31,32 @@ public class BaseConnectionManager : MonoBehaviour
     [Tooltip("Desplazamiento en Y (metros) para que la línea quede sobre la superficie de la base.")]
     [SerializeField] private float _alturaOffset = 0.28f;
 
-    [Tooltip("Ancho de línea (metros) en estado inactivo.")]
-    [SerializeField] private float _anchoInactivo = 0.005f;
+    [Tooltip("Ancho base de la línea en metros.")]
+    [SerializeField, Min(0.0001f)] private float _anchoBase = 0.005f;
 
-    [Tooltip("Ancho de línea (metros) cuando la conexión está activa.")]
-    [SerializeField] private float _anchoActivo = 0.018f;
+    [Tooltip("Ancho máximo de la línea cuando el tráfico está al 100%.")]
+    [SerializeField, Min(0.0001f)] private float _anchoMaximo = 0.02f;
 
-    [Tooltip("Gradiente cuando la conexión está inactiva (siempre visible).")]
-    [SerializeField] private Gradient _gradienteInactivo;
+    [Tooltip("Nivel de tráfico de la línea. 0 = azul, 1 = rojo y más gruesa.")]
+    [SerializeField, Range(0f, 1f)] private float _trafico = 0f;
 
-    [Tooltip("Gradiente cuando ambas bases están ocupadas.")]
-    [SerializeField] private Gradient _gradienteActivo;
+    [Tooltip("Color de la línea cuando el tráfico está en 0.")]
+    [SerializeField] private Color _colorBajoTrafico = new Color(0f, 0.4f, 1f, 0.35f);
+
+    [Tooltip("Color de la línea cuando el tráfico está en 1.")]
+    [SerializeField] private Color _colorAltoTrafico = new Color(1f, 0.15f, 0.1f, 0.9f);
 
     // ─── Estado interno ───────────────────────────────────────────────────────
 
     private readonly List<BaseSlot> _slots      = new();
     private readonly List<Conexion> _conexiones = new();
     private readonly Dictionary<string, BaseSlot> _slotPorNombre = new();
+    private float _traficoAplicado = -1f;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        InicializarGradientes();
         AutoDescubrirSlots();
         AutoDescubrirConexiones();
     }
@@ -65,9 +68,12 @@ public class BaseConnectionManager : MonoBehaviour
     }
 
     private void Update() => ActualizarConexiones(forzar: false);
-    // Note: BaseSlot intentionally exposes only polling (IsOccupied).
-    // This manager polls slots each frame in Update(), so there is no
-    // subscription to placement/removal events here.
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying)
+            ActualizarConexiones(forzar: true);
+    }
 
     // ─── Auto-discovery ───────────────────────────────────────────────────────
 
@@ -110,6 +116,10 @@ public class BaseConnectionManager : MonoBehaviour
             var lr = hijo.GetComponent<LineRenderer>();
             if (lr == null) continue;
 
+            BaseConnectionLine lineaConfig = hijo.GetComponent<BaseConnectionLine>();
+            if (lineaConfig == null)
+                lineaConfig = hijo.gameObject.AddComponent<BaseConnectionLine>();
+
             // Formato: "Conexion_BX_BY"  →  partes[1]="B1"  partes[2]="B2"
             string[] partes = hijo.name.Split('_');
             if (partes.Length < 3) continue;
@@ -125,6 +135,7 @@ public class BaseConnectionManager : MonoBehaviour
                     slotA        = slotA,
                     slotB        = slotB,
                     lineRenderer = lr,
+                    lineaConfig  = lineaConfig,
                     eraActiva    = false
                 });
                 encontradas++;
@@ -153,10 +164,11 @@ public class BaseConnectionManager : MonoBehaviour
             c.lineRenderer.positionCount = 2;
             c.lineRenderer.SetPosition(0, c.slotA.transform.position + offset);
             c.lineRenderer.SetPosition(1, c.slotB.transform.position + offset);
-            c.lineRenderer.colorGradient = _gradienteInactivo;
-            c.lineRenderer.startWidth    = _anchoInactivo;
-            c.lineRenderer.endWidth      = _anchoInactivo;
-            c.lineRenderer.enabled       = true;
+            if (c.lineaConfig != null)
+            {
+                c.lineaConfig.Activa = false;
+                c.lineaConfig.Aplicar();
+            }
         }
     }
 
@@ -171,14 +183,16 @@ public class BaseConnectionManager : MonoBehaviour
         for (int i = 0; i < _conexiones.Count; i++)
         {
             Conexion c = _conexiones[i];
-            if (c.lineRenderer == null || c.slotA == null || c.slotB == null) continue;
+            if (c.lineRenderer == null || c.slotA == null || c.slotB == null || c.lineaConfig == null) continue;
 
             bool activa = c.slotA.IsOccupied && c.slotB.IsOccupied;
             if (!forzar && activa == c.eraActiva) continue;
 
-            c.lineRenderer.colorGradient = activa ? _gradienteActivo  : _gradienteInactivo;
-            c.lineRenderer.startWidth    = activa ? _anchoActivo       : _anchoInactivo;
-            c.lineRenderer.endWidth      = activa ? _anchoActivo       : _anchoInactivo;
+            if (c.lineaConfig != null)
+            {
+                c.lineaConfig.Activa = activa;
+                c.lineaConfig.Aplicar();
+            }
 
             c.lineRenderer.SetPosition(0, c.slotA.transform.position + offset);
             c.lineRenderer.SetPosition(1, c.slotB.transform.position + offset);
@@ -188,60 +202,4 @@ public class BaseConnectionManager : MonoBehaviour
         }
     }
 
-    // ─── Gradientes por defecto ───────────────────────────────────────────────
-
-    /// <summary>
-    /// Inicializa los gradientes con valores útiles si el Inspector los dejó
-    /// en el blanco por defecto de Unity (dos GradientColorKey blancos).
-    /// </summary>
-    private void InicializarGradientes()
-    {
-        if (EsGradienteBlancoPorDefecto(_gradienteInactivo))
-            _gradienteInactivo = CrearGradienteUniforme(new Color(0f, 0.4f, 0.9f, 0.35f));
-
-        if (EsGradienteBlancoPorDefecto(_gradienteActivo))
-            _gradienteActivo = CrearGradienteActivo();
-    }
-
-    /// <summary>Detecta el Gradient blanco que Unity asigna por defecto en el Inspector.</summary>
-    private static bool EsGradienteBlancoPorDefecto(Gradient g)
-    {
-        if (g == null || g.colorKeys.Length != 2) return false;
-        return g.colorKeys[0].color == Color.white && g.colorKeys[1].color == Color.white;
-    }
-
-    /// <summary>Gradient uniforme de color y alpha constantes.</summary>
-    private static Gradient CrearGradienteUniforme(Color color)
-    {
-        var g = new Gradient();
-        g.SetKeys(
-            new[] { new GradientColorKey(color, 0f), new GradientColorKey(color, 1f) },
-            new[] { new GradientAlphaKey(color.a, 0f), new GradientAlphaKey(color.a, 1f) }
-        );
-        return g;
-    }
-
-    /// <summary>Gradient activo: azul intenso en extremos → cian brillante en el centro.</summary>
-    private static Gradient CrearGradienteActivo()
-    {
-        var colorExtremo = new Color(0f, 0.4f, 1f);
-        var colorCentro  = new Color(0.3f, 1f, 1f);
-
-        var g = new Gradient();
-        g.SetKeys(
-            new[]
-            {
-                new GradientColorKey(colorExtremo, 0f),
-                new GradientColorKey(colorCentro,  0.5f),
-                new GradientColorKey(colorExtremo, 1f)
-            },
-            new[]
-            {
-                new GradientAlphaKey(0.8f, 0f),
-                new GradientAlphaKey(1f,   0.5f),
-                new GradientAlphaKey(0.8f, 1f)
-            }
-        );
-        return g;
-    }
 }

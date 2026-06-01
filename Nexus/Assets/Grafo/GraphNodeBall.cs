@@ -1,15 +1,12 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
-using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 /// <summary>
 /// Bola agarrable en VR que representa un nodo del grafo holográfico.
 ///
-/// Estados visuales (evaluados por polling cada frame, no por eventos):
-///   - Base     : azul muy oscuro (idle o en mano del jugador).
-///   - Hover    : blanco brillante (controlador encima, bola libre).
-///   - En Base  : azul brillante (seleccionada por un XRSocketInteractor).
+/// Estados visuales simples por contacto:
+///   - Base     : azul muy oscuro.
+///   - En Base  : azul brillante (tocando una base con tag).
 ///
 /// Usa renderer.material (instancia por nodo) para garantizar que la
 /// emisión no afecte al material compartido y siempre sea visible.
@@ -21,6 +18,9 @@ public class GraphNodeBall : MonoBehaviour
 
     private static readonly int EmissionColorID = Shader.PropertyToID("_EmissionColor");
     private const string EmissionKeyword = "_EMISSION";
+    private static readonly int BaseColorID = Shader.PropertyToID("_BaseColor");
+    private static readonly int ColorID = Shader.PropertyToID("_Color");
+    private static readonly int TintColorID = Shader.PropertyToID("_TintColor");
 
     // ─── Inspector ────────────────────────────────────────────────────────────
 
@@ -30,12 +30,12 @@ public class GraphNodeBall : MonoBehaviour
     private Renderer _renderer;
 
     [SerializeField]
-    [Tooltip("Color base (idle). Azul oscuro por defecto.")]
-    private Color _colorBase = new Color(0f, 0.08f, 0.35f);
+    [Tooltip("Tag que identifica las bases del grafo.")]
+    private string _tagBase = "Base";
 
     [SerializeField]
-    [Tooltip("Color cuando el controlador está encima (bola libre).")]
-    private Color _colorHover = new Color(0.7f, 0.85f, 1f);
+    [Tooltip("Color base (idle). Azul oscuro por defecto.")]
+    private Color _colorBase = new Color(0f, 0.08f, 0.35f);
 
     [SerializeField]
     [Tooltip("Color cuando el nodo está anclado en una Base.")]
@@ -45,28 +45,22 @@ public class GraphNodeBall : MonoBehaviour
     [Tooltip("Intensidad HDR (2^x) en estado base. Negativo = muy oscuro.")]
     private float _intensidadBase = -1f;
 
-    [SerializeField] [Range(0f, 8f)]
-    [Tooltip("Intensidad HDR durante hover.")]
-    private float _intensidadHover = 4f;
-
     [SerializeField] [Range(0f, 6f)]
     [Tooltip("Intensidad HDR cuando está sobre una Base.")]
     private float _intensidadEnBase = 2f;
 
     // ─── Estado ───────────────────────────────────────────────────────────────
 
-    private enum EstadoVisual { Base, Hover, EnBase }
+    private enum EstadoVisual { Base, EnBase }
 
-    private XRGrabInteractable _grab;
     private Material           _material;
     private EstadoVisual       _estadoActual = EstadoVisual.Base;
+    private int                _contactosBase;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        _grab = GetComponent<XRGrabInteractable>();
-
         if (_renderer == null)
             _renderer = GetComponent<Renderer>();
 
@@ -75,55 +69,47 @@ public class GraphNodeBall : MonoBehaviour
         _material = _renderer.material;
         _material.EnableKeyword(EmissionKeyword);
 
-        AplicarEmision(_colorBase, _intensidadBase);
+        AplicarMaterial(_colorBase, _intensidadBase);
     }
 
-    private void Update()
+    private void OnCollisionEnter(Collision collision)
     {
-        EstadoVisual nuevo = CalcularEstado();
-        if (nuevo == _estadoActual) return;
+        if (collision == null || !collision.collider.CompareTag(_tagBase)) return;
 
-        _estadoActual = nuevo;
-        switch (_estadoActual)
-        {
-            case EstadoVisual.EnBase:
-                AplicarEmision(_colorEnBase, _intensidadEnBase);
-                break;
-            case EstadoVisual.Hover:
-                AplicarEmision(_colorHover, _intensidadHover);
-                break;
-            default:
-                AplicarEmision(_colorBase, _intensidadBase);
-                break;
-        }
+        _contactosBase++;
+        if (_estadoActual == EstadoVisual.EnBase) return;
+
+        _estadoActual = EstadoVisual.EnBase;
+        AplicarMaterial(_colorEnBase, _intensidadEnBase);
     }
 
-    // ─── Estado ───────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Consulta el estado XRI en tiempo real para determinar el estado visual.
-    /// Se usa polling en lugar de eventos para evitar race conditions con el socket.
-    /// </summary>
-    private EstadoVisual CalcularEstado()
+    private void OnCollisionExit(Collision collision)
     {
-        foreach (var interactor in _grab.interactorsSelecting)
-        {
-            if (interactor is XRSocketInteractor)
-                return EstadoVisual.EnBase;
-        }
+        if (collision == null || !collision.collider.CompareTag(_tagBase)) return;
 
-        if (_grab.isHovered)
-            return EstadoVisual.Hover;
+        _contactosBase = Mathf.Max(0, _contactosBase - 1);
+        if (_contactosBase > 0) return;
 
-        return EstadoVisual.Base;
+        _estadoActual = EstadoVisual.Base;
+        AplicarMaterial(_colorBase, _intensidadBase);
     }
 
     // ─── Visual ───────────────────────────────────────────────────────────────
 
     /// <summary>Aplica emisión HDR a la instancia de material de este nodo.</summary>
-    private void AplicarEmision(Color color, float intensidad)
+    private void AplicarMaterial(Color color, float intensidad)
     {
         if (_material == null) return;
+
+        if (_material.HasProperty(BaseColorID))
+            _material.SetColor(BaseColorID, color);
+
+        if (_material.HasProperty(ColorID))
+            _material.SetColor(ColorID, color);
+
+        if (_material.HasProperty(TintColorID))
+            _material.SetColor(TintColorID, color);
+
         _material.SetColor(EmissionColorID, color * Mathf.Pow(2f, intensidad));
     }
 }

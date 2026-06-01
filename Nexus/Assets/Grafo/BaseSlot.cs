@@ -1,18 +1,32 @@
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 /// <summary>
 /// Componente ligero que expone el estado de ocupación de una base del grafo.
-/// Delega completamente en XRSocketInteractor.hasSelection para determinar
-/// si hay una bola anclada — sin eventos, sin listeners, sin race conditions.
+/// Marca la base como ocupada cuando una bola con el tag configurado entra en
+/// contacto con la base. Funciona con MeshCollider normal, sin activar IsTrigger.
 /// </summary>
-[RequireComponent(typeof(XRSocketInteractor))]
+[RequireComponent(typeof(Collider))]
 public class BaseSlot : MonoBehaviour
 {
-    private XRSocketInteractor _socket;
+    [Header("Tags")]
+    [SerializeField] private string _tagBola = "Ball";
 
-    /// <summary>True si hay un interactable seleccionado por el socket de esta base.</summary>
-    public bool IsOccupied => _socket != null && _socket.hasSelection;
+    private readonly System.Collections.Generic.HashSet<int> _colisionadoresDentro = new();
 
-    private void Awake() => _socket = GetComponent<XRSocketInteractor>();
+    /// <summary>True si hay una bola tocando esta base.</summary>
+    public bool IsOccupied => _colisionadoresDentro.Count > 0;
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision == null || !collision.collider.CompareTag(_tagBola)) return;
+
+        _colisionadoresDentro.Add(collision.collider.GetInstanceID());
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        if (collision == null || !collision.collider.CompareTag(_tagBola)) return;
+
+        _colisionadoresDentro.Remove(collision.collider.GetInstanceID());
+    }
 }
