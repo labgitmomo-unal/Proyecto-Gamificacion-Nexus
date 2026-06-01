@@ -70,6 +70,8 @@ public class BaseConnectionLine : MonoBehaviour
 
         if (_lineRenderer == null) return;
 
+        _lineRenderer.useWorldSpace = true;
+
         if (_materialInstancia == null)
         {
             Material materialBase = _lineRenderer.sharedMaterial;

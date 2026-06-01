@@ -155,15 +155,12 @@ public class BaseConnectionManager : MonoBehaviour
     /// <summary>Posiciona todas las líneas en estado inactivo al iniciar.</summary>
     private void PreposicionarTodasLasLineas()
     {
-        Vector3 offset = Vector3.up * _alturaOffset;
-
         foreach (var c in _conexiones)
         {
             if (c.lineRenderer == null || c.slotA == null || c.slotB == null) continue;
 
             c.lineRenderer.positionCount = 2;
-            c.lineRenderer.SetPosition(0, c.slotA.transform.position + offset);
-            c.lineRenderer.SetPosition(1, c.slotB.transform.position + offset);
+            PosicionarLinea(c);
             if (c.lineaConfig != null)
             {
                 c.lineaConfig.Activa = false;
@@ -178,28 +175,49 @@ public class BaseConnectionManager : MonoBehaviour
     /// </summary>
     private void ActualizarConexiones(bool forzar)
     {
-        Vector3 offset = Vector3.up * _alturaOffset;
-
         for (int i = 0; i < _conexiones.Count; i++)
         {
             Conexion c = _conexiones[i];
             if (c.lineRenderer == null || c.slotA == null || c.slotB == null || c.lineaConfig == null) continue;
 
             bool activa = c.slotA.IsOccupied && c.slotB.IsOccupied;
-            if (!forzar && activa == c.eraActiva) continue;
-
-            if (c.lineaConfig != null)
+            if (forzar || activa != c.eraActiva)
             {
                 c.lineaConfig.Activa = activa;
                 c.lineaConfig.Aplicar();
             }
 
-            c.lineRenderer.SetPosition(0, c.slotA.transform.position + offset);
-            c.lineRenderer.SetPosition(1, c.slotB.transform.position + offset);
+            PosicionarLinea(c);
 
             c.eraActiva    = activa;
             _conexiones[i] = c;   // Structs son valor — hay que escribir de vuelta.
         }
+    }
+
+    /// <summary>
+    /// Posiciona la línea en el espacio local del LineRenderer para que siga
+    /// correctamente al grafo cuando su raíz se mueva.
+    /// </summary>
+    private void PosicionarLinea(Conexion c)
+    {
+        if (c.lineRenderer == null || c.slotA == null || c.slotB == null) return;
+
+        // Si la base tiene una bola tocando, usar la posición de la bola para
+        // igualar la altura; si no, caer a la posición de la base con offset.
+        Vector3 puntoA;
+        if (c.slotA.TryGetContactPosition(out Vector3 contactoA))
+            puntoA = contactoA;
+        else
+            puntoA = c.slotA.transform.position + c.slotA.transform.up * _alturaOffset;
+
+        Vector3 puntoB;
+        if (c.slotB.TryGetContactPosition(out Vector3 contactoB))
+            puntoB = contactoB;
+        else
+            puntoB = c.slotB.transform.position + c.slotB.transform.up * _alturaOffset;
+
+        c.lineRenderer.SetPosition(0, puntoA);
+        c.lineRenderer.SetPosition(1, puntoB);
     }
 
 }
