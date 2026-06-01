@@ -16,15 +16,24 @@ public class Timer : MonoBehaviour
     private float remaining;
     private bool Under_Way;
 
+    private bool initialized = false;
+
     private void OnEnable()
+    {
+        
+        if (!initialized)
+        {
+            Start_Timer();
+            initialized = true;
+        }
+    }
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private void Start_Timer()
     {
         Max_Time = min * 60 + seg;
         remaining = Max_Time;
         Under_Way = true;
     }
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-   
-
     // Update is called once per frame
     void Update()
     {
