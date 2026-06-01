@@ -10,6 +10,7 @@ public class Timer : MonoBehaviour
     [SerializeField] int min, seg;
     [SerializeField] TextMeshProUGUI  tiempo;
     [SerializeField] private Image background;
+    [SerializeField] private ProgresoAbstraccion progreso;
     private float Max_Time;
     
     private float remaining;
@@ -45,6 +46,11 @@ public class Timer : MonoBehaviour
     {
         Under_Way = false;
         tiempo.text = "00:00";
+
+        if (progreso != null)
+        {
+            progreso.TiempoAgotado();
+        }
     }
 
     private void UpdateColor()
@@ -65,5 +71,10 @@ public class Timer : MonoBehaviour
             background.color =
                 Color.Lerp(Color.yellow, Color.red, t);
         }
+    }
+
+    public void StopTimer()
+    {
+        Under_Way = false;
     }
 }

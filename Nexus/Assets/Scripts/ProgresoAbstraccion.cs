@@ -6,6 +6,7 @@ using TMPro;
 public class ProgresoAbstraccion : MonoBehaviour
 {
     [Header("Referencias UI")]
+    [SerializeField] private Timer timer;
     public Image fillImage;
     public TextMeshProUGUI textoporcentaje;
     public ScrollRect scrollView;
@@ -54,7 +55,11 @@ public class ProgresoAbstraccion : MonoBehaviour
         _eliminados = Mathf.Min(_eliminados + 1, _totalObjetivo);
         ActualizarUI();
         if (_eliminados >= _totalObjetivo)
-            BloquearScrollView();
+            BloquearScrollView("Fase\nCompletada");
+            if (timer != null)
+            {
+                timer.StopTimer();
+            }
     }
 
     public void Reiniciar()
@@ -84,7 +89,7 @@ public class ProgresoAbstraccion : MonoBehaviour
         }
     }
 
-    private void BloquearScrollView()
+    private void BloquearScrollView(string mensaje)
     {
         if (scrollView == null) return;
 
@@ -116,7 +121,7 @@ public class ProgresoAbstraccion : MonoBehaviour
             txtRT.anchorMin = new Vector2(0.05f, 0.05f); txtRT.anchorMax = new Vector2(0.95f, 0.95f);
             txtRT.offsetMin = txtRT.offsetMax = Vector2.zero;
             var tmp = txtGO.AddComponent<TMPro.TextMeshProUGUI>();
-            tmp.text = "Fase\nCompletada";
+            tmp.text = mensaje;
             tmp.alignment = TMPro.TextAlignmentOptions.Center;
             tmp.enableAutoSizing = true;
             tmp.fontSizeMin = 10; tmp.fontSizeMax = 300;
@@ -147,5 +152,13 @@ public class ProgresoAbstraccion : MonoBehaviour
     public static void NotificarEliminacion()
     {
         OnBotonObjetivoEliminado?.Invoke();
+    }
+
+    public void TiempoAgotado()
+    {
+        if (FaseCompletada)
+            return;
+
+        BloquearScrollView("Tiempo\nAgotado");
     }
 }
