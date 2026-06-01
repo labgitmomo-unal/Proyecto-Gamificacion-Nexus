@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
 
 /// <summary>
 /// Bola agarrable en VR que representa un nodo del grafo holográfico.
@@ -11,7 +10,6 @@ using UnityEngine.XR.Interaction.Toolkit;
 /// Usa renderer.material (instancia por nodo) para garantizar que la
 /// emisión no afecte al material compartido y siempre sea visible.
 /// </summary>
-[RequireComponent(typeof(XRGrabInteractable))]
 public class GraphNodeBall : MonoBehaviour
 {
     // ─── Constantes ───────────────────────────────────────────────────────────

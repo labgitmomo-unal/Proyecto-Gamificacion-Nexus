@@ -136,7 +136,7 @@ GameObject:
   - component: {fileID: 14232565}
   m_Layer: 0
   m_Name: Base2
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -150,7 +150,7 @@ Transform:
   m_GameObject: {fileID: 14232557}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: -0.35}
+  m_LocalPosition: {x: 0, y: 0.6, z: -0.35}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5434,6 +5434,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &14232565
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -5473,7 +5474,7 @@ GameObject:
   - component: {fileID: 36189989}
   m_Layer: 0
   m_Name: Nodo1
-  m_TagString: Untagged
+  m_TagString: Ball
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5503,7 +5504,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 2f7a2f9c3f03435f9b8dcbf0f7a11a21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5740,11 +5741,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
   _renderer: {fileID: 36189980}
+  _tagBase: Base
   _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
-  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
   _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
   _intensidadBase: -1
-  _intensidadHover: 4
   _intensidadEnBase: 2
 --- !u!1 &155348072
 GameObject:
@@ -5804,7 +5804,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5946,7 +5946,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -6311,7 +6311,7 @@ GameObject:
   - component: {fileID: 417960447}
   m_Layer: 0
   m_Name: Base3
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6325,7 +6325,7 @@ Transform:
   m_GameObject: {fileID: 417960439}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.35, y: 0.5, z: -0.35}
+  m_LocalPosition: {x: -0.35, y: 0.6, z: -0.35}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11609,6 +11609,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &417960447
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -17279,7 +17280,7 @@ GameObject:
   - component: {fileID: 507109287}
   m_Layer: 0
   m_Name: Base1
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -17293,7 +17294,7 @@ Transform:
   m_GameObject: {fileID: 507109279}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.35, y: 0.5, z: -0.35}
+  m_LocalPosition: {x: 0.35, y: 0.6, z: -0.35}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -22577,6 +22578,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &507109287
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -22616,7 +22618,7 @@ GameObject:
   - component: {fileID: 607254681}
   m_Layer: 0
   m_Name: Base5
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -22630,7 +22632,7 @@ Transform:
   m_GameObject: {fileID: 607254673}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0, y: 0.6, z: 0}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27914,6 +27916,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &607254681
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -28172,7 +28175,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -28273,7 +28276,7 @@ GameObject:
   - component: {fileID: 714114312}
   m_Layer: 0
   m_Name: Base9
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -28287,7 +28290,7 @@ Transform:
   m_GameObject: {fileID: 714114304}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.35, y: 0.5, z: 0.35}
+  m_LocalPosition: {x: -0.35, y: 0.6, z: 0.35}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -33571,6 +33574,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &714114312
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -33837,7 +33841,7 @@ GameObject:
   - component: {fileID: 933476412}
   m_Layer: 0
   m_Name: Nodo2
-  m_TagString: Untagged
+  m_TagString: Ball
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -33903,7 +33907,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 2f7a2f9c3f03435f9b8dcbf0f7a11a21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -34104,12 +34108,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
   _renderer: {fileID: 933476407}
+  _tagBase: Base
   _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
-  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
-  _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
+  _colorEnBase: {r: 0, g: 0.68849087, b: 1, a: 1}
   _intensidadBase: -1
-  _intensidadHover: 4
-  _intensidadEnBase: 2
+  _intensidadEnBase: 3.61
 --- !u!1 &981592056
 GameObject:
   m_ObjectHideFlags: 0
@@ -34127,7 +34130,7 @@ GameObject:
   - component: {fileID: 981592067}
   m_Layer: 0
   m_Name: Nodo5
-  m_TagString: Untagged
+  m_TagString: Ball
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -34193,7 +34196,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 2f7a2f9c3f03435f9b8dcbf0f7a11a21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -34394,11 +34397,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
   _renderer: {fileID: 981592063}
+  _tagBase: Base
   _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
-  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
   _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
   _intensidadBase: -1
-  _intensidadHover: 4
   _intensidadEnBase: 2
 --- !u!1 &1008031016
 GameObject:
@@ -34458,7 +34460,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -34600,7 +34602,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -34744,7 +34746,7 @@ GameObject:
   - component: {fileID: 1080726410}
   m_Layer: 0
   m_Name: Base8
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -34758,7 +34760,7 @@ Transform:
   m_GameObject: {fileID: 1080726402}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0.35}
+  m_LocalPosition: {x: 0, y: 0.6, z: 0.35}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -40042,6 +40044,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &1080726410
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -40081,7 +40084,7 @@ GameObject:
   - component: {fileID: 1098558269}
   m_Layer: 0
   m_Name: Base4
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -40095,7 +40098,7 @@ Transform:
   m_GameObject: {fileID: 1098558261}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.35, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0.35, y: 0.6, z: 0}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -45379,6 +45382,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &1098558269
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -45418,7 +45422,7 @@ GameObject:
   - component: {fileID: 1185098542}
   m_Layer: 0
   m_Name: Base7
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -45432,7 +45436,7 @@ Transform:
   m_GameObject: {fileID: 1185098534}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.35, y: 0.5, z: 0.35}
+  m_LocalPosition: {x: 0.35, y: 0.6, z: 0.35}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -50716,6 +50720,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &1185098542
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -50796,7 +50801,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -50938,7 +50943,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -51080,7 +51085,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -51181,7 +51186,7 @@ GameObject:
   - component: {fileID: 1266896165}
   m_Layer: 0
   m_Name: Nodo4
-  m_TagString: Untagged
+  m_TagString: Ball
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -51247,7 +51252,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 2f7a2f9c3f03435f9b8dcbf0f7a11a21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -51448,11 +51453,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
   _renderer: {fileID: 1266896161}
+  _tagBase: Base
   _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
-  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
   _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
   _intensidadBase: -1
-  _intensidadHover: 4
   _intensidadEnBase: 2
 --- !u!43 &1322847602
 Mesh:
@@ -52005,7 +52009,7 @@ GameObject:
   - component: {fileID: 1704294906}
   m_Layer: 0
   m_Name: Nodo3
-  m_TagString: Untagged
+  m_TagString: Ball
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -52071,7 +52075,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 2f7a2f9c3f03435f9b8dcbf0f7a11a21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -52272,11 +52276,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphNodeBall
   _renderer: {fileID: 1704294902}
+  _tagBase: Base
   _colorBase: {r: 0, g: 0.08, b: 0.35, a: 1}
-  _colorHover: {r: 0.7, g: 0.85, b: 1, a: 1}
   _colorEnBase: {r: 0, g: 0.45, b: 1, a: 1}
   _intensidadBase: -1
-  _intensidadHover: 4
   _intensidadEnBase: 2
 --- !u!1 &1731731045
 GameObject:
@@ -52336,7 +52339,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -52478,7 +52481,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -52935,7 +52938,7 @@ GameObject:
   - component: {fileID: 1948066025}
   m_Layer: 0
   m_Name: Base6
-  m_TagString: Untagged
+  m_TagString: Base
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -52949,7 +52952,7 @@ Transform:
   m_GameObject: {fileID: 1948066017}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.35, y: 0.5, z: 0}
+  m_LocalPosition: {x: -0.35, y: 0.6, z: 0}
   m_LocalScale: {x: 0.120000005, y: 0.2, z: 0.120000005}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -58233,6 +58236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 927ce963533b60044bca5d956aef42f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseSlot
+  _tagBola: Ball
 --- !u!64 &1948066025
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -58398,68 +58402,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseConnectionManager
   _alturaOffset: 0.28
-  _anchoInactivo: 0.005
-  _anchoActivo: 0.018
-  _gradienteInactivo:
-    serializedVersion: 2
-    key0: {r: 0.2905661, g: 0.2905661, b: 0.2905661, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 1}
-    key2: {r: 0, g: 0, b: 0, a: 0}
-    key3: {r: 0, g: 0, b: 0, a: 0}
-    key4: {r: 0, g: 0, b: 0, a: 0}
-    key5: {r: 0, g: 0, b: 0, a: 0}
-    key6: {r: 0, g: 0, b: 0, a: 0}
-    key7: {r: 0, g: 0, b: 0, a: 0}
-    ctime0: 0
-    ctime1: 65535
-    ctime2: 0
-    ctime3: 0
-    ctime4: 0
-    ctime5: 0
-    ctime6: 0
-    ctime7: 0
-    atime0: 0
-    atime1: 65535
-    atime2: 0
-    atime3: 0
-    atime4: 0
-    atime5: 0
-    atime6: 0
-    atime7: 0
-    m_Mode: 0
-    m_ColorSpace: -1
-    m_NumColorKeys: 2
-    m_NumAlphaKeys: 2
-  _gradienteActivo:
-    serializedVersion: 2
-    key0: {r: 0, g: 1, b: 0.056446314, a: 1}
-    key1: {r: 1, g: 0, b: 0, a: 1}
-    key2: {r: 0, g: 0, b: 0, a: 0}
-    key3: {r: 0, g: 0, b: 0, a: 0}
-    key4: {r: 0, g: 0, b: 0, a: 0}
-    key5: {r: 0, g: 0, b: 0, a: 0}
-    key6: {r: 0, g: 0, b: 0, a: 0}
-    key7: {r: 0, g: 0, b: 0, a: 0}
-    ctime0: 0
-    ctime1: 65535
-    ctime2: 0
-    ctime3: 0
-    ctime4: 0
-    ctime5: 0
-    ctime6: 0
-    ctime7: 0
-    atime0: 0
-    atime1: 65535
-    atime2: 0
-    atime3: 0
-    atime4: 0
-    atime5: 0
-    atime6: 0
-    atime7: 0
-    m_Mode: 0
-    m_ColorSpace: -1
-    m_NumColorKeys: 2
-    m_NumAlphaKeys: 2
+  _anchoBase: 0.005
+  _anchoMaximo: 0.02
+  _trafico: 0
+  _colorBajoTrafico: {r: 0, g: 0.4, b: 1, a: 0.35}
+  _colorAltoTrafico: {r: 1, g: 0.15, b: 0.1, a: 0.9}
 --- !u!114 &1954594418
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -58710,7 +58657,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -58852,7 +58799,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e9eed53eac43247bc7237d0ff77c13, type: 2}
+  - {fileID: 2100000, guid: 1d0f3f8d8d2c46d0b59cb8a4d0f5f2b9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
