@@ -17,7 +17,7 @@ public class Timer : MonoBehaviour
     private bool Under_Way;
 
     private bool initialized = false;
-
+    public AudioSource audioSource;
     private void OnEnable()
     {
 
@@ -68,6 +68,9 @@ public class Timer : MonoBehaviour
 
             background.color =
                 Color.Lerp(Color.green, Color.yellow, t);
+            
+            //audioSource.Play();
+            
         }
         else
         {
@@ -75,6 +78,8 @@ public class Timer : MonoBehaviour
 
             background.color =
                 Color.Lerp(Color.yellow, Color.red, t);
+
+            //audioSource.Play();
         }
     }
 
