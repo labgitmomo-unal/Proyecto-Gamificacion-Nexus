@@ -36,6 +36,7 @@ public class Challenge_Progress : MonoBehaviour
     private void CompleteChallenge()
     {
         timer.StopTimer();
+        BlockItemsPanel("Completado");
     }
 
     public void TimeExpired()
@@ -46,10 +47,10 @@ public class Challenge_Progress : MonoBehaviour
             $"Quedaron {failedItems} items sin clasificar"
         );
 
-        BlockItemsPanel();
+        BlockItemsPanel("Tiempo\nAgotado");
     }
 
-    private void BlockItemsPanel()
+    private void BlockItemsPanel(string mensaje)
     {
         if (itemsScrollView == null)
             return;
@@ -72,26 +73,25 @@ public class Challenge_Progress : MonoBehaviour
 
         if (viewport != null)
         {
-            GameObject panel = new GameObject("TiempoAgotado");
-            panel.transform.SetParent(viewport, false);
+            var msgGO = new GameObject("MsgFaseCompletada");
+            msgGO.transform.SetParent(viewport, false);
+            var msgRT = msgGO.AddComponent<RectTransform>();
+            msgRT.anchorMin = Vector2.zero; msgRT.anchorMax = Vector2.one;
+            msgRT.offsetMin = msgRT.offsetMax = Vector2.zero;
+            msgGO.AddComponent<Image>().color = new Color(0f, 0.03f, 0.08f, 0.95f);
 
-            RectTransform rt = panel.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-
-            panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.8f);
-
-            GameObject textObj = new GameObject("Texto");
-            textObj.transform.SetParent(panel.transform, false);
-
-            TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
-            tmp.text = "Tiempo\nAgotado";
-            tmp.alignment = TextAlignmentOptions.Center;
+            var txtGO = new GameObject("Texto");
+            txtGO.transform.SetParent(msgGO.transform, false);
+            var txtRT = txtGO.AddComponent<RectTransform>();
+            txtRT.anchorMin = new Vector2(0.05f, 0.05f); txtRT.anchorMax = new Vector2(0.95f, 0.95f);
+            txtRT.offsetMin = txtRT.offsetMax = Vector2.zero;
+            var tmp = txtGO.AddComponent<TMPro.TextMeshProUGUI>();
+            tmp.text = mensaje;
+            tmp.alignment = TMPro.TextAlignmentOptions.Center;
             tmp.enableAutoSizing = true;
-            tmp.fontSizeMin = 10;
-            tmp.fontSizeMax = 300;
+            tmp.fontSizeMin = 10; tmp.fontSizeMax = 300;
+            tmp.color = new Color(1f, 1f, 1f, 1f);
+            tmp.fontStyle = TMPro.FontStyles.Bold;
         }
 
         if (nextPanel != null)
