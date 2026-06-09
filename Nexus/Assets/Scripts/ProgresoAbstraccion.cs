@@ -12,7 +12,10 @@ public class ProgresoAbstraccion : MonoBehaviour
     public TextMeshProUGUI textoporcentaje;
     public ScrollRect scrollView;
 
+    [Header("Audios")]
     public AudioSource Explain_Challenge_1;
+    public AudioSource Indicator_Challenge_2;
+
 
     [Header("Teleport al completar Panel 1")]
     public GameObject teleportIndicatorSource;
@@ -149,6 +152,7 @@ public class ProgresoAbstraccion : MonoBehaviour
         FaseCompletada = true;
         OnFaseCompletada?.Invoke();
         Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%. Panel 2 activado.");
+        Indicator_Challenge_2.Play();
     }
 
     private void DesbloquearScrollView()
