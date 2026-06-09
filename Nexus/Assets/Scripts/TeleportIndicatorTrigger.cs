@@ -12,7 +12,7 @@ public class TeleportIndicatorTrigger : MonoBehaviour
 
     private Coroutine fadeCoroutine;
 
-void Start()
+    void Start()
     {
         if (canvasGroup != null)
         {

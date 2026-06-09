@@ -11,14 +11,12 @@ public class ProgresoAbstraccion : MonoBehaviour
     public TextMeshProUGUI textoporcentaje;
     public ScrollRect scrollView;
 
-    [Header("Panel 2 - se activa al completar")]
-    public GameObject panel2Canvas;
+    
 
     [Header("Teleport al completar Panel 1")]
-    [Tooltip("Prefab o instancia de SM_Teleport_Indicator que se clonará")]
     public GameObject teleportIndicatorSource;
     [Tooltip("Transform del Box019 del Panel_2, usado como referencia de posición")]
-    public Transform box019Panel2;
+    public GameObject Collider_Destino_Teleport;
 
     [Header("Colores de progreso")]
     public Color colorInicio    = new Color(0f, 1f, 1f, 1f);
@@ -138,23 +136,10 @@ private void BloquearScrollView(string mensaje)
         if (textoporcentaje != null) textoporcentaje.text = "COMPLETO";
 
         // 5. Activar Panel 2
-        if (panel2Canvas != null)
-            panel2Canvas.SetActive(true);
-
-        // 6. Instanciar clon de SM_Teleport_Indicator frente al Box019 del Panel_2
-        if (teleportIndicatorSource != null && box019Panel2 != null)
-        {
-            // Posición: sobre el Box019, desplazado 1.5u hacia el jugador (eje +Z mundial)
-            Vector3 spawnPos = box019Panel2.position + new Vector3(0f, 0f, 1.5f);
-            GameObject clone = Instantiate(teleportIndicatorSource, spawnPos, teleportIndicatorSource.transform.rotation);
-            clone.name = "SM_Teleport_Indicator_Panel2";
-            clone.SetActive(true);
-            Debug.Log("[ProgresoAbstraccion] SM_Teleport_Indicator clonado frente a Box019 del Panel_2 en: " + spawnPos);
-        }
-        else
-        {
-            Debug.LogWarning("[ProgresoAbstraccion] teleportIndicatorSource o box019Panel2 no asignados. El clon no se generó.");
-        }
+        if (teleportIndicatorSource != null)
+            teleportIndicatorSource.SetActive(true);
+            Collider_Destino_Teleport.SetActive(true);
+        
 
         // 7. Notificar
         FaseCompletada = true;
