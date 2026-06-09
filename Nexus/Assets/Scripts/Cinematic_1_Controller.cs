@@ -9,6 +9,7 @@ public class Cinematic_1_Controller : MonoBehaviour
     public GameObject XrigCamera;
     
     public TrafficManager trafficManager;
+    public AudioSource Challenge_Indicator_1;
 
     void Start()
     {
@@ -24,7 +25,8 @@ public class Cinematic_1_Controller : MonoBehaviour
     {
         XrigCamera.SetActive(true);
         VirtualCamera.SetActive(false);
-
+        StartCoroutine(Wait());
+        Challenge_Indicator_1.Play();
         
     }
 
@@ -57,5 +59,12 @@ public class Cinematic_1_Controller : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         RestaurarTrafico();
+    }
+
+    private IEnumerator Wait()
+    {
+
+        yield return new WaitForSeconds(45f);
+ 
     }
 }

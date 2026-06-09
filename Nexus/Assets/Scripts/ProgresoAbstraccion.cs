@@ -14,6 +14,12 @@ public class ProgresoAbstraccion : MonoBehaviour
     [Header("Panel 2 - se activa al completar")]
     public GameObject panel2Canvas;
 
+    [Header("Teleport al completar Panel 1")]
+    [Tooltip("Prefab o instancia de SM_Teleport_Indicator que se clonará")]
+    public GameObject teleportIndicatorSource;
+    [Tooltip("Transform del Box019 del Panel_2, usado como referencia de posición")]
+    public Transform box019Panel2;
+
     [Header("Colores de progreso")]
     public Color colorInicio    = new Color(0f, 1f, 1f, 1f);
     public Color colorFinal     = new Color(0f, 1f, 0.4f, 1f);
@@ -86,7 +92,7 @@ public class ProgresoAbstraccion : MonoBehaviour
         }
     }
 
-    private void BloquearScrollView(string mensaje)
+private void BloquearScrollView(string mensaje)
     {
         timer.StopTimer();
         if (scrollView == null) return;
@@ -135,7 +141,22 @@ public class ProgresoAbstraccion : MonoBehaviour
         if (panel2Canvas != null)
             panel2Canvas.SetActive(true);
 
-        // 6. Notificar
+        // 6. Instanciar clon de SM_Teleport_Indicator frente al Box019 del Panel_2
+        if (teleportIndicatorSource != null && box019Panel2 != null)
+        {
+            // Posición: sobre el Box019, desplazado 1.5u hacia el jugador (eje +Z mundial)
+            Vector3 spawnPos = box019Panel2.position + new Vector3(0f, 0f, 1.5f);
+            GameObject clone = Instantiate(teleportIndicatorSource, spawnPos, teleportIndicatorSource.transform.rotation);
+            clone.name = "SM_Teleport_Indicator_Panel2";
+            clone.SetActive(true);
+            Debug.Log("[ProgresoAbstraccion] SM_Teleport_Indicator clonado frente a Box019 del Panel_2 en: " + spawnPos);
+        }
+        else
+        {
+            Debug.LogWarning("[ProgresoAbstraccion] teleportIndicatorSource o box019Panel2 no asignados. El clon no se generó.");
+        }
+
+        // 7. Notificar
         FaseCompletada = true;
         OnFaseCompletada?.Invoke();
         Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%. Panel 2 activado.");
