@@ -1,6 +1,7 @@
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine;
+using System.Collections;
 
 public class Challenge_Progress : MonoBehaviour
 {
@@ -12,9 +13,15 @@ public class Challenge_Progress : MonoBehaviour
 
     [SerializeField] private GameObject nextPanel;
 
+    [Header("Audios")]
+    [SerializeField] private AudioSource Explain_Challenge_2;
+
+    private bool audioPlayed = false;
+
     private int remainingItems;
     private int failedItems;
 
+    
     public void Initialize()
     {
         remainingItems = itemsContent.childCount;
@@ -99,4 +106,6 @@ public class Challenge_Progress : MonoBehaviour
             nextPanel.SetActive(true);
         }
     }
+
+    
 }

@@ -12,6 +12,11 @@ public class Category_Challenger_Manager : MonoBehaviour
     [SerializeField]
     private Challenge_Progress challenge_Progress;
 
+    private bool audioPlayed = false;
+
+    
+
+
     
     void OnEnable()
     {
@@ -21,6 +26,8 @@ public class Category_Challenger_Manager : MonoBehaviour
         {
             LoadButtons();
         }
+
+
     }
 
     void OnDisable()
@@ -107,5 +114,7 @@ public class Category_Challenger_Manager : MonoBehaviour
         Debug.Log("Seleccionado: " + item.texto);
     }
 
-public void ItemRemoved() { challenge_Progress.ItemSolved(); }
+    public void ItemRemoved() { challenge_Progress.ItemSolved(); }
+
+   
 }
