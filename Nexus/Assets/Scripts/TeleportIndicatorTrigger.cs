@@ -12,6 +12,8 @@ public class TeleportIndicatorTrigger : MonoBehaviour
 
     private Coroutine fadeCoroutine;
 
+    [SerializeField] private ProgresoAbstraccion progreso;
+
     void Start()
     {
         if (canvasGroup != null)
@@ -25,6 +27,7 @@ public class TeleportIndicatorTrigger : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        
         if (!other.CompareTag("Player")) return;
 
         // Desactivar el mesh 3D
@@ -37,6 +40,7 @@ public class TeleportIndicatorTrigger : MonoBehaviour
             if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
             canvasGroup.gameObject.SetActive(true);
             fadeCoroutine = StartCoroutine(Fade(0f, 1f));
+            progreso.StartChallenge();
         }
     }
 

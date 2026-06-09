@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 public class ProgresoAbstraccion : MonoBehaviour
 {
@@ -11,7 +12,7 @@ public class ProgresoAbstraccion : MonoBehaviour
     public TextMeshProUGUI textoporcentaje;
     public ScrollRect scrollView;
 
-    
+    public AudioSource Explain_Challenge_1;
 
     [Header("Teleport al completar Panel 1")]
     public GameObject teleportIndicatorSource;
@@ -28,12 +29,15 @@ public class ProgresoAbstraccion : MonoBehaviour
     private int _totalObjetivo = 0;
     private int _eliminados    = 0;
 
+    private bool Audio_Played = false;
+
     public static event Action OnBotonObjetivoEliminado;
     public static event Action OnFaseCompletada;
     public static bool FaseCompletada { get; private set; }
 
     void OnEnable()
     {
+        
         FaseCompletada = false;
         OnBotonObjetivoEliminado += HandleBotonEliminado;
 
@@ -90,7 +94,7 @@ public class ProgresoAbstraccion : MonoBehaviour
         }
     }
 
-private void BloquearScrollView(string mensaje)
+    private void BloquearScrollView(string mensaje)
     {
         timer.StopTimer();
         if (scrollView == null) return;
@@ -164,5 +168,22 @@ private void BloquearScrollView(string mensaje)
             return;
 
         BloquearScrollView("Tiempo\nAgotado");
+    }
+
+    private IEnumerator Play_Intro()
+    {
+        Explain_Challenge_1.Play();
+        yield return new WaitWhile(() => Explain_Challenge_1.isPlaying);
+        timer.Start_Timer();
+        // Aquí podrías agregar animaciones o efectos introductorios si lo deseas
+    }
+
+    public void StartChallenge()
+    {
+        if (!Audio_Played)
+        {
+            StartCoroutine(Play_Intro());
+            Audio_Played = true;
+        }
     }
 }
