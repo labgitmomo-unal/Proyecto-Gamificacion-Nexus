@@ -7,6 +7,7 @@ public class Cinematic_1_Controller : MonoBehaviour
     public PlayableDirector director;
     public GameObject VirtualCamera;
     public GameObject XrigCamera;
+    public Camera vistaPilotoCamera;
     
     public TrafficManager trafficManager;
     public AudioSource Challenge_Indicator_1;
@@ -25,6 +26,7 @@ public class Cinematic_1_Controller : MonoBehaviour
     {
         XrigCamera.SetActive(true);
         VirtualCamera.SetActive(false);
+        if (vistaPilotoCamera != null) vistaPilotoCamera.enabled = false;
         StartCoroutine(Wait());
         Challenge_Indicator_1.Play();
         

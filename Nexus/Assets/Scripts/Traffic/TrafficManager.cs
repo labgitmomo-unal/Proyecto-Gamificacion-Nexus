@@ -71,14 +71,23 @@ public class TrafficManager : MonoBehaviour
     /// <summary>Ralentiza el tráfico al porcentaje indicado (ej: 0.1 = 10%).</summary>
     public void RalentizarTrafico(float porcentaje = 0.1f) => SetVelocidad(porcentaje);
 
+    public void DesregistrarClon(MovementController mc)
+    {
+        if (mc != null) clonesActivos.Remove(mc);
+    }
+
+    public List<MovementController> ObtenerClones()
+    {
+        clonesActivos.RemoveAll(mc => mc == null);
+        return clonesActivos;
+    }
+
     private Vector3 ObtenerVelocidadBasePorDireccion(Vector3 velocidadActual)
     {
-        // Busca la plantilla cuya dirección coincide con el clon
         foreach (var kvp in velocidadesOriginales)
             if (Vector3.Dot(kvp.Value.normalized, velocidadActual.normalized) > 0.9f)
                 return kvp.Value;
 
-        // Fallback: reconstruir magnitud desde velocidad original promedio
         return velocidadActual.normalized * 50f;
     }
 }
