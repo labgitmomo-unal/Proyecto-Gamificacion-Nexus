@@ -28,6 +28,14 @@ public class AuthManager : MonoBehaviour
     {
         AutoAssign();
         WireButtons();
+        DisableCharacterController();
+    }
+
+    private void DisableCharacterController()
+    {
+        var ccs = Object.FindObjectsByType<CharacterController>(FindObjectsSortMode.None);
+        foreach (var cc in ccs)
+            cc.enabled = false;
     }
 
     private void Start()
@@ -89,8 +97,14 @@ public class AuthManager : MonoBehaviour
             return;
         }
 
-        ShowFeedback("Iniciando sesión...");
-        StartCoroutine(LoginSequence());
+        if (email == "root" && password == "root")
+        {
+            ShowFeedback("Iniciando sesión...");
+            StartCoroutine(LoginSequence());
+            return;
+        }
+
+        ShowFeedback("Credenciales inválidas");
     }
 
     private IEnumerator LoginSequence()
@@ -99,10 +113,6 @@ public class AuthManager : MonoBehaviour
 
         ShowFeedback("Cargando ciudad...");
         yield return new WaitForSeconds(0.5f);
-
-        var cinematic = Object.FindFirstObjectByType<Cinematic_1_Controller>();
-        if (cinematic != null)
-            cinematic.enabled = true;
 
         SceneManager.LoadScene("Neon High City");
     }

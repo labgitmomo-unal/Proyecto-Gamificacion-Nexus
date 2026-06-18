@@ -14,19 +14,19 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 0
-  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  m_FogMode: 3
-  m_FogDensity: 0.01
+  m_Fog: 1
+  m_FogColor: {r: 0.35, g: 0.35, b: 0.35, a: 1}
+  m_FogMode: 2
+  m_FogDensity: 0.008
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientSkyColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
-  m_AmbientMode: 0
+  m_AmbientMode: 3
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -1010,31 +1010,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 53.76216
+      value: 29.06
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 19.63
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -50.950363
+      value: -16.7
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9457341
+      value: -0.00000004371139
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.32494178
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -1634,6 +1634,7 @@ GameObject:
   - component: {fileID: 752691213}
   - component: {fileID: 752691212}
   - component: {fileID: 752691210}
+  - component: {fileID: 752691214}
   m_Layer: 0
   m_Name: ConfirmInput
   m_TagString: Untagged
@@ -1800,6 +1801,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 752691209}
   m_CullTransparentMesh: 1
+--- !u!114 &752691214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 752691209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 098c6e42839eacc429c814e1e4a9d16c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRKeyboardHandler
 --- !u!1 &809124192
 GameObject:
   m_ObjectHideFlags: 0
@@ -1923,6 +1936,7 @@ GameObject:
   - component: {fileID: 1041976265}
   - component: {fileID: 1041976264}
   - component: {fileID: 1041976266}
+  - component: {fileID: 1041976267}
   m_Layer: 0
   m_Name: PasswordInput
   m_TagString: Untagged
@@ -2089,6 +2103,18 @@ MonoBehaviour:
   isAlert: 0
   m_InputValidator: {fileID: 0}
   m_ShouldActivateOnSelect: 1
+--- !u!114 &1041976267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1041976262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 098c6e42839eacc429c814e1e4a9d16c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRKeyboardHandler
 --- !u!1 &1082640380
 GameObject:
   m_ObjectHideFlags: 0
@@ -2321,8 +2347,8 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1155414862}
-  m_LocalRotation: {x: -0, y: 0.30886188, z: -0, w: -0.9511069}
-  m_LocalPosition: {x: 0, y: 0, z: -49.738}
+  m_LocalRotation: {x: 0.31246218, y: -0.3618812, z: 0.13018012, w: 0.86859804}
+  m_LocalPosition: {x: 0, y: 0, z: -17.91}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2334,7 +2360,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 324.019, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 52.543, y: 21.048588}
+  m_AnchoredPosition: {x: 30.28, y: 5.42}
   m_SizeDelta: {x: 2, y: 1.4128}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1155414868
@@ -2626,6 +2652,7 @@ GameObject:
   - component: {fileID: 1408921857}
   - component: {fileID: 1408921856}
   - component: {fileID: 1408921858}
+  - component: {fileID: 1408921859}
   m_Layer: 0
   m_Name: EmailInput
   m_TagString: Untagged
@@ -2792,6 +2819,18 @@ MonoBehaviour:
   isAlert: 0
   m_InputValidator: {fileID: 0}
   m_ShouldActivateOnSelect: 1
+--- !u!114 &1408921859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1408921854}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 098c6e42839eacc429c814e1e4a9d16c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRKeyboardHandler
 --- !u!1 &1448837215
 GameObject:
   m_ObjectHideFlags: 0
@@ -3992,6 +4031,7 @@ GameObject:
   - component: {fileID: 1699351852}
   - component: {fileID: 1699351851}
   - component: {fileID: 1699351853}
+  - component: {fileID: 1699351854}
   m_Layer: 0
   m_Name: EmailInput
   m_TagString: Untagged
@@ -4158,6 +4198,18 @@ MonoBehaviour:
   isAlert: 0
   m_InputValidator: {fileID: 0}
   m_ShouldActivateOnSelect: 1
+--- !u!114 &1699351854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1699351849}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 098c6e42839eacc429c814e1e4a9d16c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRKeyboardHandler
 --- !u!1 &1729107625
 GameObject:
   m_ObjectHideFlags: 0
@@ -4248,6 +4300,7 @@ GameObject:
   - component: {fileID: 1748651699}
   - component: {fileID: 1748651698}
   - component: {fileID: 1748651696}
+  - component: {fileID: 1748651700}
   m_Layer: 0
   m_Name: PasswordInput
   m_TagString: Untagged
@@ -4414,6 +4467,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1748651695}
   m_CullTransparentMesh: 1
+--- !u!114 &1748651700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1748651695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 098c6e42839eacc429c814e1e4a9d16c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRKeyboardHandler
 --- !u!1 &1754370611
 GameObject:
   m_ObjectHideFlags: 0
@@ -5365,6 +5430,7 @@ GameObject:
   - component: {fileID: 2057385698}
   - component: {fileID: 2057385697}
   - component: {fileID: 2057385699}
+  - component: {fileID: 2057385700}
   m_Layer: 0
   m_Name: UserInput
   m_TagString: Untagged
@@ -5531,6 +5597,18 @@ MonoBehaviour:
   isAlert: 0
   m_InputValidator: {fileID: 0}
   m_ShouldActivateOnSelect: 1
+--- !u!114 &2057385700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2057385695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 098c6e42839eacc429c814e1e4a9d16c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRKeyboardHandler
 --- !u!1 &2128653354
 GameObject:
   m_ObjectHideFlags: 0
