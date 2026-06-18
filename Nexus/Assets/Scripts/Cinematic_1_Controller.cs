@@ -4,6 +4,8 @@ using UnityEngine.Playables;
 
 public class Cinematic_1_Controller : MonoBehaviour
 {
+    public static bool SuppressStart = false;
+
     public PlayableDirector director;
     public GameObject VirtualCamera;
     public GameObject XrigCamera;
@@ -14,6 +16,12 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     void Start()
     {
+        if (SuppressStart)
+        {
+            SuppressStart = false;
+            return;
+        }
+
         XrigCamera.SetActive(false);
         VirtualCamera.SetActive(true);
         director.stopped += OnCinematicEnd;

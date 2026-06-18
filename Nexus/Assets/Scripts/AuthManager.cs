@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
+using System.Collections;
 
-[ExecuteAlways]
 public class AuthManager : MonoBehaviour
 {
     [Header("Panels")]
@@ -40,8 +40,137 @@ public class AuthManager : MonoBehaviour
     {
         if (!SceneManager.GetSceneByName("Neon High City").isLoaded)
         {
-            SceneManager.LoadSceneAsync("Neon High City", LoadSceneMode.Additive);
+            Cinematic_1_Controller.SuppressStart = true;
+            var asyncOp = SceneManager.LoadSceneAsync("Neon High City", LoadSceneMode.Additive);
+            asyncOp.completed += OnCityLoaded;
         }
+    }
+
+    private void OnCityLoaded(AsyncOperation op)
+    {
+        var cinematic = Object.FindFirstObjectByType<Cinematic_1_Controller>();
+        if (cinematic != null)
+        {
+            cinematic.enabled = false;
+            if (cinematic.director != null) cinematic.director.Stop();
+
+            if (cinematic.XrigCamera != null) cinematic.XrigCamera.SetActive(false);
+            if (cinematic.VirtualCamera != null) cinematic.VirtualCamera.SetActive(false);
+            if (cinematic.vistaPilotoCamera != null) cinematic.vistaPilotoCamera.enabled = false;
+        }
+
+        if (TrafficManager.Instance != null)
+        {
+            TrafficManager.Instance.SetVelocidad(1f);
+            var spawners = Object.FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
+            foreach (var s in spawners)
+            {
+                s.minSpawnInterval = 0.5f;
+                s.maxSpawnInterval = 4f;
+            }
+        }
+
+        if (TrafficCleanup.Instance != null)
+            TrafficCleanup.Instance.SetAuthMode(true);
+
+        var spawnersList = Object.FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
+        foreach (var s in spawnersList)
+            s.usePooling = true;
+    }
+
+    public void OnLoginSubmit()
+    {
+        string email = loginEmailInput?.text.Trim();
+        string password = loginPasswordInput?.text.Trim();
+
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        {
+            ShowFeedback("Completa todos los campos");
+            return;
+        }
+
+        ShowFeedback("Iniciando sesión...");
+        StartCoroutine(LoginSequence());
+    }
+
+    private IEnumerator LoginSequence()
+    {
+        yield return new WaitForSeconds(1f);
+
+        ShowFeedback("Cargando ciudad...");
+        yield return new WaitForSeconds(0.5f);
+
+        var cinematic = Object.FindFirstObjectByType<Cinematic_1_Controller>();
+        if (cinematic != null)
+            cinematic.enabled = true;
+
+        SceneManager.LoadScene("Neon High City");
+    }
+
+    public void OnRegisterSubmit()
+    {
+        string user = registerUserInput?.text.Trim();
+        string email = registerEmailInput?.text.Trim();
+        string password = registerPasswordInput?.text.Trim();
+        string confirm = registerConfirmInput?.text.Trim();
+
+        if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(email) ||
+            string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirm))
+        {
+            ShowFeedback("Completa todos los campos");
+            return;
+        }
+
+        if (password != confirm)
+        {
+            ShowFeedback("Las contraseñas no coinciden");
+            return;
+        }
+
+        if (password.Length < 6)
+        {
+            ShowFeedback("La contraseña debe tener al menos 6 caracteres");
+            return;
+        }
+
+        ShowFeedback("Registrando usuario...");
+        Debug.Log($"Register attempt: {user} - {email}");
+    }
+
+    private void ShowFeedback(string msg)
+    {
+        if (feedbackText != null)
+            feedbackText.text = msg;
+    }
+
+    private void ClearFeedback()
+    {
+        if (feedbackText != null)
+            feedbackText.text = "";
+    }
+
+    public void ShowMain()
+    {
+        mainPanel.SetActive(true);
+        loginPanel.SetActive(false);
+        registerPanel.SetActive(false);
+        ClearFeedback();
+    }
+
+    public void ShowLogin()
+    {
+        mainPanel.SetActive(false);
+        loginPanel.SetActive(true);
+        registerPanel.SetActive(false);
+        ClearFeedback();
+    }
+
+    public void ShowRegister()
+    {
+        mainPanel.SetActive(false);
+        loginPanel.SetActive(false);
+        registerPanel.SetActive(true);
+        ClearFeedback();
     }
 
     private void AutoAssign()
@@ -112,86 +241,5 @@ public class AuthManager : MonoBehaviour
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(action);
         }
-    }
-
-    public void ShowMain()
-    {
-        mainPanel.SetActive(true);
-        loginPanel.SetActive(false);
-        registerPanel.SetActive(false);
-        ClearFeedback();
-    }
-
-    public void ShowLogin()
-    {
-        mainPanel.SetActive(false);
-        loginPanel.SetActive(true);
-        registerPanel.SetActive(false);
-        ClearFeedback();
-    }
-
-    public void ShowRegister()
-    {
-        mainPanel.SetActive(false);
-        loginPanel.SetActive(false);
-        registerPanel.SetActive(true);
-        ClearFeedback();
-    }
-
-    public void OnLoginSubmit()
-    {
-        string email = loginEmailInput?.text.Trim();
-        string password = loginPasswordInput?.text.Trim();
-
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
-        {
-            ShowFeedback("Completa todos los campos");
-            return;
-        }
-
-        ShowFeedback("Iniciando sesión...");
-        Debug.Log($"Login attempt: {email}");
-    }
-
-    public void OnRegisterSubmit()
-    {
-        string user = registerUserInput?.text.Trim();
-        string email = registerEmailInput?.text.Trim();
-        string password = registerPasswordInput?.text.Trim();
-        string confirm = registerConfirmInput?.text.Trim();
-
-        if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(email) ||
-            string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirm))
-        {
-            ShowFeedback("Completa todos los campos");
-            return;
-        }
-
-        if (password != confirm)
-        {
-            ShowFeedback("Las contraseñas no coinciden");
-            return;
-        }
-
-        if (password.Length < 6)
-        {
-            ShowFeedback("La contraseña debe tener al menos 6 caracteres");
-            return;
-        }
-
-        ShowFeedback("Registrando usuario...");
-        Debug.Log($"Register attempt: {user} - {email}");
-    }
-
-    private void ShowFeedback(string msg)
-    {
-        if (feedbackText != null)
-            feedbackText.text = msg;
-    }
-
-    private void ClearFeedback()
-    {
-        if (feedbackText != null)
-            feedbackText.text = "";
     }
 }

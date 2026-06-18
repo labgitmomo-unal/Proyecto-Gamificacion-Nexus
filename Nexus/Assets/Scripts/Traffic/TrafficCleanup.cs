@@ -3,16 +3,35 @@ using System.Collections.Generic;
 
 public class TrafficCleanup : MonoBehaviour
 {
+    public static TrafficCleanup Instance { get; private set; }
+
     public int maxTrafficCars = 80;
     public float maxDistanceFromCamera = 300f;
 
     private List<MovementController> toRemove = new List<MovementController>();
     private RandomObjectSpawner[] spawners;
+    private bool authMode;
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
 
     void Start()
     {
         spawners = FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
-        InvokeRepeating(nameof(Cleanup), 1f, 0.5f);
+        InvokeRepeating(nameof(Cleanup), 2f, 0.5f);
+    }
+
+    public void SetAuthMode(bool active)
+    {
+        authMode = active;
+        if (active)
+        {
+            maxTrafficCars = 40;
+            maxDistanceFromCamera = 200f;
+        }
     }
 
     void Cleanup()
@@ -22,13 +41,11 @@ public class TrafficCleanup : MonoBehaviour
         var clones = TrafficManager.Instance.ObtenerClones();
         if (clones == null) return;
 
-        int exceso = clones.Count - maxTrafficCars;
-        if (exceso <= 0) return;
-
         Camera cam = Camera.main;
+
         toRemove.Clear();
 
-        for (int i = 0; i < clones.Count && toRemove.Count < exceso + 5; i++)
+        for (int i = 0; i < clones.Count; i++)
         {
             MovementController mc = clones[i];
             if (mc == null) continue;
@@ -41,8 +58,8 @@ public class TrafficCleanup : MonoBehaviour
                 toRemove.Add(mc);
         }
 
-        // Si aun hay exceso, remover los mas lejanos
-        if (toRemove.Count < exceso)
+        int exceso = clones.Count - maxTrafficCars;
+        if (exceso > 0)
         {
             clones.Sort((a, b) =>
             {
@@ -63,18 +80,14 @@ public class TrafficCleanup : MonoBehaviour
             if (mc == null) continue;
             GameObject obj = mc.gameObject;
 
-            // Try to return to pool first
             bool returned = false;
-            if (spawners != null)
+            foreach (var s in spawners)
             {
-                foreach (var s in spawners)
+                if (s != null && s.usePooling)
                 {
-                    if (s != null && s.usePooling)
-                    {
-                        s.ReturnToPool(obj);
-                        returned = true;
-                        break;
-                    }
+                    s.ReturnToPool(obj);
+                    returned = true;
+                    break;
                 }
             }
             if (!returned)
