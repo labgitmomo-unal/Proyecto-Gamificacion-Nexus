@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
 
@@ -31,7 +32,16 @@ public class AuthManager : MonoBehaviour
 
     private void Start()
     {
+        LoadCityBackground();
         ShowMain();
+    }
+
+    private void LoadCityBackground()
+    {
+        if (!SceneManager.GetSceneByName("Neon High City").isLoaded)
+        {
+            SceneManager.LoadSceneAsync("Neon High City", LoadSceneMode.Additive);
+        }
     }
 
     private void AutoAssign()

@@ -5,9 +5,9 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/Auth.unity
+    guid: aca6aa66231f5c84da2240e8344653a1
   - enabled: 1
     path: Assets/Scenes/Neon High City.unity
     guid: 822d44c33d459af42866302ee08fbd88
