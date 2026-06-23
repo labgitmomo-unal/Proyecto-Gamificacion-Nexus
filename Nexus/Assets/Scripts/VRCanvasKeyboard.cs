@@ -13,29 +13,40 @@ public class VRCanvasKeyboard : MonoBehaviour
     private readonly string[] rowMid = { "A", "S", "D", "F", "G", "H", "J", "K", "L", "Ñ" };
     private readonly string[] rowBot = { "Z", "X", "C", "V", "B", "N", "M" };
 
+    [Header("Tamaño del panel (en metros, relativo al canvas)")]
+    [SerializeField] private float panelHeight = 0.45f;
+    [SerializeField] private float paddingMeters = 0.015f;
+
+    [Header("Tamaño de teclas")]
+    [SerializeField] private float keyWidth = 0.075f;
+    [SerializeField] private float keyHeight = 0.07f;
+    [SerializeField] private float keyFontSize = 0.04f;
+    [SerializeField] private float spacing = 0.005f;
+
     private void Start()
     {
-        Canvas canvas = GetComponent<Canvas>();
-        if (canvas == null) canvas = GetComponentInParent<Canvas>();
-        if (canvas == null) { enabled = false; return; }
+        Canvas parentCanvas = GetComponent<Canvas>();
+        if (parentCanvas == null) parentCanvas = GetComponentInParent<Canvas>();
+        if (parentCanvas == null) { enabled = false; return; }
 
-        BuildKeyboard(canvas);
+        BuildKeyboard(parentCanvas);
         HookInputFields();
     }
 
-    private void BuildKeyboard(Canvas canvas)
+    private void BuildKeyboard(Canvas parentCanvas)
     {
         panel = new GameObject("KeyboardPanel");
-        panel.transform.SetParent(canvas.transform, false);
+        panel.transform.SetParent(parentCanvas.transform, false);
 
         RectTransform prt = panel.AddComponent<RectTransform>();
         prt.anchorMin = new Vector2(0, 0);
         prt.anchorMax = new Vector2(1, 0);
         prt.pivot = new Vector2(0.5f, 0);
-        prt.offsetMin = new Vector2(10, 10);
-        prt.offsetMax = new Vector2(-10, 400);
+        prt.offsetMin = new Vector2(paddingMeters, paddingMeters);
+        prt.offsetMax = new Vector2(-paddingMeters, panelHeight);
 
-        AddBackground(panel);
+        Image bg = panel.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.08f, 0.08f, 0.92f);
 
         VerticalLayoutGroup vlg = panel.AddComponent<VerticalLayoutGroup>();
         vlg.childAlignment = TextAnchor.LowerCenter;
@@ -43,15 +54,17 @@ public class VRCanvasKeyboard : MonoBehaviour
         vlg.childControlHeight = false;
         vlg.childForceExpandWidth = false;
         vlg.childForceExpandHeight = false;
-        vlg.spacing = 6;
-        vlg.padding = new RectOffset(8, 8, 8, 8);
+        vlg.spacing = spacing * 2f;
+        vlg.padding = new RectOffset(0, 0, 0, 0);
 
-        MakeRow(panel.transform, rowTop, 72);
-        MakeRow(panel.transform, rowMid, 72);
+        float letterW = keyWidth;
 
-        GameObject row3 = MakeRow(panel.transform, rowBot, 72);
-        AddKey(row3.transform, 80, "^", "Shift");
-        AddKey(row3.transform, 90, "<", "Backspace");
+        MakeRow(panel.transform, rowTop, letterW);
+        MakeRow(panel.transform, rowMid, letterW);
+
+        GameObject row3 = MakeRow(panel.transform, rowBot, letterW);
+        AddKey(row3.transform, letterW * 1.2f, "^", "Shift");
+        AddKey(row3.transform, letterW * 1.4f, "<-", "Backspace");
 
         GameObject row4 = new GameObject("Row4");
         row4.transform.SetParent(panel.transform, false);
@@ -61,23 +74,17 @@ public class VRCanvasKeyboard : MonoBehaviour
         hlg.childControlHeight = false;
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
-        hlg.spacing = 6;
+        hlg.spacing = spacing;
 
-        AddKey(row4.transform, 200, "Espacio", "Space");
-        AddKey(row4.transform, 72, ".");
-        AddKey(row4.transform, 72, "@");
-        AddKey(row4.transform, 120, "Hecho", "Done");
+        AddKey(row4.transform, letterW * 3f, "Espacio", "Space");
+        AddKey(row4.transform, letterW, ".");
+        AddKey(row4.transform, letterW, "@");
+        AddKey(row4.transform, letterW * 1.8f, "Hecho", "Done");
 
         panel.SetActive(false);
     }
 
-    private void AddBackground(GameObject parent)
-    {
-        Image bg = parent.AddComponent<Image>();
-        bg.color = new Color(0.08f, 0.08f, 0.08f, 0.92f);
-    }
-
-    private GameObject MakeRow(Transform parent, string[] keys, float keyWidth)
+    private GameObject MakeRow(Transform parent, string[] keys, float keyW)
     {
         GameObject row = new GameObject("Row");
         row.transform.SetParent(parent, false);
@@ -88,10 +95,10 @@ public class VRCanvasKeyboard : MonoBehaviour
         hlg.childControlHeight = false;
         hlg.childForceExpandWidth = false;
         hlg.childForceExpandHeight = false;
-        hlg.spacing = 5;
+        hlg.spacing = spacing;
 
         foreach (string k in keys)
-            AddKey(row.transform, keyWidth, k);
+            AddKey(row.transform, keyW, k);
 
         return row;
     }
@@ -102,7 +109,7 @@ public class VRCanvasKeyboard : MonoBehaviour
         key.transform.SetParent(parent, false);
 
         RectTransform rt = key.AddComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(width, 52);
+        rt.sizeDelta = new Vector2(width, keyHeight);
 
         Image img = key.AddComponent<Image>();
         img.color = new Color(0.22f, 0.22f, 0.22f, 1f);
@@ -124,7 +131,7 @@ public class VRCanvasKeyboard : MonoBehaviour
 
         TMP_Text tmp = lbl.AddComponent<TextMeshProUGUI>();
         tmp.text = label;
-        tmp.fontSize = 26;
+        tmp.fontSize = keyFontSize;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.white;
 
@@ -196,7 +203,7 @@ public class VRCanvasKeyboard : MonoBehaviour
                 if (tmp == null) continue;
                 string t = tmp.text;
                 if (t == "Espacio" || t == "Hecho" || t == "." || t == "@") continue;
-                if (t == "<") { tmp.fontStyle = FontStyles.Bold; continue; }
+                if (t == "<-") { tmp.fontStyle = FontStyles.Bold; continue; }
                 if (t == "^") { continue; }
                 tmp.text = shifted ? t.ToUpper() : t.ToLower();
             }

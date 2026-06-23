@@ -40,81 +40,28 @@ public class AuthManager : MonoBehaviour
 
     private void Start()
     {
-        LoadCityBackground();
         ShowMain();
     }
 
-    private void LoadCityBackground()
-    {
-        if (!SceneManager.GetSceneByName("Neon High City").isLoaded)
-        {
-            Cinematic_1_Controller.SuppressStart = true;
-            var asyncOp = SceneManager.LoadSceneAsync("Neon High City", LoadSceneMode.Additive);
-            asyncOp.completed += OnCityLoaded;
-        }
-    }
 
-    private void OnCityLoaded(AsyncOperation op)
-    {
-        var cinematic = Object.FindFirstObjectByType<Cinematic_1_Controller>();
-        if (cinematic != null)
-        {
-            cinematic.enabled = false;
-            if (cinematic.director != null) cinematic.director.Stop();
 
-            if (cinematic.XrigCamera != null) cinematic.XrigCamera.SetActive(false);
-            if (cinematic.VirtualCamera != null) cinematic.VirtualCamera.SetActive(false);
-            if (cinematic.vistaPilotoCamera != null) cinematic.vistaPilotoCamera.enabled = false;
-        }
 
-        if (TrafficManager.Instance != null)
-        {
-            TrafficManager.Instance.SetVelocidad(1f);
-            var spawners = Object.FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
-            foreach (var s in spawners)
-            {
-                s.minSpawnInterval = 0.5f;
-                s.maxSpawnInterval = 4f;
-            }
-        }
-
-        if (TrafficCleanup.Instance != null)
-            TrafficCleanup.Instance.SetAuthMode(true);
-
-        var spawnersList = Object.FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
-        foreach (var s in spawnersList)
-            s.usePooling = true;
-    }
 
     public void OnLoginSubmit()
     {
-        string email = loginEmailInput?.text.Trim();
-        string password = loginPasswordInput?.text.Trim();
+        string user = loginEmailInput?.text.Trim();
+        string pass = loginPasswordInput?.text.Trim();
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+        if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass))
         {
-            ShowFeedback("Completa todos los campos");
+            ShowFeedback("Ingresa usuario y contraseña");
             return;
         }
 
-        if (email == "root" && password == "root")
-        {
-            ShowFeedback("Iniciando sesión...");
-            StartCoroutine(LoginSequence());
-            return;
-        }
-
-        ShowFeedback("Credenciales inválidas");
-    }
-
-    private IEnumerator LoginSequence()
-    {
-        yield return new WaitForSeconds(1f);
-
-        ShowFeedback("Cargando ciudad...");
-        yield return new WaitForSeconds(0.5f);
-
-        SceneManager.LoadScene("Neon High City");
+        if (user == "root" && pass == "root")
+            SceneManager.LoadScene("Neon High City");
+        else
+            ShowFeedback("Usuario o contraseña incorrectos");
     }
 
     public void OnRegisterSubmit()
