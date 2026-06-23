@@ -22,12 +22,13 @@ public class Cinematic_1_Controller : MonoBehaviour
             return;
         }
 
+        AjustarLimitesTrafico(true);
+
         XrigCamera.SetActive(false);
         VirtualCamera.SetActive(true);
         director.stopped += OnCinematicEnd;
         MostrarCongestion();
         // StartCoroutine(RestoreTrafficAfterDelay(60f)); // Restaurar tráfico después de 10 segundos
-        
     }
 
     void OnCinematicEnd(PlayableDirector d)
@@ -35,23 +36,38 @@ public class Cinematic_1_Controller : MonoBehaviour
         XrigCamera.SetActive(true);
         VirtualCamera.SetActive(false);
         if (vistaPilotoCamera != null) vistaPilotoCamera.enabled = false;
+        AjustarLimitesTrafico(false);
         StartCoroutine(Wait());
         Challenge_Indicator_1.Play();
-        
+    }
+
+    private void AjustarLimitesTrafico(bool cinematicActiva)
+    {
+        var cleanup = FindFirstObjectByType<TrafficCleanup>();
+        if (cleanup != null)
+        {
+            if (cinematicActiva)
+            {
+                cleanup.maxTrafficCars = 35;
+                cleanup.maxDistanceFromCamera = 150f;
+            }
+            else
+            {
+                cleanup.maxTrafficCars = 80;
+                cleanup.maxDistanceFromCamera = 300f;
+            }
+        }
     }
 
     public void MostrarCongestion()
     {
-        // Ralentizar tráfico
         TrafficManager.Instance.SetVelocidad(0.4f);
 
-        // Aumentar frecuencia de spawn
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
-            spawner.minSpawnInterval = 0.1f;
-            spawner.maxSpawnInterval = 0.5f;
+            spawner.minSpawnInterval = 0.3f;
+            spawner.maxSpawnInterval = 1f;
         }
-        
     }
 
     public void RestaurarTrafico()

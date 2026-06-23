@@ -26,6 +26,8 @@ public class AuthManager : MonoBehaviour
 
     private void Awake()
     {
+        Application.targetFrameRate = 72;
+        QualitySettings.vSyncCount = 0;
         AutoAssign();
         WireButtons();
         DisableCharacterController();

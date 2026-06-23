@@ -56381,14 +56381,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1243455318}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0045146234, y: 0.0022128983, z: 0.051319476, w: -0.9986697}
-  m_LocalPosition: {x: 32.776806, y: 4.9525094, z: -41.898712}
+  m_LocalRotation: {x: 0.0043990216, y: 0.0024346157, z: 0.10090699, w: -0.99488324}
+  m_LocalPosition: {x: 33.08709, y: 7.9489217, z: -41.921497}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2124990042}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: -0.53, y: -0.227, z: -5.882}
+  m_LocalEulerAnglesHint: {x: -0.53, y: -0.227, z: -11.582}
 --- !u!1 &1247379622
 GameObject:
   m_ObjectHideFlags: 0
@@ -60531,7 +60531,7 @@ MonoBehaviour:
   m_KeyboardPrefab: {fileID: 7339749990365776448, guid: 1aaf2dceef22d1147bfc70d706ddd188, type: 3}
   m_PlayerRoot: {fileID: 1122522004}
   m_Keyboard: {fileID: 0}
-  m_KeyboardOffset: {x: 0, y: -0.35, z: 0.8}
+  m_KeyboardOffset: {x: 0, y: -0.6, z: 0.5}
   m_CameraTransform: {fileID: 0}
   m_RepositionOutOfViewKeyboardOnOpen: 1
   m_FacingKeyboardThreshold: 0.15
