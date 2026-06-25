@@ -13,11 +13,12 @@ public class QuestOptimizer : MonoBehaviour
         QualitySettings.softParticles = false;
         QualitySettings.realtimeReflectionProbes = false;
         QualitySettings.maximumLODLevel = 0;
+        QualitySettings.lodBias = 0.3f;
 
         var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (urpAsset != null)
         {
-            urpAsset.renderScale = 0.85f;
+            urpAsset.renderScale = 1.0f;
             urpAsset.shadowDistance = 8f;
         }
     }
