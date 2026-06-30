@@ -19,7 +19,6 @@ public class Cinematic_1_Controller : MonoBehaviour
     private LODGroup[] _cachedLODGroups;
     private Camera _cinematicCamera;
     private UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset _urpAsset;
-    private float _originalRenderScale;
 
     void Start()
     {
@@ -47,7 +46,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         MostrarCongestion();
 
         StartCoroutine(ForzarGC(65f));
-        StartCoroutine(ReducirFarClipVentana(65f));
+        StartCoroutine(ReducirFarClipVentana());
     }
 
     void OnCinematicEnd(PlayableDirector d)
@@ -95,10 +94,7 @@ private void AjustarFarClip(bool reducir)
             _cinematicCamera.farClipPlane = 150f;
         QualitySettings.lodBias = reducir ? 0.4f : 0.3f;
         if (_urpAsset != null)
-        {
-            _originalRenderScale = reducir ? 0.8f : 1.0f;
-            _urpAsset.renderScale = _originalRenderScale;
-        }
+            _urpAsset.renderScale = reducir ? 0.8f : 1.0f;
     }
 
     private void AjustarLimitesTrafico(bool cinematicActiva)
@@ -148,15 +144,53 @@ private void SuspenderAdaptiveQuality(bool suspender)
         System.GC.Collect();
     }
 
-    private IEnumerator ReducirFarClipVentana(float delay)
+    private IEnumerator ReducirFarClipVentana()
     {
-        yield return new WaitForSeconds(delay);
+        // Esperar hasta 60s
+        yield return new WaitForSeconds(60f);
 
-        if (_urpAsset != null) _urpAsset.renderScale = 0.4f;
+        // Fase 1: Far clip desciende gradualmente 150m → 50m (60s-65s)
+        float farStart = _cinematicCamera != null ? _cinematicCamera.farClipPlane : 150f;
+        float farTarget = 50f;
+        float duracion = 5f;
+        float t = 0f;
+        while (t < duracion)
+        {
+            t += Time.deltaTime;
+            if (_cinematicCamera != null)
+                _cinematicCamera.farClipPlane = Mathf.Lerp(farStart, farTarget, t / duracion);
+            yield return null;
+        }
+        if (_cinematicCamera != null) _cinematicCamera.farClipPlane = farTarget;
 
+        // Aplicar configuraciones agresivas (65s)
+        if (_urpAsset != null) _urpAsset.renderScale = 0.65f;
+        QualitySettings.lodBias = 0.1f;
+        for (int i = 0; i < _cachedLODGroups.Length; i++)
+            _cachedLODGroups[i].ForceLOD(_cachedLODGroups[i].lodCount - 1);
+
+        // Fase 2: Mantener en mínimo (65s-73s)
         yield return new WaitForSeconds(8f);
 
-        if (_urpAsset != null) _urpAsset.renderScale = _originalRenderScale;
+        // Fase 3: Far clip restaura gradualmente 50m → 150m (73s-78s)
+        farStart = farTarget;
+        farTarget = 150f;
+        t = 0f;
+        while (t < duracion)
+        {
+            t += Time.deltaTime;
+            if (_cinematicCamera != null)
+                _cinematicCamera.farClipPlane = Mathf.Lerp(farStart, farTarget, t / duracion);
+            yield return null;
+        }
+        if (_cinematicCamera != null) _cinematicCamera.farClipPlane = farTarget;
+
+        // Restaurar todo (78s)
+        if (_urpAsset != null) _urpAsset.renderScale = 0.8f;
+        QualitySettings.lodBias = 0.4f;
+        for (int i = 0; i < _cachedLODGroups.Length; i++)
+            _cachedLODGroups[i].ForceLOD(-1);
+        forcaLODsBaixos(true);
     }
 
     public void MostrarCongestion()
