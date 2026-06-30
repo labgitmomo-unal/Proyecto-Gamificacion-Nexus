@@ -17,6 +17,9 @@ public class Cinematic_1_Controller : MonoBehaviour
     public AudioSource Challenge_Indicator_1;
 
     private LODGroup[] _cachedLODGroups;
+    private Camera _cinematicCamera;
+    private UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset _urpAsset;
+    private float _originalRenderScale;
 
     void Start()
     {
@@ -33,6 +36,8 @@ public class Cinematic_1_Controller : MonoBehaviour
         SuspenderAdaptiveQuality(true);
         SuspenderTrafficCleanup(true);
 
+        if (VirtualCamera != null) _cinematicCamera = VirtualCamera.GetComponent<Camera>();
+        _urpAsset = GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
         AjustarLimitesTrafico(true);
         AjustarFarClip(true);
 
@@ -42,6 +47,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         MostrarCongestion();
 
         StartCoroutine(ForzarGC(65f));
+        StartCoroutine(ReducirFarClipVentana(65f));
     }
 
     void OnCinematicEnd(PlayableDirector d)
@@ -83,21 +89,15 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
     }
 
-    private void AjustarFarClip(bool reducir)
+private void AjustarFarClip(bool reducir)
     {
-        if (VirtualCamera != null)
+        if (_cinematicCamera != null)
+            _cinematicCamera.farClipPlane = 150f;
+        QualitySettings.lodBias = reducir ? 0.4f : 0.3f;
+        if (_urpAsset != null)
         {
-            var vcam = VirtualCamera.GetComponent<Cinemachine.CinemachineVirtualCamera>();
-            if (vcam != null)
-            {
-                vcam.m_Lens.FarClipPlane = reducir ? 45f : 150f;
-            }
-        }
-        QualitySettings.lodBias = reducir ? 0.1f : 0.3f;
-        var urp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-        if (urp != null)
-        {
-            urp.renderScale = reducir ? 0.8f : 1.0f;
+            _originalRenderScale = reducir ? 0.8f : 1.0f;
+            _urpAsset.renderScale = _originalRenderScale;
         }
     }
 
@@ -119,10 +119,15 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
     }
 
-    private void SuspenderAdaptiveQuality(bool suspender)
+private void SuspenderAdaptiveQuality(bool suspender)
     {
+        // CORRECCION: ya no se desactiva AdaptiveQuality durante la cinematica.
+        // Antes se apagaba justo en la parte mas pesada (el puente), dejando
+        // sin proteccion contra caidas de FPS, lo que disparaba el ASW del
+        // compositor de Quest y causaba la distorsion visual reportada.
+        // Ahora se mantiene activo y se pone en modo "cinematica" (mas agresivo).
         var aq = FindFirstObjectByType<AdaptiveQuality>();
-        if (aq != null) aq.enabled = !suspender;
+        if (aq != null) aq.SetCinematicMode(suspender);
     }
 
     private void SuspenderTrafficCleanup(bool suspender)
@@ -141,6 +146,17 @@ public class Cinematic_1_Controller : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         System.GC.Collect();
+    }
+
+    private IEnumerator ReducirFarClipVentana(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (_urpAsset != null) _urpAsset.renderScale = 0.4f;
+
+        yield return new WaitForSeconds(8f);
+
+        if (_urpAsset != null) _urpAsset.renderScale = _originalRenderScale;
     }
 
     public void MostrarCongestion()
