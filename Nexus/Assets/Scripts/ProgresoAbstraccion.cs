@@ -15,6 +15,7 @@ public class ProgresoAbstraccion : MonoBehaviour
     [Header("Audios")]
     public AudioSource Explain_Challenge_1;
     public AudioSource Indicator_Challenge_2;
+    public AudioSource Challenge_Complete_Sound;
 
 
     [Header("Teleport al completar Panel 1")]
@@ -100,6 +101,8 @@ public class ProgresoAbstraccion : MonoBehaviour
     private void BloquearScrollView(string mensaje)
     {
         timer.StopTimer();
+        if (Challenge_Complete_Sound != null)
+            Challenge_Complete_Sound.Play();
         if (scrollView == null) return;
 
         // 1. Gris en todos los Graphic del ScrollView

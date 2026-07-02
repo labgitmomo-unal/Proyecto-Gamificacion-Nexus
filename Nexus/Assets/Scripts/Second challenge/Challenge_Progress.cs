@@ -15,6 +15,7 @@ public class Challenge_Progress : MonoBehaviour
 
     [Header("Audios")]
     [SerializeField] private AudioSource Explain_Challenge_2;
+    [SerializeField] private AudioSource Challenge_Complete_Sound;
 
     private bool audioPlayed = false;
 
@@ -85,6 +86,8 @@ public class Challenge_Progress : MonoBehaviour
 
     private void BlockItemsPanel(string mensaje)
     {
+        if (Challenge_Complete_Sound != null)
+            Challenge_Complete_Sound.Play();
         if (itemsScrollView == null)
             return;
 
