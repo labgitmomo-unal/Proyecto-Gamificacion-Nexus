@@ -27,6 +27,32 @@ public class Challenge_Progress : MonoBehaviour
         remainingItems = itemsContent.childCount;
     }
 
+    public void StartChallenge()
+    {
+        if (audioPlayed) return;
+        audioPlayed = true;
+
+        if (itemsScrollView != null)
+            itemsScrollView.enabled = false;
+
+        StartCoroutine(Play_Intro_And_Start());
+    }
+
+    private IEnumerator Play_Intro_And_Start()
+    {
+        if (Explain_Challenge_2 != null)
+        {
+            Explain_Challenge_2.Play();
+            yield return new WaitWhile(() => Explain_Challenge_2.isPlaying);
+        }
+
+        if (itemsScrollView != null)
+            itemsScrollView.enabled = true;
+
+        if (timer != null)
+            timer.Start_Timer();
+    }
+
     public void ItemSolved()
     {
         remainingItems--;

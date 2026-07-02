@@ -81,6 +81,7 @@ public class Category_Challenger_Manager : MonoBehaviour
             panel.GetComponent<RectTransform>());
         
         challenge_Progress.Initialize();
+        challenge_Progress.StartChallenge();
     }
 
     private void SpawnButton(BotonData data)

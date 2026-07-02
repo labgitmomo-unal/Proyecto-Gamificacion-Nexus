@@ -1,57 +1,73 @@
-# AGENTS.md - Proyecto Gamificacion Nexus
+# AGENTS.md — Proyecto Gamificacion Nexus
 
-## Project Overview
-- **Engine**: Unity 6000.3.8f1 (Unity 6)
-- **Render Pipeline**: URP 17.3.0
-- **Target**: VR (OpenXR + XR Interaction Toolkit 3.3.1)
-- **Root**: `Nexus/` subdirectory contains the Unity project
-- **Solution**: `Nexus/Nexus.slnx` (VS Code default); `Proyecto-Gamificacion-Nexus.sln` at repo root
+## Project
+- **Engine**: Unity 6000.3.8f1 (Unity 6) / **URP** 17.3.0 / **VR**: OpenXR + XR Interaction Toolkit 3.3.1
+- **Root**: `Nexus/` subdirectory (open this in Unity Hub, not the repo root)
+- **Solution**: `Nexus/Nexus.slnx` (VS Code default `dotnet.defaultSolution`)
+- **IDE**: VS Code with `visualstudiotoolsforunity.vstuc` extension
 
-## Key Directories
-- `Nexus/Assets/Scripts/` — custom game scripts (entry point logic)
-- `Nexus/Assets/Scenes/` — `Neon High City.unity` (main), `SampleScene.unity`
-- `Nexus/Assets/_DLNK/` — third-party city asset pack (gitignored, do NOT commit)
-- `Nexus/Assets/Samples/XR Interaction Toolkit/` — XR toolkit starter samples (do not modify directly)
-- `Nexus/Assets/TextMesh Pro/` — TMP essentials
-- `Nexus/Packages/manifest.json` — Unity package dependencies
+## Naming Conventions
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Unity objects (GameObject, prefab, folder) | PascalCase + underscore for spaces | `Objeto_Ejemplo`, `Mecanica_Salto` |
+| Scripts & C# classes | English, same PascalCase + underscore | `Jump_Mechanic.cs`, `Speed_Booster.cs` |
+| Methods, vars, serialized fields | camelCase | `damageAmount`, `ApplyBuff()` |
+| Design principle | Single-responsibility, configurable from one place | Evitar cambios dispersos, todo parametrizable |
 
-## Custom Scripts (Assets/Scripts/)
-| Script | Purpose |
+## Scenes (Build Settings order)
+| Index | Scene | Notes |
+|-------|-------|-------|
+| 0 | `Auth_Final.unity` | Authentication/login scene |
+| 1 | `Neon High City.unity` | Main gameplay scene |
+
+## Core Data Flow
+`Auth_Final` —(loads additively)→ `Neon High City`
+`DriveDataLoader` → `ButtonSpawner` → `ProgresoAbstraccion` (gameplay data)
+Auth via `AuthManager.cs` (login/register panels, TMP input, scene management)
+
+## Custom Scripts (`Assets/Scripts/`)
+| Script | Role |
 |---|---|
-| `DriveDataLoader.cs` | Downloads JSON from Google Drive at runtime, saves to `persistentDataPath/variables_abstraccion.json`. Static `DataReady` flag + events for cross-scene coordination. |
-| `ButtonSpawner.cs` | Reads JSON from DriveDataLoader, dynamically spawns UI buttons with ponderacion-based coloring. |
-| `ProgresoAbstraccion.cs` | Tracks progress when buttons with `ponderacion == 1` are eliminated. Locks ScrollView at 100%. |
-| `TrafficManager.cs` | Singleton controlling flying traffic speed. `TrafficManager.Instance.SetVelocidad(0f-2f)`. |
-| `Cinematic_1_Controller.cs` | Controls initial cinematic camera switch + traffic congestion effect. |
-| `TeleportIndicatorTrigger.cs` | XR teleport trigger zone. |
-| `Traffic/MovementController.cs` | Movement script for traffic car clones (referenced by TrafficManager). |
+| `DriveDataLoader.cs` | Downloads JSON from Google Drive at runtime → `persistentDataPath/variables_abstraccion.json`. Static `DataReady` flag + `OnDataLoaded` event. |
+| `ButtonSpawner.cs` | Reads JSON, spawns UI buttons with ponderacion-based coloring |
+| `ProgresoAbstraccion.cs` | Tracks progress (buttons with ponderacion==1 eliminated). Locks ScrollView at 100%. |
+| `AuthManager.cs` | Login/register UI logic, scene transition |
+| `Read_Json/Read_Json.cs` | Static helper: reads JSON via `DriveDataLoader.ReadLocalJson()`, extracts unique categories |
+| `Second challenge/` (7 scripts) | Category matching challenge: `Category_Spawner`, `Category_Item_Button`, `Category_Challenger_Manager`, `Relation_Manager`, `Instantiate_Categories`, `Challenge_Progress`, `Timer_2` |
+| `Traffic/TrafficManager.cs` | Singleton controlling flying traffic speed via `SetVelocidad(0–2f)` |
+| `Traffic/TrafficCleanup.cs` | Cleans up far-away traffic clones using `MovementController` + `RandomObjectSpawner` (both from third-party `_DLNK/` asset) |
+| `Cinematic_1_Controller.cs` | Cinematic camera switch + traffic congestion. Uses `PlayableDirector` + Cinemachine. |
+| `CinematicOptimizer.cs` | Prewarms traffic pools + audio before cinematic |
+| `QuestOptimizer.cs` | Quest-specific performance tuning |
+| `AdaptiveQuality.cs` | Dynamic render scale / shadow distance based on FPS |
+| `ShaderPrewarm.cs` | Shader warmup on start |
+| `FlyingCar.cs` | Orbital movement for decorative cars |
+| `FloatAnimation.cs` | Generic floating/bobbing animation |
+| `Omitir.cs` | Skip cinematic via VR controller button |
+| `Timer.cs` | Countdown timer (challenge 1) |
+| `VRCanvasKeyboard.cs` / `AutoKeyboardLink.cs` | VR keyboard input helper |
+| `TeleportIndicatorTrigger.cs` | XR teleport zone |
 
 ## Architecture Notes
-- `DriveDataLoader` → `ButtonSpawner` → `ProgresoAbstraccion` is the core gameplay data flow
-- Communication uses static events (`OnDataLoaded`, `OnBotonObjetivoEliminado`) and singleton (`TrafficManager.Instance`)
-- `RandomObjectSpawner` is used for traffic car spawning (likely in XR Interaction Toolkit samples or a custom script in scenes)
+- Communication: static events (`OnDataLoaded`, `OnBotonObjetivoEliminado`) + singleton (`TrafficManager.Instance`)
+- `RandomObjectSpawner` and `MovementController` classes are defined in the third-party city asset (`Assets/_DLNK/`), not in `Scripts/`
 - Cinematic uses Unity Playables (`PlayableDirector`) + Cinemachine virtual cameras
-
-## Commands & Workflow
-- **Open project**: Open `Nexus/` folder in Unity Hub (not the repo root)
-- **IDE**: VS Code with `visualstudiotoolsforunity.vstuc` extension recommended
-- **No build/test/lint CI** — this is a Unity editor-driven project; verification is done in-editor
-- **Unity MCP**: configured at `http://localhost:8080/mcp` via `opencode.json` (for AI-assisted Unity editing)
+- `Oculus` folder present in Assets (OVR integration alongside OpenXR)
 
 ## Git Branches
 - `main` — stable
-- `Escena0` — current working branch (checked out)
-- `PrimeraParte` — completed milestone
-- `Rendimiento-Optimizacion` — performance work
+- `Escena0` — current working branch
+- `PrimeraParte`, `Grafo`, `Integracion`, `feat-handsVR`, `feature/modulo-2-abstraccion-(Holograma3D)` — feature/milestone branches
 
 ## Gotchas
-- `Assets/_DLNK/` is gitignored (large third-party city asset). Other devs need this asset separately to open the scene fully.
-- `.csproj` files are Unity-generated; do not edit manually.
+- `Assets/_DLNK/` is gitignored (large third-party city asset). Devs need this asset separately.
+- JSON data file lives in `Application.persistentDataPath` (platform-specific), not in the project directory.
+- `.csproj` / `.sln` files are Unity-generated; do not edit manually.
 - `Library/`, `Temp/`, `Logs/`, `UserSettings/` are gitignored — normal Unity cache dirs.
-- JSON data file lives in `Application.persistentDataPath` (platform-specific), not in project directory.
-- Bezi plugin (`com.bezi.sidekick`) is present for 3D design sync — do not remove unless intentional.
+- `McpUnitySettings.json` lives in `ProjectSettings/` — configures Unity MCP server.
+- Bezi plugin (`com.bezi.sidekick` / `.bezisidekick/`) present for 3D design sync — do not remove.
 
-## Existing Config Sources
-- `Nexus/opencode.json` — OpenCode config with Unity MCP server
+## Config Sources
+- `Nexus/opencode.json` — OpenCode config (Unity MCP at `http://127.0.0.1:8081/mcp`)
 - `Nexus/.vscode/settings.json` — VS Code file associations and exclusions
 - `Nexus/Packages/manifest.json` — authoritative package list
