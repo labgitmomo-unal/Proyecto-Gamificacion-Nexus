@@ -67,6 +67,15 @@ public class Category_Challenger_Manager : MonoBehaviour
 
         ClearButtons();
 
+        // Fisher-Yates shuffle para que los items aparezcan en orden aleatorio
+        for (int i = lista.botones.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            var temp = lista.botones[i];
+            lista.botones[i] = lista.botones[j];
+            lista.botones[j] = temp;
+        }
+
         foreach (var boton in lista.botones)
         {
             if (string.IsNullOrEmpty(boton.categoria))
