@@ -15,19 +15,28 @@ public class Timer : MonoBehaviour
     
     private float remaining;
     private bool Under_Way;
-    private bool initialized = false;
 
-    public AudioSource audioSource;
-    
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [Header("Timer Alerts")]
+    [SerializeField] private AudioSource alertSource;
+    private float threshold75;
+    private float threshold50;
+    private float threshold25;
+    private bool alert75Played;
+    private bool alert50Played;
+    private bool alert25Played;
+
     public void Start_Timer()
     {
         Max_Time = min * 60 + seg;
         remaining = Max_Time;
         Under_Way = true;
-        
+        threshold75 = Max_Time * 0.75f;
+        threshold50 = Max_Time * 0.50f;
+        threshold25 = Max_Time * 0.25f;
+        alert75Played = false;
+        alert50Played = false;
+        alert25Played = false;
     }
-    // Update is called once per frame
     void Update()
     {
         if (Under_Way)
@@ -38,10 +47,32 @@ public class Timer : MonoBehaviour
             int seconds = Mathf.FloorToInt(remaining % 60);
             tiempo.text = string.Format("{0:00}:{1:00}", minutes, seconds);
 
+            CheckAlerts();
+
             if (remaining <= 0.00f)
             {
                 Ender_Time();
             }
+        }
+    }
+    private void CheckAlerts()
+    {
+        if (alertSource == null) return;
+
+        if (!alert75Played && remaining <= threshold75)
+        {
+            alertSource.Play();
+            alert75Played = true;
+        }
+        if (!alert50Played && remaining <= threshold50)
+        {
+            alertSource.Play();
+            alert50Played = true;
+        }
+        if (!alert25Played && remaining <= threshold25)
+        {
+            alertSource.Play();
+            alert25Played = true;
         }
     }
     private void Ender_Time()
@@ -62,7 +93,7 @@ public class Timer : MonoBehaviour
             background.color =
                 Color.Lerp(Color.green, Color.yellow, t);
             
-            //audioSource.Play();
+            
             
         }
         else
@@ -72,12 +103,15 @@ public class Timer : MonoBehaviour
             background.color =
                 Color.Lerp(Color.yellow, Color.red, t);
 
-            //audioSource.Play();
+            
         }
     }
 
     public void StopTimer()
     {
         Under_Way = false;
+        alert75Played = true;
+        alert50Played = true;
+        alert25Played = true;
     }
 }
