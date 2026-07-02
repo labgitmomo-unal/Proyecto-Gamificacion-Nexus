@@ -38,6 +38,7 @@ public class Timer_2 : MonoBehaviour
         alert75Played = false;
         alert50Played = false;
         alert25Played = false;
+        Debug.Log($"[Timer_2] Iniciado: {Max_Time}s | alertas en {threshold75}s, {threshold50}s, {threshold25}s | alertSource={(alertSource != null ? alertSource.clip?.name ?? "sin clip" : "null")}");
     }
     void Update()
     {
@@ -59,20 +60,32 @@ public class Timer_2 : MonoBehaviour
     }
     private void CheckAlerts()
     {
-        if (alertSource == null) return;
+        if (alertSource == null)
+        {
+            Debug.LogWarning("[Timer_2] alertSource no asignado");
+            return;
+        }
+        if (!alertSource.gameObject.activeInHierarchy)
+        {
+            Debug.LogWarning("[Timer_2] alertSource está en un GameObject desactivado");
+            return;
+        }
 
         if (!alert75Played && remaining <= threshold75)
         {
+            Debug.Log($"[Timer_2] Alerta 75% en t={remaining:F2}s");
             alertSource.Play();
             alert75Played = true;
         }
         if (!alert50Played && remaining <= threshold50)
         {
+            Debug.Log($"[Timer_2] Alerta 50% en t={remaining:F2}s");
             alertSource.Play();
             alert50Played = true;
         }
         if (!alert25Played && remaining <= threshold25)
         {
+            Debug.Log($"[Timer_2] Alerta 25% en t={remaining:F2}s");
             alertSource.Play();
             alert25Played = true;
         }
