@@ -14,7 +14,7 @@ public class Challenge_Progress : MonoBehaviour
     [SerializeField] private GameObject nextPanel;
 
     [Header("Audios")]
-    [SerializeField] private AudioSource Explain_Challenge_2;
+    public AudioSource Explain_Challenge_2;
     [SerializeField] private AudioSource Challenge_Complete_Sound;
 
     private bool audioPlayed = false;
