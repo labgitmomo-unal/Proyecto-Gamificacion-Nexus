@@ -8,23 +8,32 @@ public class FloatAnimation : MonoBehaviour
     public bool addRotation = false;     // Rotación opcional
     public float rotationSpeed = 45f;    // Grados por segundo (si addRotation = true)
 
-    private Vector3 startPosition;
+    private float baseY;
 
     void Start()
     {
-        startPosition = transform.localPosition;
+        baseY = transform.position.y;
     }
 
     void Update()
     {
-        // Movimiento sinusoidal arriba y abajo
-        float newY = startPosition.y + Mathf.Sin(Time.time * frequency) * amplitude;
-        transform.localPosition = new Vector3(startPosition.x, newY, startPosition.z);
+        Vector3 pos = transform.position;
+        pos.y = baseY + Mathf.Sin(Time.time * frequency) * amplitude;
+        transform.position = pos;
 
-        // Rotación opcional sobre el eje Y
         if (addRotation)
         {
             transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime, Space.World);
+        }
+    }
+
+    void OnDisable()
+    {
+        if (Mathf.Abs(baseY) > 0.001f)
+        {
+            Vector3 pos = transform.position;
+            pos.y = baseY;
+            transform.position = pos;
         }
     }
 }

@@ -30,7 +30,7 @@ public class Cinematic_1_Controller : MonoBehaviour
 
         _cachedLODGroups = FindObjectsByType<LODGroup>(FindObjectsSortMode.None);
         forcaLODsBaixos(true);
-        OcultarNiebla(true);
+        OcultarNiebla(false);
 
         SuspenderAdaptiveQuality(true);
         SuspenderTrafficCleanup(true);
@@ -45,9 +45,10 @@ public class Cinematic_1_Controller : MonoBehaviour
         director.stopped += OnCinematicEnd;
         MostrarCongestion();
 
-        StartCoroutine(ForzarGC(65f));
-        StartCoroutine(VentanaFarClip(60f, 65f, 73f, 78f));
-        StartCoroutine(VentanaFarClip(85f, 90f, 94f, 99f));
+        StartCoroutine(ForzarGC(43f));
+        StartCoroutine(VentanaFarClip(38f, 43f, 53f, 58f));
+        StartCoroutine(VentanaFarClip(66f, 71f, 82f, 87f));
+        StartCoroutine(VentanaFarClip(95f, 99f, 103f, 108f));
     }
 
     void OnCinematicEnd(PlayableDirector d)
