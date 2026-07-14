@@ -64,6 +64,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         SuspenderTrafficCleanup(false);
         StartCoroutine(Wait());
         Challenge_Indicator_1.Play();
+        
     }
 
     private void forcaLODsBaixos(bool ativo)
