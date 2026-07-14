@@ -19,6 +19,7 @@ public class Cinematic_1_Controller : MonoBehaviour
     private LODGroup[] _cachedLODGroups;
     private Camera _cinematicCamera;
     private UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset _urpAsset;
+    private float _timeOffset;
 
     void Start()
     {
@@ -45,10 +46,27 @@ public class Cinematic_1_Controller : MonoBehaviour
         director.stopped += OnCinematicEnd;
         MostrarCongestion();
 
-        StartCoroutine(ForzarGC(43f));
+        StartCoroutine(ForzarGC(65f));
+        StartCoroutine(IniciarVentanas());
+    }
+
+    private IEnumerator IniciarVentanas()
+    {
+        while (director == null) yield return null;
+        while (double.IsNaN(director.time) || director.time < 0.0)
+            yield return null;
+        double lastTime = director.time;
+        while (director.time <= lastTime)
+        {
+            lastTime = director.time;
+            yield return null;
+        }
+        _timeOffset = Time.time - (float)director.time;
+        Debug.Log($"[Cinematic] Director started. timeOffset={_timeOffset:F3}s");
+
         StartCoroutine(VentanaFarClip(38f, 43f, 53f, 58f));
-        StartCoroutine(VentanaFarClip(66f, 71f, 82f, 87f));
-        StartCoroutine(VentanaFarClip(95f, 99f, 103f, 108f));
+        StartCoroutine(VentanaFarClip(55f, 65f, 82f, 87f));
+        StartCoroutine(VentanaFarClip(85f, 90f, 103f, 108f));
     }
 
     void OnCinematicEnd(PlayableDirector d)
@@ -149,7 +167,9 @@ private void SuspenderAdaptiveQuality(bool suspender)
 
     private IEnumerator VentanaFarClip(float inicio, float llegada, float fin, float restaurado)
     {
-        yield return new WaitForSeconds(inicio);
+        float realTarget = inicio + _timeOffset;
+        if (realTarget > Time.time)
+            yield return new WaitForSeconds(realTarget - Time.time);
 
         float farTarget = 50f;
         float duracion = llegada - inicio;

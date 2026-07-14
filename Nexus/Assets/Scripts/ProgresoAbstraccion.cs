@@ -59,11 +59,12 @@ public class ProgresoAbstraccion : MonoBehaviour
         _eliminados    = 0;
         DesbloquearScrollView();
         ActualizarUI();
-        Debug.Log($"[ProgresoAbstraccion] Total botones objetivo leido del JSON: {_totalObjetivo}");
+        Debug.Log($"[ProgresoAbstraccion] InicializarConTotal | total={_totalObjetivo}, fillImage={fillImage != null}, textoporcentaje={textoporcentaje != null}, scrollView={scrollView != null}");
     }
 
     private void HandleBotonEliminado()
     {
+        Debug.Log($"[ProgresoAbstraccion] HandleBotonEliminado | _totalObjetivo={_totalObjetivo}, _eliminados={_eliminados}, fillImage={fillImage != null}, textoporcentaje={textoporcentaje != null}");
         if (_totalObjetivo <= 0) return;
         _eliminados = Mathf.Min(_eliminados + 1, _totalObjetivo);
         ActualizarUI();
@@ -82,6 +83,8 @@ public class ProgresoAbstraccion : MonoBehaviour
     private void ActualizarUI()
     {
         float t = _totalObjetivo > 0 ? Mathf.Clamp01((float)_eliminados / _totalObjetivo) : 0f;
+
+        Debug.Log($"[ProgresoAbstraccion] ActualizarUI | t={t:F2}, fillImage={fillImage != null}, textoporcentaje={textoporcentaje != null}");
 
         if (fillImage != null)
         {
@@ -148,16 +151,25 @@ public class ProgresoAbstraccion : MonoBehaviour
 
         // 5. Activar Panel 2
         if (teleportIndicatorSource != null)
+        {
             teleportIndicatorSource.SetActive(true);
-            Collider_Destino_Teleport.SetActive(true);
-        
+            if (Collider_Destino_Teleport != null)
+                Collider_Destino_Teleport.SetActive(true);
+        }
 
         // 7. Notificar
         FaseCompletada = true;
         OnFaseCompletada?.Invoke();
         Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%. Panel 2 activado.");
-        Indicator_Challenge_2.Play();
-        StartCoroutine(EsperarAudioYVolar());
+        if (Indicator_Challenge_2 != null)
+        {
+            Indicator_Challenge_2.Play();
+            StartCoroutine(EsperarAudioYVolar());
+        }
+        else if (Nono_Guide.Instance != null)
+        {
+            Nono_Guide.Instance.FlyTo(Target_2);
+        }
     }
 
     private System.Collections.IEnumerator EsperarAudioYVolar()
