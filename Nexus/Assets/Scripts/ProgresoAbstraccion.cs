@@ -11,7 +11,7 @@ public class ProgresoAbstraccion : MonoBehaviour
     public Image fillImage;
     public TextMeshProUGUI textoporcentaje;
     public ScrollRect scrollView;
-    public Transform Target_2; // Referencia al Target del Panel 2 para el vuelo de Nono
+    
 
     [Header("Audios")]
     public AudioSource Explain_Challenge_1;
@@ -161,23 +161,11 @@ public class ProgresoAbstraccion : MonoBehaviour
         FaseCompletada = true;
         OnFaseCompletada?.Invoke();
         Debug.Log("[ProgresoAbstraccion] ScrollView bloqueado al 100%. Panel 2 activado.");
-        if (Indicator_Challenge_2 != null)
-        {
-            Indicator_Challenge_2.Play();
-            StartCoroutine(EsperarAudioYVolar());
-        }
-        else if (Nono_Guide.Instance != null)
-        {
-            Nono_Guide.Instance.FlyTo(Target_2);
-        }
+        Indicator_Challenge_2.Play();
+     
     }
 
-    private System.Collections.IEnumerator EsperarAudioYVolar()
-    {
-        yield return new WaitWhile(() => Indicator_Challenge_2.isPlaying);
-        Nono_Guide.Instance.FlyTo(Target_2);
-    }
-
+    
     private void DesbloquearScrollView()
     {
         if (scrollView == null) return;
