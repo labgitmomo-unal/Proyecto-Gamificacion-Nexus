@@ -1,0 +1,165 @@
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+public class ZonePatternManager : MonoBehaviour
+{
+    [Header("Config")]
+    public int patternLength = 4;
+    public float patternShowTime = 4f;
+    public float wrongPenaltyTime = 1.5f;
+    public Color[] colorPalette = new Color[]
+    {
+        Color.red, Color.blue, Color.green, Color.yellow,
+        new Color(0.5f, 0, 0.5f), Color.cyan, new Color(1, 0.5f, 0)
+    };
+
+    [Header("Referencia (opcional en test)")]
+    public BridgeControlManager bridgeManager;
+
+    [Header("State (read-only)")]
+    public int zoneIndex = 0;
+
+    public bool IsActive { get; private set; }
+    public bool IsComplete { get; private set; }
+    public int CurrentStep => _currentStep;
+
+    private List<TrafficCar_Interactible> _cars = new List<TrafficCar_Interactible>();
+    private int[] _pattern;
+    private int _currentStep = 0;
+    private TrafficCar_Interactible[] _patternCars;
+    private bool _isShowingPattern = false;
+
+    public event System.Action<int> OnStepCompleted;
+    public event System.Action OnZoneCompleted;
+
+    public void LimpiarAutos()
+    {
+        for (int i = 0; i < _cars.Count; i++)
+            if (_cars[i] != null) _cars[i].patternManager = null;
+        _cars.Clear();
+    }
+
+    public void RegisterCar(TrafficCar_Interactible car)
+    {
+        if (car == null || _cars.Contains(car)) return;
+        _cars.Add(car);
+        car.patternManager = this;
+
+        if (!IsActive)
+            car.ResetVisual();
+    }
+
+    public void UnregisterCar(TrafficCar_Interactible car)
+    {
+        if (car == null) return;
+        _cars.Remove(car);
+        car.patternManager = null;
+    }
+
+    public void ActivateZone()
+    {
+        if (IsComplete || _cars.Count < patternLength)
+        {
+            Debug.LogWarning($"[ZonePattern_{zoneIndex}] No se puede activar: pocos autos ({_cars.Count}/{patternLength})");
+            return;
+        }
+
+        IsActive = true;
+        IsComplete = false;
+        _currentStep = 0;
+        _isShowingPattern = true;
+
+        AsignarColoresAleatorios();
+        GenerarPatron();
+        StartCoroutine(MostrarPatron());
+    }
+
+    private void AsignarColoresAleatorios()
+    {
+        for (int i = 0; i < _cars.Count; i++)
+        {
+            int idx = Random.Range(0, colorPalette.Length);
+            _cars[i].AssignColor(idx, colorPalette[idx]);
+        }
+    }
+
+    private void GenerarPatron()
+    {
+        _pattern = new int[patternLength];
+        _patternCars = new TrafficCar_Interactible[patternLength];
+
+        List<TrafficCar_Interactible> disponibles = new List<TrafficCar_Interactible>(_cars);
+
+        for (int i = 0; i < patternLength; i++)
+        {
+            if (disponibles.Count == 0) break;
+            int idx = Random.Range(0, disponibles.Count);
+            _patternCars[i] = disponibles[idx];
+            _pattern[i] = disponibles[idx].colorIndex;
+            disponibles.RemoveAt(idx);
+        }
+    }
+
+    IEnumerator MostrarPatron()
+    {
+        for (int i = 0; i < patternLength; i++)
+        {
+            _patternCars[i].HighlightCorrect();
+            yield return new WaitForSeconds(0.6f);
+            _patternCars[i].ResetVisual();
+        }
+
+        yield return new WaitForSeconds(patternShowTime - patternLength * 0.6f);
+        _isShowingPattern = false;
+    }
+
+    public void OnCarTouched(TrafficCar_Interactible car)
+    {
+        if (!IsActive || _isShowingPattern || IsComplete) return;
+
+        if (car.colorIndex == _pattern[_currentStep])
+        {
+            car.HighlightCorrect();
+            _currentStep++;
+            OnStepCompleted?.Invoke(_currentStep);
+
+            Debug.Log($"[ZonePattern_{zoneIndex}] Correcto: paso {_currentStep}/{patternLength}");
+
+            if (_currentStep >= patternLength)
+            {
+                IsComplete = true;
+                Debug.Log($"[ZonePattern_{zoneIndex}] ¡Completado!");
+                OnZoneCompleted?.Invoke();
+
+                if (bridgeManager != null)
+                    bridgeManager.CompleteCurrentZone();
+            }
+        }
+        else
+        {
+            car.HighlightWrong();
+            Debug.Log($"[ZonePattern_{zoneIndex}] Incorrecto — reiniciando zona");
+            StartCoroutine(ReiniciarTrasError());
+        }
+    }
+
+    IEnumerator ReiniciarTrasError()
+    {
+        IsActive = false;
+        yield return new WaitForSeconds(wrongPenaltyTime);
+        ResetZone();
+        ActivateZone();
+    }
+
+    public void ResetZone()
+    {
+        IsActive = false;
+        IsComplete = false;
+        _currentStep = 0;
+        _isShowingPattern = false;
+
+        for (int i = 0; i < _cars.Count; i++)
+            _cars[i].ResetVisual();
+    }
+}

@@ -19,6 +19,9 @@ public class TrafficManager : MonoBehaviour
     private Dictionary<MovementController, Vector3> velocidadesOriginales
         = new Dictionary<MovementController, Vector3>();
 
+    private Dictionary<MovementController, float> multiplicadoresPorPlantilla
+        = new Dictionary<MovementController, float>();
+
     private List<MovementController> clonesActivos = new List<MovementController>();
 
     void Awake()
@@ -28,7 +31,11 @@ public class TrafficManager : MonoBehaviour
 
         // Guardar velocidades originales de las plantillas
         foreach (var p in plantillas)
-            if (p != null) velocidadesOriginales[p] = p.initialVelocity;
+        {
+            if (p == null) continue;
+            velocidadesOriginales[p] = p.initialVelocity;
+            multiplicadoresPorPlantilla[p] = 1f;
+        }
     }
 
     /// <summary>
@@ -38,7 +45,8 @@ public class TrafficManager : MonoBehaviour
     {
         if (mc == null || clonesActivos.Contains(mc)) return;
         clonesActivos.Add(mc);
-        mc.initialVelocity *= multiplicador;
+        float spawnerMult = ObtenerMultiplicadorPorDireccion(mc.initialVelocity);
+        mc.initialVelocity *= multiplicador * spawnerMult;
     }
 
     /// <summary>
@@ -52,16 +60,44 @@ public class TrafficManager : MonoBehaviour
         foreach (var p in plantillas)
         {
             if (p == null || !velocidadesOriginales.ContainsKey(p)) continue;
-            p.initialVelocity = velocidadesOriginales[p] * multiplicador;
+            float spawnerMult = multiplicadoresPorPlantilla.TryGetValue(p, out float sm) ? sm : 1f;
+            p.initialVelocity = velocidadesOriginales[p] * multiplicador * spawnerMult;
         }
 
         // Actualizar clones ya existentes
         clonesActivos.RemoveAll(mc => mc == null);
         foreach (var mc in clonesActivos)
         {
-            // Reconstruir desde la plantilla más cercana por dirección
             Vector3 velocidadBase = ObtenerVelocidadBasePorDireccion(mc.initialVelocity);
-            mc.initialVelocity = velocidadBase * multiplicador;
+            float spawnerMult = ObtenerMultiplicadorPorDireccion(mc.initialVelocity);
+            mc.initialVelocity = velocidadBase * multiplicador * spawnerMult;
+        }
+    }
+
+    /// <summary>
+    /// Multiplicador INDEPENDIENTE para una plantilla específica.
+    /// 0 = detenido, 1 = normal. No afecta otras plantillas.
+    /// </summary>
+    public void SetMultiplicadorPorPlantilla(MovementController plantilla, float multiplier)
+    {
+        if (plantilla == null || !velocidadesOriginales.ContainsKey(plantilla)) return;
+
+        multiplicadoresPorPlantilla[plantilla] = Mathf.Clamp(multiplier, 0f, 2f);
+
+        float globalMult = multiplicador;
+        float spawnerMult = multiplicadoresPorPlantilla[plantilla];
+
+        // Aplicar a la plantilla
+        plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMult * spawnerMult;
+
+        // Aplicar a clones que coincidan con esta plantilla (por dirección)
+        clonesActivos.RemoveAll(mc => mc == null);
+        foreach (var mc in clonesActivos)
+        {
+            if (!DireccionesCoinciden(mc.initialVelocity, velocidadesOriginales[plantilla])) continue;
+
+            Vector3 baseVel = ObtenerVelocidadBasePorDireccion(mc.initialVelocity);
+            mc.initialVelocity = baseVel * globalMult * spawnerMult;
         }
     }
 
@@ -85,9 +121,27 @@ public class TrafficManager : MonoBehaviour
     private Vector3 ObtenerVelocidadBasePorDireccion(Vector3 velocidadActual)
     {
         foreach (var kvp in velocidadesOriginales)
-            if (Vector3.Dot(kvp.Value.normalized, velocidadActual.normalized) > 0.9f)
+            if (DireccionesCoinciden(kvp.Value, velocidadActual))
                 return kvp.Value;
 
         return velocidadActual.normalized * 50f;
+    }
+
+    private bool DireccionesCoinciden(Vector3 a, Vector3 b)
+    {
+        return Vector3.Dot(a.normalized, b.normalized) > 0.9f;
+    }
+
+    private float ObtenerMultiplicadorPorDireccion(Vector3 velocidadActual)
+    {
+        foreach (var kvp in multiplicadoresPorPlantilla)
+        {
+            if (velocidadesOriginales.TryGetValue(kvp.Key, out var velBase) &&
+                DireccionesCoinciden(velBase, velocidadActual))
+            {
+                return kvp.Value;
+            }
+        }
+        return 1f;
     }
 }
