@@ -13,9 +13,13 @@ public class Challenge_Progress : MonoBehaviour
 
     [SerializeField] private GameObject nextPanel;
 
+    [Header("Nono")]
+    public Transform nonoDestination;
+
     [Header("Audios")]
     public AudioSource Explain_Challenge_2;
     [SerializeField] private AudioSource Challenge_Complete_Sound;
+    public AudioSource Indicator_Challenge_3;
 
     private bool audioPlayed = false;
 
@@ -133,8 +137,19 @@ public class Challenge_Progress : MonoBehaviour
         if (nextPanel != null)
         {
             nextPanel.SetActive(true);
+            if (Indicator_Challenge_3 != null)
+                Indicator_Challenge_3.Play();
         }
+
+        StartCoroutine(EsperarAudioYVolar());
     }
 
-    
+    private IEnumerator EsperarAudioYVolar()
+    {
+        if (Indicator_Challenge_3 != null)
+            yield return new WaitWhile(() => Indicator_Challenge_3.isPlaying);
+
+        if (Nono_Guide.Instance != null && nonoDestination != null)
+            Nono_Guide.Instance.FlyTo(nonoDestination);
+    }
 }
