@@ -100,7 +100,18 @@ public class NewMonoBehaviourScript : MonoBehaviour, IBeginDragHandler, IDragHan
             var child = root.GetChild(i);
             if (child == null) continue;
 
-            // Configurar objetos que empiezan con "Base" o que tienen Image
+            // Skip UI utility objects (Compass, PlayerMarker, MapViewDisplay, MapViewMask)
+            if (child.GetComponent<CompassUI>() != null ||
+                child.GetComponent<MapMarker>() != null ||
+                child.GetComponent<UnityEngine.UI.RawImage>() != null ||
+                child.GetComponent<UnityEngine.UI.Mask>() != null)
+            {
+                if (child.childCount > 0)
+                    InstallInHierarchy(child);
+                continue;
+            }
+
+            // Configurar objetos que tienen Image (nodos arrastrables)
             var childImage = child.GetComponent<Image>();
             if (childImage != null)
             {

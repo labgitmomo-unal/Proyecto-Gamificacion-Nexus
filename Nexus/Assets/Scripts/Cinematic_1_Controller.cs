@@ -7,25 +7,30 @@ public class Cinematic_1_Controller : MonoBehaviour
     public PlayableDirector director;
     public GameObject VirtualCamera;
     public GameObject XrigCamera;
-    
+
     public TrafficManager trafficManager;
 
     void Start()
     {
-        XrigCamera.SetActive(false);
-        VirtualCamera.SetActive(true);
-        director.stopped += OnCinematicEnd;
+        if (XrigCamera != null) XrigCamera.SetActive(false);
+        if (VirtualCamera != null) VirtualCamera.SetActive(true);
+
+        if (director != null)
+            director.stopped += OnCinematicEnd;
+
         MostrarCongestion();
-        // StartCoroutine(RestoreTrafficAfterDelay(60f)); // Restaurar tráfico después de 10 segundos
-        
     }
 
     void OnCinematicEnd(PlayableDirector d)
     {
-        XrigCamera.SetActive(true);
-        VirtualCamera.SetActive(false);
+        if (XrigCamera != null) XrigCamera.SetActive(true);
+        if (VirtualCamera != null) VirtualCamera.SetActive(false);
+    }
 
-        
+    void OnDestroy()
+    {
+        if (director != null)
+            director.stopped -= OnCinematicEnd;
     }
 
     public void MostrarCongestion()

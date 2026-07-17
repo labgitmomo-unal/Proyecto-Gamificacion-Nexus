@@ -72,11 +72,13 @@ public class MapViewController : MonoBehaviour
     /// <summary>Creates the RenderTexture and assigns it to the aerial camera output.</summary>
     private void SetupRenderTexture()
     {
-        _renderTexture = new RenderTexture(renderTextureSize, renderTextureSize, 24, RenderTextureFormat.ARGB32)
+        // Use Depth format compatible with URP Render Graph (requires depth buffer)
+        _renderTexture = new RenderTexture(renderTextureSize, renderTextureSize, 32, RenderTextureFormat.Default)
         {
             antiAliasing = 1,
             filterMode = FilterMode.Bilinear,
-            wrapMode = TextureWrapMode.Clamp
+            wrapMode = TextureWrapMode.Clamp,
+            depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D32_SFloat_S8_UInt
         };
         _renderTexture.Create();
         _mapCamera.targetTexture = _renderTexture;
