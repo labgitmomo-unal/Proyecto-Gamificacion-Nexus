@@ -33,6 +33,19 @@ public class ZonePatternManager : MonoBehaviour
     public event System.Action<int> OnStepCompleted;
     public event System.Action OnZoneCompleted;
 
+    public List<TrafficCar_Interactible> GetCars() => _cars;
+
+    public void ReleaseCars(Vector3 velocity)
+    {
+        for (int i = 0; i < _cars.Count; i++)
+        {
+            if (_cars[i] == null) continue;
+            var mc = _cars[i].GetComponent<MovementController>();
+            if (mc != null)
+                mc.initialVelocity = velocity;
+        }
+    }
+
     public void LimpiarAutos()
     {
         for (int i = 0; i < _cars.Count; i++)
@@ -133,7 +146,7 @@ public class ZonePatternManager : MonoBehaviour
                 OnZoneCompleted?.Invoke();
 
                 if (bridgeManager != null)
-                    bridgeManager.CompleteCurrentZone();
+                    Debug.LogWarning("[ZonePattern] bridgeManager.CompleteCurrentZone ya no está disponible — sistema simplificado.");
             }
         }
         else

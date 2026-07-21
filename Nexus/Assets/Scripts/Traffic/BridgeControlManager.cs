@@ -1,101 +1,174 @@
 using UnityEngine;
 using System.Collections.Generic;
+
 public class BridgeControlManager : MonoBehaviour
 {
     [Header("Plantilla del Spawner (1) - arrastrar Script Move")]
     public MovementController spawnerTemplate;
 
-    [Header("Patrones (1 por zona, en mismo orden)")]
-    public ZonePatternManager[] patternManagers;
-
-    public int CurrentZoneIndex { get; private set; }
     public bool IsComplete { get; private set; }
     public bool IsActive { get; private set; }
+    public int ReleaseCount { get; private set; }
 
     public static event System.Action OnAllZonesComplete;
 
+    private List<RandomObjectSpawner> _allSpawners = new List<RandomObjectSpawner>();
+    private List<Transform> _releasedCars = new List<Transform>();
+    private float _releaseTimer = 0f;
+    private const float RELEASE_SPEED = 25f;
+    private List<BridgeCarFreezer> _freezers = new List<BridgeCarFreezer>();
+
     void Start()
     {
-        CurrentZoneIndex = 0;
+        ReleaseCount = 0;
         IsComplete = false;
         IsActive = false;
-
         if (spawnerTemplate == null)
+        {
             Debug.LogError("[BridgeControl] No hay spawnerTemplate asignado.");
+            return;
+        }
+        TrafficManager.Instance.RegistrarPlantilla(spawnerTemplate);
+        BuscarTodosLosSpawners();
     }
 
-    public void StartChallenge()
+    private void BuscarTodosLosSpawners()
     {
-        if (IsActive || IsComplete) return;
+        _allSpawners.Clear();
+        var all = FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
+        foreach (var s in all)
+            if (s != null) _allSpawners.Add(s);
+        Debug.Log($"[BridgeControl] {_allSpawners.Count} spawners encontrados.");
+    }
+
+    private void DesactivarTodosLosSpawners()
+    {
+        foreach (var s in _allSpawners)
+            if (s != null) s.enabled = false;
+    }
+
+    private void ActivarTodosLosSpawners()
+    {
+        foreach (var s in _allSpawners)
+            if (s != null) s.enabled = true;
+    }
+
+    private List<MovementController> ObtenerTodosLosMovementControllers()
+    {
+        return new List<MovementController>(
+            FindObjectsByType<MovementController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+    }
+
+    public void FreezeBridge()
+    {
+        if (spawnerTemplate == null) return;
+
+        gameObject.SetActive(true);
         IsActive = true;
-        CurrentZoneIndex = 0;
+        IsComplete = false;
+        ReleaseCount = 0;
+        _releaseTimer = 0f;
+        _releasedCars.Clear();
+        _freezers.Clear();
 
-        if (TrafficManager.Instance != null)
-            TrafficManager.Instance.SetMultiplicadorPorPlantilla(spawnerTemplate, 0f);
+        BuscarTodosLosSpawners();
+        DesactivarTodosLosSpawners();
 
-        Debug.Log("[BridgeControl] Tráfico del puente CONGELADO vía per-spawner.");
+        Vector3 plantillaVel = TrafficManager.Instance.GetBaseVelocityForPlantilla(spawnerTemplate);
 
-        AsignarAutosAZonasVirtuales();
-
-        if (patternManagers != null && patternManagers.Length > 0 && patternManagers[0] != null)
-            patternManagers[0].ActivateZone();
-    }
-
-    private void AsignarAutosAZonasVirtuales()
-    {
-        var clones = TrafficManager.Instance.ObtenerClones();
-
-        var clonesFiltrados = new List<MovementController>();
-        float targetY = spawnerTemplate.transform.position.y;
-        float targetZ = spawnerTemplate.transform.position.z;
-
-        foreach (var mc in clones)
+        int contador = 0;
+        foreach (var mc in ObtenerTodosLosMovementControllers())
         {
             if (mc == null) continue;
-            Vector3 pos = mc.transform.position;
-            if (Mathf.Abs(pos.y - targetY) < 10f && Mathf.Abs(pos.z - targetZ) < 20f)
-                clonesFiltrados.Add(mc);
+            var freezer = mc.GetComponent<BridgeCarFreezer>();
+            if (freezer == null)
+                freezer = mc.gameObject.AddComponent<BridgeCarFreezer>();
+            freezer.manager = this;
+            freezer.UpdateFreezePosition();
+            if (mc.initialVelocity.sqrMagnitude > 0.001f)
+                freezer.movementDirection = -mc.initialVelocity.normalized;
+            else if (plantillaVel.sqrMagnitude > 0.001f)
+                freezer.movementDirection = -plantillaVel.normalized;
+            _freezers.Add(freezer);
+            contador++;
         }
 
-        clonesFiltrados.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
+        TrafficManager.Instance.SetMultiplicadorPorPlantilla(spawnerTemplate, 0f);
 
-        if (patternManagers == null || patternManagers.Length == 0) return;
+        Debug.Log($"[BridgeControl] FreezeBridge: {contador} autos con BridgeCarFreezer.", this);
+    }
 
-        int totalCars = clonesFiltrados.Count;
-        int zonas = patternManagers.Length;
+    void Update()
+    {
+        if (!IsActive || IsComplete) return;
 
-        for (int z = 0; z < zonas; z++)
+        if (_releaseTimer > 0f)
         {
-            if (patternManagers[z] == null) continue;
-            patternManagers[z].LimpiarAutos();
+            _releaseTimer -= Time.deltaTime;
 
-            int startIdx = (totalCars * z) / zonas;
-            int endIdx = (z == zonas - 1) ? totalCars : (totalCars * (z + 1)) / zonas;
-
-            for (int i = startIdx; i < endIdx; i++)
+            for (int i = _releasedCars.Count - 1; i >= 0; i--)
             {
-                var interactible = clonesFiltrados[i].GetComponent<TrafficCar_Interactible>();
-                if (interactible == null)
-                    interactible = clonesFiltrados[i].gameObject.AddComponent<TrafficCar_Interactible>();
-                patternManagers[z].RegisterCar(interactible);
+                var t = _releasedCars[i];
+                if (t == null) { _releasedCars.RemoveAt(i); continue; }
+                var dir = t.GetComponent<BridgeCarFreezer>();
+                t.position += (dir != null ? dir.movementDirection : t.forward) * RELEASE_SPEED * Time.deltaTime;
             }
 
-            Debug.Log($"[BridgeControl] Zona virtual {z + 1}: {endIdx - startIdx} autos asignados.");
+            if (_releaseTimer <= 0f)
+                RefreezarTodos();
+        }
+
+        if (Time.frameCount % 10 == 0)
+        {
+            DesactivarTodosLosSpawners();
+            Vector3 plantillaDir = -TrafficManager.Instance.GetBaseVelocityForPlantilla(spawnerTemplate).normalized;
+            foreach (var mc in ObtenerTodosLosMovementControllers())
+            {
+                if (mc == null) continue;
+                if (mc.GetComponent<BridgeCarFreezer>() != null) continue;
+                var freezer = mc.gameObject.AddComponent<BridgeCarFreezer>();
+                freezer.manager = this;
+                freezer.movementDirection = plantillaDir;
+                freezer.UpdateFreezePosition();
+                _freezers.Add(freezer);
+                Debug.Log($"[BridgeControl] Catch-up: nuevo freezer en {mc.name}");
+            }
         }
     }
 
-    public void CompleteCurrentZone()
+    private void RefreezarTodos()
     {
-        if (IsComplete || !IsActive) return;
-
-        Debug.Log($"[BridgeControl] Zona {CurrentZoneIndex + 1} completada.");
-
-        CurrentZoneIndex++;
-
-        if (CurrentZoneIndex < patternManagers.Length)
+        Debug.Log($"[BridgeControl] Refreeze: {_releasedCars.Count} autos.");
+        foreach (var t in _releasedCars)
         {
-            if (patternManagers[CurrentZoneIndex] != null)
-                patternManagers[CurrentZoneIndex].ActivateZone();
+            if (t == null) continue;
+            var freezer = t.GetComponent<BridgeCarFreezer>();
+            if (freezer != null)
+                freezer.Refreeze();
+        }
+        _releasedCars.Clear();
+    }
+
+    public void ReleaseStep()
+    {
+        if (!IsActive || IsComplete || spawnerTemplate == null) return;
+
+        ReleaseCount++;
+        Debug.Log($"[BridgeControl] ReleaseStep {ReleaseCount}/4");
+
+        if (ReleaseCount < 4)
+        {
+            _releasedCars.Clear();
+            int liberados = 0;
+            foreach (var f in _freezers)
+            {
+                if (f == null || !f.IsFrozen) continue;
+                f.TemporalRelease();
+                _releasedCars.Add(f.transform);
+                liberados++;
+            }
+            _releaseTimer = 8f;
+            Debug.Log($"[BridgeControl] {liberados} autos liberados por 8s (freezers totales: {_freezers.Count}).");
         }
         else
         {
@@ -105,31 +178,50 @@ public class BridgeControlManager : MonoBehaviour
 
     private void CompleteChallenge()
     {
+        _releasedCars.Clear();
+        _releaseTimer = 0f;
+
         IsComplete = true;
         IsActive = false;
 
-        if (TrafficManager.Instance != null)
-            TrafficManager.Instance.SetMultiplicadorPorPlantilla(spawnerTemplate, 1f);
+        ActivarTodosLosSpawners();
+        TrafficManager.Instance.SetMultiplicadorPorPlantilla(spawnerTemplate, 1f);
 
-        Debug.Log("[BridgeControl] ¡Desafío completado! Tráfico del puente restaurado.");
+        if (spawnerTemplate != null)
+            spawnerTemplate.initialVelocity = TrafficManager.Instance.GetBaseVelocityForPlantilla(spawnerTemplate);
+
+        int liberados = 0;
+        foreach (var f in _freezers)
+        {
+            if (f == null || !f.IsFrozen) continue;
+            f.Release();
+            liberados++;
+        }
+        Debug.Log($"[BridgeControl] CompleteChallenge: {liberados} autos liberados permanentemente.", this);
         OnAllZonesComplete?.Invoke();
     }
 
     public void Reiniciar()
     {
-        if (TrafficManager.Instance != null)
-            TrafficManager.Instance.SetMultiplicadorPorPlantilla(spawnerTemplate, 1f);
+        _releasedCars.Clear();
+        _freezers.Clear();
+        _releaseTimer = 0f;
 
-        CurrentZoneIndex = 0;
+        ActivarTodosLosSpawners();
+        TrafficManager.Instance.SetMultiplicadorPorPlantilla(spawnerTemplate, 1f);
+
+        if (spawnerTemplate != null)
+            spawnerTemplate.initialVelocity = TrafficManager.Instance.GetBaseVelocityForPlantilla(spawnerTemplate);
+
+        ReleaseCount = 0;
         IsComplete = false;
         IsActive = false;
-
-        foreach (var pm in patternManagers)
-        {
-            if (pm != null)
-                pm.ResetZone();
-        }
-
         Debug.Log("[BridgeControl] Reiniciado.");
+    }
+
+    public void OnFreezerDestroyed(BridgeCarFreezer freezer)
+    {
+        _freezers.Remove(freezer);
+        _releasedCars.Remove(freezer.transform);
     }
 }

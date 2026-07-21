@@ -7,7 +7,20 @@ using System.Collections.Generic;
 /// </summary>
 public class TrafficManager : MonoBehaviour
 {
-    public static TrafficManager Instance { get; private set; }
+    private static TrafficManager _instance;
+    public static TrafficManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindAnyObjectByType<TrafficManager>(FindObjectsInactive.Include);
+                if (_instance != null) _instance.TryInitialize();
+            }
+            return _instance;
+        }
+        private set { _instance = value; }
+    }
 
     [Header("Plantillas - arrastra aquí los 'Script Move' de cada Car Line Spawner")]
     public List<MovementController> plantillas = new List<MovementController>();
@@ -26,10 +39,23 @@ public class TrafficManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
+        if (_instance != null && _instance != this) { Destroy(gameObject); return; }
+        _instance = this;
+        InitializeDictionaries();
+    }
 
-        // Guardar velocidades originales de las plantillas
+    /// <summary>Garantiza que el singleton esté listo (útil si Awake no se disparó).</summary>
+    public void TryInitialize()
+    {
+        if (_instance == null) _instance = this;
+        if (velocidadesOriginales.Count > 0) return;
+        InitializeDictionaries();
+    }
+
+    private void InitializeDictionaries()
+    {
+        velocidadesOriginales.Clear();
+        multiplicadoresPorPlantilla.Clear();
         foreach (var p in plantillas)
         {
             if (p == null) continue;
@@ -87,8 +113,9 @@ public class TrafficManager : MonoBehaviour
         float globalMult = multiplicador;
         float spawnerMult = multiplicadoresPorPlantilla[plantilla];
 
-        // Aplicar a la plantilla
-        plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMult * spawnerMult;
+        // Aplicar a la plantilla (min 0.01 para mantener dirección viva en GetOriginalVelocity)
+        float templateMult = Mathf.Max(spawnerMult, 0.01f);
+        plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMult * templateMult;
 
         // Aplicar a clones que coincidan con esta plantilla (por dirección)
         clonesActivos.RemoveAll(mc => mc == null);
@@ -106,6 +133,23 @@ public class TrafficManager : MonoBehaviour
 
     /// <summary>Ralentiza el tráfico al porcentaje indicado (ej: 0.1 = 10%).</summary>
     public void RalentizarTrafico(float porcentaje = 0.1f) => SetVelocidad(porcentaje);
+
+    /// <summary>Devuelve la velocidad base de una plantilla considerando el multiplicador global.</summary>
+    public Vector3 GetBaseVelocityForPlantilla(MovementController plantilla)
+    {
+        if (plantilla == null || !velocidadesOriginales.ContainsKey(plantilla))
+            return Vector3.zero;
+        return velocidadesOriginales[plantilla] * multiplicador;
+    }
+
+    /// <summary>Registra una plantilla dinámicamente (útil si no se asignó en Inspector).</summary>
+    public void RegistrarPlantilla(MovementController template)
+    {
+        if (template == null || plantillas.Contains(template)) return;
+        plantillas.Add(template);
+        velocidadesOriginales[template] = template.initialVelocity;
+        multiplicadoresPorPlantilla[template] = 1f;
+    }
 
     public void DesregistrarClon(MovementController mc)
     {
@@ -129,6 +173,7 @@ public class TrafficManager : MonoBehaviour
 
     private bool DireccionesCoinciden(Vector3 a, Vector3 b)
     {
+        if (a.sqrMagnitude < 0.0001f || b.sqrMagnitude < 0.0001f) return false;
         return Vector3.Dot(a.normalized, b.normalized) > 0.9f;
     }
 

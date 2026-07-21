@@ -40,21 +40,32 @@ public class BridgeStart_Button : MonoBehaviour
     void OnPressed(SelectEnterEventArgs args)
     {
         if (bridgeManager == null) return;
-        if (bridgeManager.IsActive || bridgeManager.IsComplete) return;
 
-        bridgeManager.StartChallenge();
+        if (!bridgeManager.IsActive && !bridgeManager.IsComplete && bridgeManager.spawnerTemplate != null)
+            bridgeManager.FreezeBridge();
+
+        if (bridgeManager.IsActive && !bridgeManager.IsComplete)
+            bridgeManager.ReleaseStep();
 
         if (_material != null)
-            _material.color = pressedColor;
+        {
+            if (bridgeManager.IsComplete)
+                _material.color = pressedColor;
+            else if (bridgeManager.IsActive)
+                _material.color = disabledColor;
+        }
     }
 
     void Update()
     {
-        if (_material == null) return;
-        if (bridgeManager == null) return;
+        if (_material == null || bridgeManager == null) return;
 
-        if (bridgeManager.IsComplete || bridgeManager.IsActive)
-            _material.color = bridgeManager.IsComplete ? pressedColor : disabledColor;
+        if (bridgeManager.IsComplete)
+            _material.color = pressedColor;
+        else if (bridgeManager.IsActive)
+            _material.color = disabledColor;
+        else
+            _material.color = idleColor;
     }
 
     void OnDestroy()
