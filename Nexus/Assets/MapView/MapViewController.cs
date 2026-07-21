@@ -13,6 +13,7 @@ public class MapViewController : MonoBehaviour
 {
     [SerializeField] private string displayObjectName = "MapViewDisplay";
     [SerializeField] private int renderTextureSize = 2048;
+    [SerializeField] private float mapYawOffsetDegrees = 180f;
 
     private RenderTexture _renderTexture;
     private Camera _mapCamera;
@@ -21,6 +22,10 @@ public class MapViewController : MonoBehaviour
     private void Awake()
     {
         _mapCamera = GetComponent<Camera>();
+        if (!Mathf.Approximately(mapYawOffsetDegrees, 0f))
+        {
+            transform.Rotate(0f, mapYawOffsetDegrees, 0f, Space.World);
+        }
         ExcludeDisplayLayerFromCamera();
         SetupRenderTexture();
         ConfigureDisplayObject();

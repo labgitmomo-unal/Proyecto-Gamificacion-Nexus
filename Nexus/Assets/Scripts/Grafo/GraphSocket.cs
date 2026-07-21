@@ -41,7 +41,8 @@ public class GraphSocket : MonoBehaviour, IPointerDownHandler, IBeginDragHandler
         if (_currentEdge == null) return;
 
         // Mover el extremo del cable con el puntero/rayo
-        if (TryGetPointerWorldPoint(eventData, out Vector3 worldPoint))
+        var parentRect = transform.parent as RectTransform;
+        if (GraphUiUtility.TryGetPointerWorldPoint(parentRect, _canvas, eventData, out Vector3 worldPoint))
         {
             _currentEdge.UpdateEndPoint(worldPoint);
         }
@@ -83,20 +84,5 @@ public class GraphSocket : MonoBehaviour, IPointerDownHandler, IBeginDragHandler
     {
         if (lightImage != null)
             lightImage.color = _isConnected ? activeColor : inactiveColor;
-    }
-
-    private bool TryGetPointerWorldPoint(PointerEventData eventData, out Vector3 worldPoint)
-    {
-        worldPoint = default;
-        var parentRect = transform.parent as RectTransform;
-        Camera eventCamera = eventData.pressEventCamera;
-        if (eventCamera == null && _canvas != null)
-            eventCamera = _canvas.worldCamera;
-
-        return RectTransformUtility.ScreenPointToWorldPointInRectangle(
-            parentRect,
-            eventData.position,
-            eventCamera,
-            out worldPoint);
     }
 }
