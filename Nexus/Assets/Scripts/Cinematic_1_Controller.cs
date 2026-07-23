@@ -7,15 +7,13 @@ using UnityEngine.Rendering.Universal;
 public class Cinematic_1_Controller : MonoBehaviour
 {
     public static bool SuppressStart = false;
-
     public PlayableDirector director;
     public GameObject VirtualCamera;
     public GameObject XrigCamera;
     public Camera vistaPilotoCamera;
-    
     public TrafficManager trafficManager;
+    public BridgeControlManager bridgeControl;
     public AudioSource Challenge_Indicator_1;
-
     private LODGroup[] _cachedLODGroups;
     private Camera _cinematicCamera;
     private UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset _urpAsset;
@@ -28,24 +26,20 @@ public class Cinematic_1_Controller : MonoBehaviour
             SuppressStart = false;
             return;
         }
-
         _cachedLODGroups = FindObjectsByType<LODGroup>(FindObjectsSortMode.None);
         forcaLODsBaixos(true);
         OcultarNiebla(false);
-
         SuspenderAdaptiveQuality(true);
         SuspenderTrafficCleanup(true);
-
-        if (VirtualCamera != null) _cinematicCamera = VirtualCamera.GetComponent<Camera>();
+        if (VirtualCamera != null)
+            _cinematicCamera = VirtualCamera.GetComponent<Camera>();
         _urpAsset = GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
         AjustarLimitesTrafico(true);
         AjustarFarClip(true);
-
         XrigCamera.SetActive(false);
         VirtualCamera.SetActive(true);
         director.stopped += OnCinematicEnd;
         MostrarCongestion();
-
         StartCoroutine(ForzarGC(65f));
         StartCoroutine(IniciarVentanas());
     }
@@ -53,8 +47,7 @@ public class Cinematic_1_Controller : MonoBehaviour
     private IEnumerator IniciarVentanas()
     {
         while (director == null) yield return null;
-        while (double.IsNaN(director.time) || director.time < 0.0)
-            yield return null;
+        while (double.IsNaN(director.time) || director.time < 0.0) yield return null;
         double lastTime = director.time;
         while (director.time <= lastTime)
         {
@@ -62,8 +55,7 @@ public class Cinematic_1_Controller : MonoBehaviour
             yield return null;
         }
         _timeOffset = Time.time - (float)director.time;
-        Debug.Log($"[Cinematic] Director started. timeOffset={_timeOffset:F3}s");
-
+        Debug.Log("[Cinematic] Director started. timeOffset=" + _timeOffset.ToString("F3") + "s");
         StartCoroutine(VentanaFarClip(38f, 43f, 53f, 58f));
         StartCoroutine(VentanaFarClip(55f, 65f, 82f, 87f));
         StartCoroutine(VentanaFarClip(85f, 90f, 103f, 108f));
@@ -80,10 +72,9 @@ public class Cinematic_1_Controller : MonoBehaviour
         AjustarLimitesTrafico(false);
         SuspenderAdaptiveQuality(false);
         SuspenderTrafficCleanup(false);
-
+        if (bridgeControl != null) bridgeControl.FreezeBridge();
         StartCoroutine(Wait());
         Challenge_Indicator_1.Play();
-        
     }
 
     private void forcaLODsBaixos(bool ativo)
@@ -110,13 +101,11 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
     }
 
-private void AjustarFarClip(bool reducir)
+    private void AjustarFarClip(bool reducir)
     {
-        if (_cinematicCamera != null)
-            _cinematicCamera.farClipPlane = 150f;
+        if (_cinematicCamera != null) _cinematicCamera.farClipPlane = 150f;
         QualitySettings.lodBias = reducir ? 0.4f : 0.3f;
-        if (_urpAsset != null)
-            _urpAsset.renderScale = reducir ? 0.8f : 1.0f;
+        if (_urpAsset != null) _urpAsset.renderScale = reducir ? 0.8f : 1.0f;
     }
 
     private void AjustarLimitesTrafico(bool cinematicActiva)
@@ -137,13 +126,8 @@ private void AjustarFarClip(bool reducir)
         }
     }
 
-private void SuspenderAdaptiveQuality(bool suspender)
+    private void SuspenderAdaptiveQuality(bool suspender)
     {
-        // CORRECCION: ya no se desactiva AdaptiveQuality durante la cinematica.
-        // Antes se apagaba justo en la parte mas pesada (el puente), dejando
-        // sin proteccion contra caidas de FPS, lo que disparaba el ASW del
-        // compositor de Quest y causaba la distorsion visual reportada.
-        // Ahora se mantiene activo y se pone en modo "cinematica" (mas agresivo).
         var aq = FindFirstObjectByType<AdaptiveQuality>();
         if (aq != null) aq.SetCinematicMode(suspender);
     }
@@ -171,7 +155,6 @@ private void SuspenderAdaptiveQuality(bool suspender)
         float realTarget = inicio + _timeOffset;
         if (realTarget > Time.time)
             yield return new WaitForSeconds(realTarget - Time.time);
-
         float farTarget = 50f;
         float duracion = llegada - inicio;
         float t = 0f;
@@ -187,14 +170,11 @@ private void SuspenderAdaptiveQuality(bool suspender)
             }
             if (_cinematicCamera != null) _cinematicCamera.farClipPlane = farTarget;
         }
-
         if (_urpAsset != null) _urpAsset.renderScale = 0.65f;
         QualitySettings.lodBias = 0.1f;
         for (int i = 0; i < _cachedLODGroups.Length; i++)
             _cachedLODGroups[i].ForceLOD(_cachedLODGroups[i].lodCount - 1);
-
         yield return new WaitForSeconds(fin - llegada);
-
         duracion = restaurado - fin;
         t = 0f;
         if (duracion > 0.01f)
@@ -210,7 +190,6 @@ private void SuspenderAdaptiveQuality(bool suspender)
             }
             if (_cinematicCamera != null) _cinematicCamera.farClipPlane = farTarget;
         }
-
         if (_urpAsset != null) _urpAsset.renderScale = 0.8f;
         QualitySettings.lodBias = 0.4f;
         for (int i = 0; i < _cachedLODGroups.Length; i++)
@@ -221,7 +200,6 @@ private void SuspenderAdaptiveQuality(bool suspender)
     public void MostrarCongestion()
     {
         TrafficManager.Instance.SetVelocidad(0.4f);
-
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
             spawner.minSpawnInterval = 0.3f;
@@ -232,7 +210,6 @@ private void SuspenderAdaptiveQuality(bool suspender)
     public void RestaurarTrafico()
     {
         TrafficManager.Instance.RestaurarVelocidad();
-
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
             spawner.minSpawnInterval = 0.5f;
@@ -248,8 +225,6 @@ private void SuspenderAdaptiveQuality(bool suspender)
 
     private IEnumerator Wait()
     {
-
         yield return new WaitForSeconds(45f);
- 
     }
 }
