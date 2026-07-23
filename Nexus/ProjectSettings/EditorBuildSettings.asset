@@ -8,6 +8,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Auth_Final.unity
     guid: 4863701b90d48574a90ada96647f129a
+  - enabled: 0
+    path: Assets/Scenes/Escena_Holograma_Abstraccion.unity
+    guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
     path: Assets/Scenes/Neon High City.unity
     guid: 822d44c33d459af42866302ee08fbd88

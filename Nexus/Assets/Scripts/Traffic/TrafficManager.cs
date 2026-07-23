@@ -76,6 +76,16 @@ public class TrafficManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Llamar desde RandomObjectSpawner cuando se destruye o recicla un clon.
+    /// </summary>
+    public void DesregistrarClon(MovementController mc)
+    {
+        if (mc == null) return;
+        if (clonesActivos.Contains(mc))
+            clonesActivos.Remove(mc);
+    }
+
+    /// <summary>
     /// Aplica un multiplicador a plantillas y clones activos (0=detenido, 1=normal).
     /// </summary>
     public void SetVelocidad(float nuevoMultiplicador)
