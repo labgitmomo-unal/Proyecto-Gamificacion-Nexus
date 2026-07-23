@@ -161,11 +161,6 @@ public class TrafficManager : MonoBehaviour
         multiplicadoresPorPlantilla[template] = 1f;
     }
 
-    public void DesregistrarClon(MovementController mc)
-    {
-        if (mc != null) clonesActivos.Remove(mc);
-    }
-
     public List<MovementController> ObtenerClones()
     {
         clonesActivos.RemoveAll(mc => mc == null);
