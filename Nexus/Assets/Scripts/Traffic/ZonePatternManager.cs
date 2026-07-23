@@ -14,9 +14,6 @@ public class ZonePatternManager : MonoBehaviour
         new Color(0.5f, 0, 0.5f), Color.cyan, new Color(1, 0.5f, 0)
     };
 
-    [Header("Referencia (opcional en test)")]
-    public BridgeControlManager bridgeManager;
-
     [Header("State (read-only)")]
     public int zoneIndex = 0;
 
@@ -144,9 +141,6 @@ public class ZonePatternManager : MonoBehaviour
                 IsComplete = true;
                 Debug.Log($"[ZonePattern_{zoneIndex}] ¡Completado!");
                 OnZoneCompleted?.Invoke();
-
-                if (bridgeManager != null)
-                    Debug.LogWarning("[ZonePattern] bridgeManager.CompleteCurrentZone ya no está disponible — sistema simplificado.");
             }
         }
         else

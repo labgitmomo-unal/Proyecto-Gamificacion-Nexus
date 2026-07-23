@@ -14,7 +14,6 @@ public class Cinematic_1_Controller : MonoBehaviour
     public Camera vistaPilotoCamera;
     
     public TrafficManager trafficManager;
-    public BridgeControlManager bridgeControl;
     public AudioSource Challenge_Indicator_1;
 
     private LODGroup[] _cachedLODGroups;
@@ -81,8 +80,6 @@ public class Cinematic_1_Controller : MonoBehaviour
         AjustarLimitesTrafico(false);
         SuspenderAdaptiveQuality(false);
         SuspenderTrafficCleanup(false);
-        if (bridgeControl != null)
-            bridgeControl.FreezeBridge();
 
         StartCoroutine(Wait());
         Challenge_Indicator_1.Play();
