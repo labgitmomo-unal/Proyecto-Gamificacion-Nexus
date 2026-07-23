@@ -5,7 +5,7 @@ using UnityEngine;
 public class BridgeCarFreezer : MonoBehaviour
 {
     [HideInInspector] public BridgeControlManager manager;
-    [HideInInspector] public Vector3 movementDirection = Vector3.forward;
+    [HideInInspector] public Vector3 originalVelocity = Vector3.zero;
 
     private MovementController _mc;
     private Rigidbody _rb;
@@ -24,8 +24,6 @@ public class BridgeCarFreezer : MonoBehaviour
     {
         _frozen = true;
         _frozenPos = transform.position;
-        if (_mc != null && _mc.initialVelocity.sqrMagnitude > 0.001f)
-            movementDirection = -_mc.initialVelocity.normalized;
     }
 
     void OnDestroy()
@@ -55,8 +53,6 @@ public class BridgeCarFreezer : MonoBehaviour
     public void UpdateFreezePosition()
     {
         _frozenPos = transform.position;
-        if (_mc != null && _mc.initialVelocity.sqrMagnitude > 0.001f)
-            movementDirection = -_mc.initialVelocity.normalized;
     }
 
     public void TemporalRelease()
@@ -64,8 +60,8 @@ public class BridgeCarFreezer : MonoBehaviour
         if (!_frozen) return;
         _frozen = false;
 
-        if (_mc != null)
-            _mc.initialVelocity = Vector3.zero;
+        if (_mc != null && originalVelocity.sqrMagnitude > 0.001f)
+            _mc.initialVelocity = originalVelocity;
     }
 
     public void Refreeze()
@@ -88,13 +84,7 @@ public class BridgeCarFreezer : MonoBehaviour
     {
         _frozen = false;
 
-        if (manager == null || manager.spawnerTemplate == null) return;
-
-        Vector3 vel = Vector3.zero;
-        if (TrafficManager.Instance != null)
-            vel = TrafficManager.Instance.GetBaseVelocityForPlantilla(manager.spawnerTemplate);
-
-        if (_mc != null)
-            _mc.initialVelocity = vel;
+        if (_mc != null && originalVelocity.sqrMagnitude > 0.001f)
+            _mc.initialVelocity = originalVelocity;
     }
 }
