@@ -5,7 +5,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 /// <summary>
 /// Permite agarrar una luz y arrastrar un cable vivo hasta otra luz de un nodo.
 /// </summary>
-[DisallowMultipleComponent]
+[RequireComponent(typeof(Rigidbody), typeof(XRGrabInteractable))]
 public sealed class GraphSocket3D : MonoBehaviour
 {
     private const float DefaultSnapRadius = 0.9f;
@@ -38,8 +38,6 @@ public sealed class GraphSocket3D : MonoBehaviour
         _homeLocalRotation = transform.localRotation;
         ConfigurePhysicsBody();
         _grabInteractable = GetComponent<XRGrabInteractable>();
-        if (_grabInteractable == null)
-            _grabInteractable = gameObject.AddComponent<XRGrabInteractable>();
 
         _grabInteractable.movementType = XRBaseInteractable.MovementType.Instantaneous;
         _grabInteractable.trackPosition = true;
@@ -55,8 +53,6 @@ public sealed class GraphSocket3D : MonoBehaviour
     private void ConfigurePhysicsBody()
     {
         var body = GetComponent<Rigidbody>();
-        if (body == null)
-            body = gameObject.AddComponent<Rigidbody>();
 
         body.isKinematic = true;
         body.useGravity = false;

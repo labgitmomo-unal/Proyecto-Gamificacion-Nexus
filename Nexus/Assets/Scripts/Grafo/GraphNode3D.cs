@@ -7,7 +7,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 /// <summary>
 /// Configura una torre como nodo 3D y crea cuatro luces interactuables en sus ventanas.
 /// </summary>
-[DisallowMultipleComponent]
+[RequireComponent(typeof(Rigidbody), typeof(BoxCollider), typeof(XRGrabInteractable))]
 public sealed class GraphNode3D : MonoBehaviour
 {
     private const int SocketCount = 4;
@@ -38,8 +38,6 @@ public sealed class GraphNode3D : MonoBehaviour
     private void ConfigureNodeInteraction()
     {
         var body = GetComponent<Rigidbody>();
-        if (body == null)
-            body = gameObject.AddComponent<Rigidbody>();
 
         body.isKinematic = true;
         body.useGravity = false;
@@ -49,14 +47,10 @@ public sealed class GraphNode3D : MonoBehaviour
         body.angularVelocity = Vector3.zero;
 
         var grabCollider = GetComponent<BoxCollider>();
-        if (grabCollider == null)
-            grabCollider = gameObject.AddComponent<BoxCollider>();
 
         ConfigureGrabCollider(grabCollider);
 
         _grabInteractable = GetComponent<XRGrabInteractable>();
-        if (_grabInteractable == null)
-            _grabInteractable = gameObject.AddComponent<XRGrabInteractable>();
 
         _grabInteractable.movementType = XRBaseInteractable.MovementType.Instantaneous;
         _grabInteractable.trackPosition = true;
