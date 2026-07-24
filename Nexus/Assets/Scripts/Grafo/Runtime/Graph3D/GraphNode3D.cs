@@ -34,10 +34,9 @@ public sealed class GraphNode3D : MonoBehaviour
     private void Start()
     {
         RefreshGrabRegistration();
-        SetSocketsConnectionAvailable(IsAbovePlacementSurface());
     }
 
-    /// <summary>Configures the node interaction and creates its connection sockets once.</summary>
+    /// <summary>Configures node interaction and registers the sockets already stored in this prefab.</summary>
     public void Initialize()
     {
         if (_initialized)
@@ -45,15 +44,35 @@ public sealed class GraphNode3D : MonoBehaviour
 
         _initialized = true;
         ConfigureNodeInteraction();
-        CreateSocketsAtWindows();
+        RegisterPersistentSockets();
     }
 
-    /// <summary>Sets the map surface used to validate placement and activate connection sockets.</summary>
+    /// <summary>Sets the map surface used to validate node placement without changing socket availability.</summary>
     public void ConfigurePlacementSurface(Collider surface)
     {
         placementSurface = surface;
-        if (isActiveAndEnabled && _grabInteractable != null && !_grabInteractable.isSelected)
-            SetSocketsConnectionAvailable(IsAbovePlacementSurface());
+        placementHorizontalPadding = Mathf.Max(0f, placementHorizontalPadding);
+    }
+
+    /// <summary>Registers a persistent socket and associates it with its original window anchor.</summary>
+    public void RegisterSocket(GraphSocket3D socket, Transform windowAnchor)
+    {
+        if (socket == null || windowAnchor == null)
+        {
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: no se puede registrar un socket o ventana nulos.", this);
+            return;
+        }
+
+        if (_sockets.Contains(socket))
+        {
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: el socket {socket.name} está duplicado.", this);
+            return;
+        }
+
+        socket.Configure(socketColor, this, socketLightIntensity, socketLightRange);
+        socket.SetAttachedWindow(windowAnchor);
+        socket.SetConnectionAvailable(true);
+        _sockets.Add(socket);
     }
 
     private void ConfigureNodeInteraction()
@@ -89,8 +108,6 @@ public sealed class GraphNode3D : MonoBehaviour
         _grabInteractable.forceGravityOnDetach = false;
         _grabInteractable.retainTransformParent = false;
         _grabInteractable.selectMode = InteractableSelectMode.Single;
-        _grabInteractable.selectEntered.AddListener(HandleNodeGrabbed);
-        _grabInteractable.selectExited.AddListener(HandleNodePlaced);
 
         RegisterGrabColliders(grabCollider);
         DisableNestedNodeInteractables();
@@ -110,6 +127,8 @@ public sealed class GraphNode3D : MonoBehaviour
         if (_grabInteractable == null || grabCollider == null)
             return;
 
+        _grabInteractable.selectEntered.RemoveListener(HandleNodeGrabbed);
+        _grabInteractable.selectExited.RemoveListener(HandleNodePlaced);
         _grabInteractable.colliders.Clear();
         _grabInteractable.colliders.Add(grabCollider);
 
@@ -119,17 +138,14 @@ public sealed class GraphNode3D : MonoBehaviour
                 continue;
             _grabInteractable.colliders.Add(collider);
         }
+
+        _grabInteractable.selectEntered.AddListener(HandleNodeGrabbed);
+        _grabInteractable.selectExited.AddListener(HandleNodePlaced);
     }
 
     private void RefreshGrabRegistration()
     {
-        if (_grabInteractable == null)
-            return;
-
-        var wasEnabled = _grabInteractable.enabled;
-        _grabInteractable.enabled = false;
         RegisterGrabColliders(GetComponent<BoxCollider>());
-        _grabInteractable.enabled = wasEnabled;
     }
 
     private void DisableNestedNodeInteractables()
@@ -144,84 +160,45 @@ public sealed class GraphNode3D : MonoBehaviour
 
     private void HandleNodeGrabbed(SelectEnterEventArgs args)
     {
-        if (_rigidbody != null)
-        {
-            _rigidbody.isKinematic = true;
-            _rigidbody.useGravity = false;
-            _rigidbody.linearVelocity = Vector3.zero;
-            _rigidbody.angularVelocity = Vector3.zero;
-        }
-        SetSocketsConnectionAvailable(false);
+        if (_rigidbody == null)
+            return;
+
+        _rigidbody.isKinematic = true;
+        _rigidbody.useGravity = false;
+        _rigidbody.linearVelocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
     }
 
     private void HandleNodePlaced(SelectExitEventArgs args)
     {
-        if (_rigidbody != null)
-        {
-            _rigidbody.isKinematic = false;
-            _rigidbody.useGravity = true;
-        }
-        var isOnMap = IsAbovePlacementSurface();
-        SetSocketsConnectionAvailable(isOnMap);
-        Debug.Log($"[{nameof(GraphNode3D)}] {name}: soltado {(isOnMap ? "sobre" : "fuera de")} la plataforma del mapa.", this);
-    }
-
-    private bool IsAbovePlacementSurface()
-    {
-        if (placementSurface == null || !placementSurface.enabled || !placementSurface.gameObject.activeInHierarchy)
-            return false;
-
-        var surfaceBounds = placementSurface.bounds;
-        var nodePosition = transform.position;
-        return nodePosition.x >= surfaceBounds.min.x - placementHorizontalPadding &&
-               nodePosition.x <= surfaceBounds.max.x + placementHorizontalPadding &&
-               nodePosition.z >= surfaceBounds.min.z - placementHorizontalPadding &&
-               nodePosition.z <= surfaceBounds.max.z + placementHorizontalPadding;
-    }
-
-    private void SetSocketsConnectionAvailable(bool available)
-    {
-        foreach (var socket in _sockets)
-        {
-            if (socket != null)
-                socket.SetConnectionAvailable(available);
-        }
-    }
-
-    private void CreateSocketsAtWindows()
-    {
-        if (_sockets.Count > 0)
+        if (_rigidbody == null)
             return;
-        if (socketPrefab == null)
-        {
-            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: socketPrefab no está asignado; no se crearán sockets.", this);
-            return;
-        }
 
+        _rigidbody.isKinematic = false;
+        _rigidbody.useGravity = true;
+        Debug.Log($"[{nameof(GraphNode3D)}] {name}: nodo soltado; los sockets permanecen activos.", this);
+    }
+
+    private void RegisterPersistentSockets()
+    {
         var anchors = FindWindowAnchors();
-        for (var i = 0; i < Mathf.Min(SocketCount, anchors.Count); i++)
+        var persistentSockets = new List<GraphSocket3D>(GetComponentsInChildren<GraphSocket3D>(true));
+        persistentSockets.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
+
+        if (anchors.Count != SocketCount)
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: se encontraron {anchors.Count} ventanas; se esperaban {SocketCount}.", this);
+        if (persistentSockets.Count != SocketCount)
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: se encontraron {persistentSockets.Count} esferas persistentes; se esperaban {SocketCount}.", this);
+
+        var registrationCount = Mathf.Min(SocketCount, Mathf.Min(anchors.Count, persistentSockets.Count));
+        for (var i = 0; i < registrationCount; i++)
+            RegisterSocket(persistentSockets[i], anchors[i]);
+
+        if (persistentSockets.Count == 0 && socketPrefab != null)
         {
-            var anchor = anchors[i];
-            if (anchor == null)
-            {
-                Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: la ventana {i} no tiene un Transform válido.", this);
-                continue;
-            }
-
-            var socket = Instantiate(socketPrefab, anchor, false);
-            socket.name = $"GraphSocket_Light_{i + 1}";
-            socket.transform.localPosition = Vector3.zero;
-            socket.transform.localRotation = Quaternion.identity;
-            socket.transform.localScale = Vector3.one * socketScale;
-            socket.Configure(socketColor, this, socketLightIntensity, socketLightRange);
-            socket.SetConnectionAvailable(false);
-            _sockets.Add(socket);
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: no hay sockets persistentes; se ejecuta una migración temporal desde socketPrefab.", this);
+            CreateLegacySocketsAtWindows(anchors);
         }
-
-        RegisterGrabColliders(GetComponent<BoxCollider>());
-
-        if (_sockets.Count != SocketCount)
-            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: se encontraron {_sockets.Count} ventanas; se esperaban {SocketCount}.", this);
     }
 
     private List<Transform> FindWindowAnchors()
@@ -234,5 +211,20 @@ public sealed class GraphNode3D : MonoBehaviour
         }
         anchors.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
         return anchors;
+    }
+
+    private void CreateLegacySocketsAtWindows(List<Transform> anchors)
+    {
+        for (var i = 0; i < Mathf.Min(SocketCount, anchors.Count); i++)
+        {
+            var anchor = anchors[i];
+            if (anchor == null)
+                continue;
+
+            var socket = Instantiate(socketPrefab, anchor, false);
+            socket.name = $"GraphSocket_Light_{i + 1}";
+            socket.transform.localScale = Vector3.one * socketScale;
+            RegisterSocket(socket, anchor);
+        }
     }
 }

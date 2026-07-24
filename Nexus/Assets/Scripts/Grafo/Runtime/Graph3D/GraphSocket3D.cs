@@ -16,12 +16,16 @@ public sealed class GraphSocket3D : MonoBehaviour
     [SerializeField] private Material edgeMaterial;
     [SerializeField] private LayerMask socketLayerMask = ~0;
     [SerializeField] private int overlapBufferCapacity = DefaultOverlapCapacity;
+    [SerializeField] private Transform originalWindowAnchor;
+    [SerializeField] private Transform attachedWindowAnchor;
+    [SerializeField] private Rigidbody _rigidbodyReference;
 
     private XRGrabInteractable _grabInteractable;
     private GraphNode3D _ownerNode;
-    private Vector3 _homeLocalPosition;
-    private Quaternion _homeLocalRotation;
+    private Vector3 _lastValidLocalPosition;
+    private Quaternion _lastValidLocalRotation;
     private Vector3 _dragStartPosition;
+    private Transform _dragStartParent;
     private LineRenderer _temporaryLine;
     private GraphEdge _connectedEdge;
     private Collider[] _overlapBuffer;
@@ -29,64 +33,28 @@ public sealed class GraphSocket3D : MonoBehaviour
     private Renderer _renderer;
     private Light[] _lights;
     private Collider[] _interactionColliders;
-    private bool _visualStateActive;
-    private bool _isConnectionAvailable;
-
-    public void Configure(Color color, GraphNode3D ownerNode)
-    {
-        Configure(color, ownerNode, -1f, -1f);
-    }
-
-    public void Configure(Color color, GraphNode3D ownerNode, float lightIntensity, float lightRange)
-    {
-        edgeColor = color;
-        _ownerNode = ownerNode;
-        if (lightIntensity >= 0f || lightRange >= 0f)
-        {
-            foreach (var light in _lights)
-            {
-                light.color = edgeColor;
-                if (lightIntensity >= 0f)
-                    light.intensity = lightIntensity;
-                if (lightRange >= 0f)
-                    light.range = lightRange;
-            }
-        }
-        ApplyVisualState(_visualStateActive);
-    }
-
-    public void SetConnectionAvailable(bool available)
-    {
-        _isConnectionAvailable = available;
-        if (_grabInteractable != null)
-            _grabInteractable.enabled = available;
-        if (_interactionColliders != null)
-        {
-            foreach (var collider in _interactionColliders)
-                collider.enabled = available;
-        }
-        ApplyVisualState(_visualStateActive);
-    }
 
     private void Awake()
     {
-        _homeLocalPosition = transform.localPosition;
-        _homeLocalRotation = transform.localRotation;
+        _lastValidLocalPosition = transform.localPosition;
+        _lastValidLocalRotation = transform.localRotation;
         _overlapBuffer = new Collider[Mathf.Max(1, overlapBufferCapacity)];
         _propertyBlock = new MaterialPropertyBlock();
-        _renderer = GetComponent<Renderer>();
+        _renderer = GetComponentInChildren<Renderer>(true);
         _lights = GetComponentsInChildren<Light>(true);
         _interactionColliders = GetComponentsInChildren<Collider>(true);
         ConfigurePhysicsBody();
+
         _grabInteractable = GetComponent<XRGrabInteractable>();
         if (_grabInteractable == null)
             _grabInteractable = gameObject.AddComponent<XRGrabInteractable>();
-        _grabInteractable.enabled = false;
+        _grabInteractable.enabled = true;
         _grabInteractable.autoFindParentInteractableInHierarchy = false;
         _grabInteractable.parentInteractable = null;
         _grabInteractable.colliders.Clear();
         foreach (var collider in _interactionColliders)
-            _grabInteractable.colliders.Add(collider);
+            if (collider != null)
+                _grabInteractable.colliders.Add(collider);
         _grabInteractable.movementType = XRBaseInteractable.MovementType.Instantaneous;
         _grabInteractable.trackPosition = true;
         _grabInteractable.trackRotation = false;
@@ -96,19 +64,60 @@ public sealed class GraphSocket3D : MonoBehaviour
         _grabInteractable.retainTransformParent = true;
         _grabInteractable.selectEntered.AddListener(BeginCableDrag);
         _grabInteractable.selectExited.AddListener(EndCableDrag);
-        ApplyVisualState(false);
+        SetAlwaysOnVisualState();
     }
 
-    private void ConfigurePhysicsBody()
+    /// <summary>Associates this persistent socket with its owning node and visual configuration.</summary>
+    public void Configure(Color color, GraphNode3D ownerNode)
     {
-        var body = GetComponent<Rigidbody>();
-        if (body == null)
-            body = gameObject.AddComponent<Rigidbody>();
-        body.isKinematic = true;
-        body.useGravity = false;
-        body.interpolation = RigidbodyInterpolation.None;
-        body.collisionDetectionMode = CollisionDetectionMode.Discrete;
-        body.detectCollisions = true;
+        Configure(color, ownerNode, -1f, -1f);
+    }
+
+    /// <summary>Associates this persistent socket with its owning node and visual configuration.</summary>
+    public void Configure(Color color, GraphNode3D ownerNode, float lightIntensity, float lightRange)
+    {
+        edgeColor = color;
+        _ownerNode = ownerNode;
+        if (_lights == null)
+            return;
+
+        foreach (var light in _lights)
+        {
+            if (light == null)
+                continue;
+            light.enabled = true;
+            light.color = edgeColor;
+            if (lightIntensity >= 0f)
+                light.intensity = lightIntensity;
+            if (lightRange >= 0f)
+                light.range = lightRange;
+        }
+        SetAlwaysOnVisualState();
+    }
+
+    /// <summary>Associates the socket with its stable original window anchor.</summary>
+    public void SetAttachedWindow(Transform window)
+    {
+        if (window == null)
+            return;
+
+        if (originalWindowAnchor == null)
+            originalWindowAnchor = window;
+        attachedWindowAnchor = window;
+    }
+
+    /// <summary>Leaves the socket interactable and its visual state enabled.</summary>
+    public void SetConnectionAvailable(bool available)
+    {
+        if (_grabInteractable != null)
+            _grabInteractable.enabled = true;
+        if (_interactionColliders != null)
+        {
+            foreach (var collider in _interactionColliders)
+                if (collider != null)
+                    collider.enabled = true;
+        }
+        SetAlwaysOnVisualState();
     }
 
     private void OnDestroy()
@@ -117,6 +126,19 @@ public sealed class GraphSocket3D : MonoBehaviour
             return;
         _grabInteractable.selectEntered.RemoveListener(BeginCableDrag);
         _grabInteractable.selectExited.RemoveListener(EndCableDrag);
+    }
+
+    private void ConfigurePhysicsBody()
+    {
+        if (_rigidbodyReference == null)
+            _rigidbodyReference = GetComponent<Rigidbody>();
+        if (_rigidbodyReference == null)
+            _rigidbodyReference = gameObject.AddComponent<Rigidbody>();
+        _rigidbodyReference.isKinematic = true;
+        _rigidbodyReference.useGravity = false;
+        _rigidbodyReference.interpolation = RigidbodyInterpolation.None;
+        _rigidbodyReference.collisionDetectionMode = CollisionDetectionMode.Discrete;
+        _rigidbodyReference.detectCollisions = true;
     }
 
     private void Update()
@@ -131,10 +153,16 @@ public sealed class GraphSocket3D : MonoBehaviour
     private void SanitizeTransform()
     {
         if (IsFinite(transform.localPosition) && IsFinite(transform.localRotation))
+        {
+            _lastValidLocalPosition = transform.localPosition;
+            _lastValidLocalRotation = transform.localRotation;
             return;
-        Debug.LogError($"[{nameof(GraphSocket3D)}] {name}: pose no válida; se restaurará.", this);
-        transform.localPosition = _homeLocalPosition;
-        transform.localRotation = _homeLocalRotation;
+        }
+
+        Debug.LogError($"[{nameof(GraphSocket3D)}] {name}: pose no válida; se restaurará la última pose válida.", this);
+        transform.localPosition = _lastValidLocalPosition;
+        transform.localRotation = _lastValidLocalRotation;
+        SetPhysicsState(false, true);
     }
 
     private static bool IsFinite(Vector3 value) => IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z);
@@ -144,40 +172,61 @@ public sealed class GraphSocket3D : MonoBehaviour
     private void BeginCableDrag(SelectEnterEventArgs args)
     {
         RemoveExistingEdge();
-        _dragStartPosition = transform.position;
+        if (_rigidbodyReference != null)
+        {
+            _rigidbodyReference.linearVelocity = Vector3.zero;
+            _rigidbodyReference.angularVelocity = Vector3.zero;
+        }
+        SetPhysicsState(false, true);
+        _dragStartPosition = originalWindowAnchor != null ? originalWindowAnchor.position : transform.position;
+        _dragStartParent = transform.parent;
+        transform.SetParent(_ownerNode != null ? _ownerNode.transform : null, true);
         _temporaryLine = CreateLine("TemporaryGraphCable");
-        SetVisualState(true);
+        SetAlwaysOnVisualState();
     }
 
     private void EndCableDrag(SelectExitEventArgs args)
     {
         if (_temporaryLine == null)
             return;
-        var target = FindClosestSocket();
+
+        var target = FindClosestWindowSocket();
         if (target == null)
         {
             Destroy(_temporaryLine.gameObject);
             _temporaryLine = null;
-            ResetToHomePosition();
-            SetVisualState(false);
+            ReleaseWithGravity();
             return;
         }
 
+        var targetWindow = target.attachedWindowAnchor;
+        if (targetWindow == null || target._ownerNode == _ownerNode)
+        {
+            ReleaseWithGravity();
+            return;
+        }
+
+        var displacedSocket = target.FindSocketOccupyingWindow(targetWindow);
+        if (displacedSocket != null && displacedSocket != this)
+            displacedSocket.ReleaseWithGravity();
+
+        target.RemoveExistingEdge();
         var ownerName = _ownerNode != null ? _ownerNode.name : name;
         var targetOwnerName = target._ownerNode != null ? target._ownerNode.name : target.name;
-        target.RemoveExistingEdge();
         var edgeObject = new GameObject($"GraphEdge_{ownerName}_{targetOwnerName}");
         var edge = edgeObject.AddComponent<GraphEdge>();
-        edge.Initialize(this, target, _temporaryLine.sharedMaterial, lineWidth);
+        var startAnchor = originalWindowAnchor != null ? originalWindowAnchor : _dragStartParent;
+        edge.Initialize(startAnchor, targetWindow, edgeMaterial, lineWidth);
         _connectedEdge = edge;
         target.SetIncomingConnection(edge);
         Destroy(_temporaryLine.gameObject);
         _temporaryLine = null;
-        ResetToHomePosition();
-        SetVisualState(true);
+        AttachToWindow(targetWindow);
+        SetPhysicsState(false, true);
+        SetAlwaysOnVisualState();
     }
 
-    private GraphSocket3D FindClosestSocket()
+    private GraphSocket3D FindClosestWindowSocket()
     {
         var count = Physics.OverlapSphereNonAlloc(transform.position, snapRadius, _overlapBuffer, socketLayerMask, QueryTriggerInteraction.Collide);
         if (count == _overlapBuffer.Length)
@@ -194,7 +243,7 @@ public sealed class GraphSocket3D : MonoBehaviour
             if (collider == null)
                 continue;
             var candidate = collider.GetComponentInParent<GraphSocket3D>();
-            if (candidate == null || candidate == this || !candidate.isActiveAndEnabled || candidate._ownerNode == _ownerNode)
+            if (candidate == null || candidate == this || !candidate.isActiveAndEnabled || candidate._ownerNode == _ownerNode || candidate.attachedWindowAnchor == null)
                 continue;
             var distance = (candidate.transform.position - transform.position).sqrMagnitude;
             if (distance < closestDistance)
@@ -206,18 +255,27 @@ public sealed class GraphSocket3D : MonoBehaviour
         return closest;
     }
 
+    private GraphSocket3D FindSocketOccupyingWindow(Transform window)
+    {
+        if (_ownerNode == null || window == null)
+            return null;
+        foreach (var socket in _ownerNode.Sockets)
+            if (socket != null && socket != this && socket.attachedWindowAnchor == window)
+                return socket;
+        return null;
+    }
+
     private void SetIncomingConnection(GraphEdge edge)
     {
         _connectedEdge = edge;
-        SetVisualState(true);
+        SetAlwaysOnVisualState();
     }
 
     internal void NotifyEdgeRemoved(GraphEdge edge)
     {
-        if (_connectedEdge != edge)
-            return;
-        _connectedEdge = null;
-        SetVisualState(false);
+        if (_connectedEdge == edge)
+            _connectedEdge = null;
+        SetAlwaysOnVisualState();
     }
 
     private void RemoveExistingEdge()
@@ -226,8 +284,59 @@ public sealed class GraphSocket3D : MonoBehaviour
             return;
         var edge = _connectedEdge;
         _connectedEdge = null;
-        SetVisualState(false);
         Destroy(edge.gameObject);
+    }
+
+    private void AttachToWindow(Transform targetWindow)
+    {
+        if (targetWindow == null)
+            return;
+        attachedWindowAnchor = targetWindow;
+        transform.SetParent(targetWindow, false);
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+    }
+
+    private void ReleaseWithGravity()
+    {
+        if (_temporaryLine != null)
+        {
+            Destroy(_temporaryLine.gameObject);
+            _temporaryLine = null;
+        }
+        attachedWindowAnchor = null;
+        transform.SetParent(_ownerNode != null ? _ownerNode.transform : null, true);
+        SetPhysicsState(true, false);
+        SetAlwaysOnVisualState();
+    }
+
+    private void SetPhysicsState(bool useGravity, bool isKinematic)
+    {
+        if (_rigidbodyReference == null)
+            return;
+        _rigidbodyReference.useGravity = useGravity;
+        _rigidbodyReference.isKinematic = isKinematic;
+    }
+
+    private void SetAlwaysOnVisualState()
+    {
+        if (_renderer != null)
+        {
+            _renderer.enabled = true;
+            _renderer.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetColor(BaseColorId, edgeColor);
+            _renderer.SetPropertyBlock(_propertyBlock);
+        }
+
+        if (_lights == null)
+            return;
+        foreach (var light in _lights)
+        {
+            if (light == null)
+                continue;
+            light.enabled = true;
+            light.color = edgeColor;
+        }
     }
 
     private LineRenderer CreateLine(string lineName)
@@ -243,39 +352,6 @@ public sealed class GraphSocket3D : MonoBehaviour
         line.SetPosition(0, _dragStartPosition);
         line.SetPosition(1, transform.position);
         return line;
-    }
-
-    private void ResetToHomePosition()
-    {
-        transform.localPosition = _homeLocalPosition;
-        transform.localRotation = _homeLocalRotation;
-    }
-
-    private void SetVisualState(bool active)
-    {
-        if (_visualStateActive == active && _renderer != null)
-            return;
-        _visualStateActive = active;
-        ApplyVisualState(active);
-    }
-
-    private void ApplyVisualState(bool active)
-    {
-        var displayColor = _isConnectionAvailable ? edgeColor : Color.gray;
-        if (_renderer != null)
-        {
-            _renderer.GetPropertyBlock(_propertyBlock);
-            _propertyBlock.SetColor(BaseColorId, displayColor);
-            _renderer.SetPropertyBlock(_propertyBlock);
-        }
-
-        if (_lights == null)
-            return;
-        foreach (var light in _lights)
-        {
-            light.enabled = _isConnectionAvailable;
-            light.color = edgeColor;
-        }
     }
 
     private void OnDrawGizmosSelected()
