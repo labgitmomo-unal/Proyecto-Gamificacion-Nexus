@@ -5,9 +5,12 @@ using UnityEngine;
 public sealed class GraphEdge : MonoBehaviour
 {
     private const float DefaultLineWidth = 0.05f;
+
     private LineRenderer _lineRenderer;
     private Transform _startPoint;
     private Transform _endPoint;
+    private GraphSocket3D _startSocket;
+    private GraphSocket3D _endSocket;
     private Vector3 _freeEndPosition;
     private bool _usesFreeEnd;
 
@@ -17,6 +20,13 @@ public sealed class GraphEdge : MonoBehaviour
         _lineRenderer.positionCount = 2;
         _lineRenderer.useWorldSpace = true;
         _lineRenderer.numCapVertices = 6;
+    }
+
+    public void Initialize(GraphSocket3D start, GraphSocket3D end, Material edgeMaterial, float width)
+    {
+        _startSocket = start;
+        _endSocket = end;
+        Initialize(start != null ? start.transform : null, end != null ? end.transform : null, edgeMaterial, width);
     }
 
     public void Initialize(Transform start, Transform end, Material edgeMaterial, float width)
@@ -42,6 +52,14 @@ public sealed class GraphEdge : MonoBehaviour
         _freeEndPosition = position;
         _usesFreeEnd = true;
         Refresh();
+    }
+
+    private void OnDestroy()
+    {
+        if (_startSocket != null)
+            _startSocket.NotifyEdgeRemoved(this);
+        if (_endSocket != null)
+            _endSocket.NotifyEdgeRemoved(this);
     }
 
     private void LateUpdate()

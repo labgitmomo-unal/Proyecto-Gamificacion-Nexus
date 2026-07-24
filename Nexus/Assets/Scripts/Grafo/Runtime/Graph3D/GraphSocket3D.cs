@@ -27,7 +27,10 @@ public sealed class GraphSocket3D : MonoBehaviour
     private Collider[] _overlapBuffer;
     private MaterialPropertyBlock _propertyBlock;
     private Renderer _renderer;
+    private Light[] _lights;
+    private Collider[] _interactionColliders;
     private bool _visualStateActive;
+    private bool _isConnectionAvailable;
 
     public void Configure(Color color, GraphNode3D ownerNode)
     {
@@ -38,10 +41,9 @@ public sealed class GraphSocket3D : MonoBehaviour
     {
         edgeColor = color;
         _ownerNode = ownerNode;
-        ApplyVisualState(_visualStateActive);
         if (lightIntensity >= 0f || lightRange >= 0f)
         {
-            foreach (var light in GetComponentsInChildren<Light>(true))
+            foreach (var light in _lights)
             {
                 light.color = edgeColor;
                 if (lightIntensity >= 0f)
@@ -50,6 +52,20 @@ public sealed class GraphSocket3D : MonoBehaviour
                     light.range = lightRange;
             }
         }
+        ApplyVisualState(_visualStateActive);
+    }
+
+    public void SetConnectionAvailable(bool available)
+    {
+        _isConnectionAvailable = available;
+        if (_grabInteractable != null)
+            _grabInteractable.enabled = available;
+        if (_interactionColliders != null)
+        {
+            foreach (var collider in _interactionColliders)
+                collider.enabled = available;
+        }
+        ApplyVisualState(_visualStateActive);
     }
 
     private void Awake()
@@ -59,10 +75,18 @@ public sealed class GraphSocket3D : MonoBehaviour
         _overlapBuffer = new Collider[Mathf.Max(1, overlapBufferCapacity)];
         _propertyBlock = new MaterialPropertyBlock();
         _renderer = GetComponent<Renderer>();
+        _lights = GetComponentsInChildren<Light>(true);
+        _interactionColliders = GetComponentsInChildren<Collider>(true);
         ConfigurePhysicsBody();
         _grabInteractable = GetComponent<XRGrabInteractable>();
         if (_grabInteractable == null)
             _grabInteractable = gameObject.AddComponent<XRGrabInteractable>();
+        _grabInteractable.enabled = false;
+        _grabInteractable.autoFindParentInteractableInHierarchy = false;
+        _grabInteractable.parentInteractable = null;
+        _grabInteractable.colliders.Clear();
+        foreach (var collider in _interactionColliders)
+            _grabInteractable.colliders.Add(collider);
         _grabInteractable.movementType = XRBaseInteractable.MovementType.Instantaneous;
         _grabInteractable.trackPosition = true;
         _grabInteractable.trackRotation = false;
@@ -85,8 +109,6 @@ public sealed class GraphSocket3D : MonoBehaviour
         body.interpolation = RigidbodyInterpolation.None;
         body.collisionDetectionMode = CollisionDetectionMode.Discrete;
         body.detectCollisions = true;
-        body.angularVelocity = Vector3.zero;
-        body.linearVelocity = Vector3.zero;
     }
 
     private void OnDestroy()
@@ -113,12 +135,6 @@ public sealed class GraphSocket3D : MonoBehaviour
         Debug.LogError($"[{nameof(GraphSocket3D)}] {name}: pose no válida; se restaurará.", this);
         transform.localPosition = _homeLocalPosition;
         transform.localRotation = _homeLocalRotation;
-        var body = GetComponent<Rigidbody>();
-        if (body != null)
-        {
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
-        }
     }
 
     private static bool IsFinite(Vector3 value) => IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z);
@@ -149,9 +165,10 @@ public sealed class GraphSocket3D : MonoBehaviour
 
         var ownerName = _ownerNode != null ? _ownerNode.name : name;
         var targetOwnerName = target._ownerNode != null ? target._ownerNode.name : target.name;
+        target.RemoveExistingEdge();
         var edgeObject = new GameObject($"GraphEdge_{ownerName}_{targetOwnerName}");
         var edge = edgeObject.AddComponent<GraphEdge>();
-        edge.Initialize(transform, target.transform, _temporaryLine.sharedMaterial, lineWidth);
+        edge.Initialize(this, target, _temporaryLine.sharedMaterial, lineWidth);
         _connectedEdge = edge;
         target.SetIncomingConnection(edge);
         Destroy(_temporaryLine.gameObject);
@@ -195,13 +212,22 @@ public sealed class GraphSocket3D : MonoBehaviour
         SetVisualState(true);
     }
 
+    internal void NotifyEdgeRemoved(GraphEdge edge)
+    {
+        if (_connectedEdge != edge)
+            return;
+        _connectedEdge = null;
+        SetVisualState(false);
+    }
+
     private void RemoveExistingEdge()
     {
         if (_connectedEdge == null)
             return;
-        if (_connectedEdge != null)
-            Destroy(_connectedEdge.gameObject);
+        var edge = _connectedEdge;
         _connectedEdge = null;
+        SetVisualState(false);
+        Destroy(edge.gameObject);
     }
 
     private LineRenderer CreateLine(string lineName)
@@ -235,11 +261,21 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     private void ApplyVisualState(bool active)
     {
-        if (_renderer == null)
+        var displayColor = _isConnectionAvailable ? edgeColor : Color.gray;
+        if (_renderer != null)
+        {
+            _renderer.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetColor(BaseColorId, displayColor);
+            _renderer.SetPropertyBlock(_propertyBlock);
+        }
+
+        if (_lights == null)
             return;
-        _renderer.GetPropertyBlock(_propertyBlock);
-        _propertyBlock.SetColor(BaseColorId, active ? edgeColor : Color.gray);
-        _renderer.SetPropertyBlock(_propertyBlock);
+        foreach (var light in _lights)
+        {
+            light.enabled = _isConnectionAvailable;
+            light.color = edgeColor;
+        }
     }
 
     private void OnDrawGizmosSelected()
