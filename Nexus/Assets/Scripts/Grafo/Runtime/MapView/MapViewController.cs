@@ -9,6 +9,7 @@ public sealed class MapViewController : MonoBehaviour
     [SerializeField] private RawImage displayImage;
     [SerializeField] private GameObject presentationObject;
     [SerializeField] private int renderTextureSize = 2048;
+    [SerializeField] private int antiAliasing = 4;
     [SerializeField] private float mapYawOffsetDegrees = 180f;
 
     private RenderTexture _renderTexture;
@@ -25,9 +26,9 @@ public sealed class MapViewController : MonoBehaviour
             enabled = false;
             return;
         }
-        if (renderTextureSize <= 0)
+        if (renderTextureSize <= 0 || antiAliasing is not (1 or 2 or 4 or 8))
         {
-            Debug.LogWarning($"[{nameof(MapViewController)}] {name}: renderTextureSize debe ser mayor que cero.", this);
+            Debug.LogWarning($"[{nameof(MapViewController)}] {name}: renderTextureSize debe ser mayor que cero y antiAliasing debe ser 1, 2, 4 u 8.", this);
             enabled = false;
             return;
         }
@@ -77,8 +78,8 @@ public sealed class MapViewController : MonoBehaviour
     {
         _renderTexture = new RenderTexture(renderTextureSize, renderTextureSize, 32, RenderTextureFormat.Default)
         {
-            antiAliasing = 1,
-            filterMode = FilterMode.Bilinear,
+            antiAliasing = antiAliasing,
+            filterMode = FilterMode.Trilinear,
             wrapMode = TextureWrapMode.Clamp,
             depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D32_SFloat_S8_UInt
         };
