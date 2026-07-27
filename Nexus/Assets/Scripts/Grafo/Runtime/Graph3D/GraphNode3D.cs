@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 [DisallowMultipleComponent]
 public sealed class GraphNode3D : MonoBehaviour
@@ -17,26 +15,27 @@ public sealed class GraphNode3D : MonoBehaviour
     [SerializeField] private float socketLightRange = 2.5f;
     [SerializeField] private string windowNameToken = "Window";
     [SerializeField] private Collider placementSurface;
+    [SerializeField] private BoxCollider nodeGrabCollider;
     [SerializeField] private float placementHorizontalPadding = 0.1f;
 
     private readonly List<GraphSocket3D> _sockets = new();
-    private XRGrabInteractable _grabInteractable;
     private Rigidbody _rigidbody;
     private bool _initialized;
 
     public IReadOnlyList<GraphSocket3D> Sockets => _sockets;
+
+    /// <summary>Gets the Rigidbody attached directly to this node root.</summary>
+    public Rigidbody PhysicsBody => _rigidbody;
+
+    /// <summary>Gets the dedicated node raycast collider attached to this node root.</summary>
+    public Collider GrabCollider => nodeGrabCollider;
 
     private void Awake()
     {
         Initialize();
     }
 
-    private void Start()
-    {
-        RefreshGrabRegistration();
-    }
-
-    /// <summary>Configures node interaction and registers the sockets already stored in this prefab.</summary>
+    /// <summary>Configures node physics and registers the sockets already stored in this prefab.</summary>
     public void Initialize()
     {
         if (_initialized)
@@ -77,106 +76,29 @@ public sealed class GraphNode3D : MonoBehaviour
 
     private void ConfigureNodeInteraction()
     {
-        var body = GetComponent<Rigidbody>();
-        if (body == null)
-            body = gameObject.AddComponent<Rigidbody>();
-        body.isKinematic = true;
-        body.useGravity = false;
-        body.interpolation = RigidbodyInterpolation.Interpolate;
-        body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        _rigidbody = body;
-
-        var grabCollider = GetComponent<BoxCollider>();
-        if (grabCollider == null)
-        {
-            grabCollider = gameObject.AddComponent<BoxCollider>();
-            grabCollider.center = Vector3.zero;
-            grabCollider.size = Vector3.one * DefaultGrabColliderSize;
-        }
-
-        _grabInteractable = GetComponent<XRGrabInteractable>();
-        if (_grabInteractable == null)
-            _grabInteractable = gameObject.AddComponent<XRGrabInteractable>();
-        _grabInteractable.movementType = XRBaseInteractable.MovementType.Instantaneous;
-        _grabInteractable.useDynamicAttach = true;
-        _grabInteractable.snapToColliderVolume = false;
-        _grabInteractable.distanceCalculationMode = XRBaseInteractable.DistanceCalculationMode.ColliderPosition;
-        _grabInteractable.trackPosition = true;
-        _grabInteractable.trackRotation = true;
-        _grabInteractable.trackScale = false;
-        _grabInteractable.throwOnDetach = false;
-        _grabInteractable.forceGravityOnDetach = false;
-        _grabInteractable.retainTransformParent = false;
-        _grabInteractable.selectMode = InteractableSelectMode.Single;
-
-        RegisterGrabColliders(grabCollider);
-        DisableNestedNodeInteractables();
-    }
-
-    private void OnDestroy()
-    {
-        if (_grabInteractable == null)
-            return;
-
-        _grabInteractable.selectEntered.RemoveListener(HandleNodeGrabbed);
-        _grabInteractable.selectExited.RemoveListener(HandleNodePlaced);
-    }
-
-    private void RegisterGrabColliders(BoxCollider grabCollider)
-    {
-        if (_grabInteractable == null || grabCollider == null)
-            return;
-
-        _grabInteractable.selectEntered.RemoveListener(HandleNodeGrabbed);
-        _grabInteractable.selectExited.RemoveListener(HandleNodePlaced);
-        _grabInteractable.colliders.Clear();
-        _grabInteractable.colliders.Add(grabCollider);
-
-        foreach (var collider in GetComponentsInChildren<Collider>(true))
-        {
-            if (collider == grabCollider || collider.GetComponentInParent<GraphSocket3D>() != null)
-                continue;
-            _grabInteractable.colliders.Add(collider);
-        }
-
-        _grabInteractable.selectEntered.AddListener(HandleNodeGrabbed);
-        _grabInteractable.selectExited.AddListener(HandleNodePlaced);
-    }
-
-    private void RefreshGrabRegistration()
-    {
-        RegisterGrabColliders(GetComponent<BoxCollider>());
-    }
-
-    private void DisableNestedNodeInteractables()
-    {
-        foreach (var interactable in GetComponentsInChildren<XRGrabInteractable>(true))
-        {
-            if (interactable == _grabInteractable || interactable.GetComponentInParent<GraphSocket3D>() != null)
-                continue;
-            interactable.enabled = false;
-        }
-    }
-
-    private void HandleNodeGrabbed(SelectEnterEventArgs args)
-    {
+        _rigidbody = GetComponent<Rigidbody>();
         if (_rigidbody == null)
-            return;
+            _rigidbody = gameObject.AddComponent<Rigidbody>();
 
         _rigidbody.isKinematic = true;
         _rigidbody.useGravity = false;
-        _rigidbody.linearVelocity = Vector3.zero;
-        _rigidbody.angularVelocity = Vector3.zero;
-    }
+        _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+        _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
-    private void HandleNodePlaced(SelectExitEventArgs args)
-    {
-        if (_rigidbody == null)
+        if (nodeGrabCollider != null && nodeGrabCollider.gameObject != gameObject)
+        {
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: nodeGrabCollider debe pertenecer al GameObject raíz; se usará un BoxCollider raíz.", this);
+            nodeGrabCollider = null;
+        }
+
+        if (nodeGrabCollider == null)
+            nodeGrabCollider = GetComponent<BoxCollider>();
+        if (nodeGrabCollider != null)
             return;
 
-        _rigidbody.isKinematic = false;
-        _rigidbody.useGravity = true;
-        Debug.Log($"[{nameof(GraphNode3D)}] {name}: nodo soltado; los sockets permanecen activos.", this);
+        nodeGrabCollider = gameObject.AddComponent<BoxCollider>();
+        nodeGrabCollider.center = Vector3.zero;
+        nodeGrabCollider.size = Vector3.one * DefaultGrabColliderSize;
     }
 
     private void RegisterPersistentSockets()
