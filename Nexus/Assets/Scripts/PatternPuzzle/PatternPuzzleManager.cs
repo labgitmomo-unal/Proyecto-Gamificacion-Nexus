@@ -35,6 +35,7 @@ namespace PatternPuzzle
 
         private void Awake()
         {
+            Debug.Log("Cantidad de slots: " + slots.Length);
             if (slots != null && slots.Length > 0)
             {
                 _emptySlot = slots[slots.Length - 1];
@@ -47,6 +48,7 @@ namespace PatternPuzzle
 
         public void OnCubePlaced(PuzzleCube cube, PuzzleSlot slot)
         {
+            Debug.Log("Se colocó un cubo: " + cube.color);
             if (IsComplete || _isValidating || cube.IsValidated) return;
             if (slot != _emptySlot) return; // solo el soporte vacio dispara validacion
 

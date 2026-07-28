@@ -20,6 +20,7 @@ namespace PatternPuzzle
         private Rigidbody _rigidbody;
         private Vector3 _dispenserPosition;
         private Quaternion _dispenserRotation;
+        private Vector3 _dispenserScale;
         private Transform _dispenserParent;
         private Coroutine _returnRoutine;
 
@@ -28,9 +29,10 @@ namespace PatternPuzzle
             _grabInteractable = GetComponent<XRGrabInteractable>();
             _rigidbody = GetComponent<Rigidbody>();
 
-            // Posicion/rotacion/parent inicial dentro del dispensador
+            // Posicion/rotacion/scale/parent inicial dentro del dispensador
             _dispenserPosition = transform.position;
             _dispenserRotation = transform.rotation;
+            _dispenserScale = transform.localScale;
             _dispenserParent = transform.parent;
         }
 
@@ -64,6 +66,7 @@ namespace PatternPuzzle
             transform.SetParent(_dispenserParent, true);
             Vector3 startPos = transform.position;
             Quaternion startRot = transform.rotation;
+            Vector3 startScale = transform.localScale;
             float t = 0f;
             while (t < duration)
             {
@@ -71,10 +74,12 @@ namespace PatternPuzzle
                 float k = t / duration;
                 transform.position = Vector3.Lerp(startPos, _dispenserPosition, k);
                 transform.rotation = Quaternion.Lerp(startRot, _dispenserRotation, k);
+                transform.localScale = Vector3.Lerp(startScale, _dispenserScale, k);
                 yield return null;
             }
             transform.position = _dispenserPosition;
             transform.rotation = _dispenserRotation;
+            transform.localScale = _dispenserScale;
 
             SetInteractable(true);
         }
