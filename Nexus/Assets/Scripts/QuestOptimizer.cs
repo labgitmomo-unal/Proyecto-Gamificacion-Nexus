@@ -4,11 +4,15 @@ using UnityEngine.Rendering.Universal;
 
 public class QuestOptimizer : MonoBehaviour
 {
+    private const int TargetFrameRate = 72;
+    private const float MaximumQuestRenderScale = 0.8f;
+    private const float QuestShadowDistance = 8f;
+
     private void Awake()
     {
-        Application.targetFrameRate = 72;
+        Application.targetFrameRate = TargetFrameRate;
         QualitySettings.vSyncCount = 0;
-        QualitySettings.shadowDistance = 8f;
+        QualitySettings.shadowDistance = QuestShadowDistance;
         QualitySettings.shadowCascades = 0;
         QualitySettings.softParticles = false;
         QualitySettings.realtimeReflectionProbes = false;
@@ -18,8 +22,8 @@ public class QuestOptimizer : MonoBehaviour
         var urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (urpAsset != null)
         {
-            urpAsset.renderScale = 1.0f;
-            urpAsset.shadowDistance = 8f;
+            urpAsset.renderScale = Mathf.Min(urpAsset.renderScale, MaximumQuestRenderScale);
+            urpAsset.shadowDistance = QuestShadowDistance;
         }
     }
 }

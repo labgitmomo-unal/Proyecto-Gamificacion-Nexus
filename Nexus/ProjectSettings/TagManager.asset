@@ -19,13 +19,13 @@ TagManager:
   - 
   - 
   - MapViewDisplay
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - VR_WorkArea
+  - VR_NearGeometry
+  - VR_FarGeometry
+  - VR_Environment
+  - VR_Effects
+  - VR_Map
+  - VR_EditorOnly
   - 
   - 
   - 
