@@ -95,7 +95,7 @@ public sealed class GraphNode3D : MonoBehaviour
 
         _rigidbody.isKinematic = false;
         _rigidbody.useGravity = true;
-        _rigidbody.constraints = RigidbodyConstraints.FreezeAll;
+        _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
     }
 
     internal void AddAssignedSocket(GraphSocket3D socket)
@@ -119,7 +119,7 @@ public sealed class GraphNode3D : MonoBehaviour
 
         _rigidbody.isKinematic = false;
         _rigidbody.useGravity = true;
-        _rigidbody.constraints = RigidbodyConstraints.FreezeAll;
+        _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
         _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
         _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
