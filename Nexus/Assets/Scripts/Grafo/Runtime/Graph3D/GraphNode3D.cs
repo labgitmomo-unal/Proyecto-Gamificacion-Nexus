@@ -74,14 +74,52 @@ public sealed class GraphNode3D : MonoBehaviour
         _sockets.Add(socket);
     }
 
+    /// <summary>Prepares the node for kinematic ray movement while it is held.</summary>
+    public void SetGrabbedPhysicsState()
+    {
+        Initialize();
+        if (_rigidbody == null)
+            return;
+
+        _rigidbody.isKinematic = true;
+        _rigidbody.useGravity = false;
+        _rigidbody.constraints = RigidbodyConstraints.None;
+    }
+
+    /// <summary>Restores dynamic gravity-driven physics after the node is released.</summary>
+    public void SetReleasedPhysicsState()
+    {
+        Initialize();
+        if (_rigidbody == null)
+            return;
+
+        _rigidbody.isKinematic = false;
+        _rigidbody.useGravity = true;
+        _rigidbody.constraints = RigidbodyConstraints.FreezeAll;
+    }
+
+    internal void AddAssignedSocket(GraphSocket3D socket)
+    {
+        if (socket != null && !_sockets.Contains(socket))
+            _sockets.Add(socket);
+    }
+
+    internal void RemoveAssignedSocket(GraphSocket3D socket)
+    {
+        if (socket != null)
+            _sockets.Remove(socket);
+    }
+
+
     private void ConfigureNodeInteraction()
     {
         _rigidbody = GetComponent<Rigidbody>();
         if (_rigidbody == null)
             _rigidbody = gameObject.AddComponent<Rigidbody>();
 
-        _rigidbody.isKinematic = true;
-        _rigidbody.useGravity = false;
+        _rigidbody.isKinematic = false;
+        _rigidbody.useGravity = true;
+        _rigidbody.constraints = RigidbodyConstraints.FreezeAll;
         _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
         _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
