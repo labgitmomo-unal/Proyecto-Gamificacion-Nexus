@@ -233,11 +233,11 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void MostrarCongestion()
     {
-        TrafficManager.Instance.SetVelocidad(0.4f);
+        TrafficManager.Instance.SetVelocidad(1f);
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
             spawner.minSpawnInterval = 0.3f;
-            spawner.maxSpawnInterval = 1f;
+            spawner.maxSpawnInterval = 2f;
         }
     }
 
