@@ -105,6 +105,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         AjustarLimitesTrafico(false);
         SuspenderAdaptiveQuality(false);
         SuspenderTrafficCleanup(false);
+        RestaurarTrafico();
         if (bridgeControl != null) bridgeControl.FreezeBridge();
         StartCoroutine(ShowLogoThenEnableXR());
         Challenge_Indicator_1.Play();
@@ -258,12 +259,8 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     private IEnumerator ShowLogoThenEnableXR()
     {
-        if (nexusLogo != null)
-            nexusLogo.SetActive(true);
-        yield return new WaitForSeconds(3f);
-        if (nexusLogo != null)
-            nexusLogo.SetActive(false);
         if (_xrCamera != null)
             _xrCamera.SetActive(true);
+        yield break;
     }
 }
