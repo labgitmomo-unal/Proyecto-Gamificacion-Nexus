@@ -1,4 +1,8 @@
 using UnityEngine;
+<<<<<<< Updated upstream
+=======
+using System.Collections.Generic;
+>>>>>>> Stashed changes
 
 public class RandomObjectSpawner : MonoBehaviour
 {
