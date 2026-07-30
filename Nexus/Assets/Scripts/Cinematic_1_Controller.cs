@@ -149,8 +149,8 @@ public class Cinematic_1_Controller : MonoBehaviour
         {
             if (cinematicActiva)
             {
-                cleanup.maxTrafficCars = 35;
-                cleanup.maxDistanceFromCamera = 150f;
+                cleanup.maxTrafficCars = 80;
+                cleanup.maxDistanceFromCamera = 300f;
             }
             else
             {
