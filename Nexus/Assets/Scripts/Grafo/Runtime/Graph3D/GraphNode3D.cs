@@ -70,11 +70,15 @@ public sealed class GraphNode3D : MonoBehaviour
 
         socket.Configure(socketColor, this, socketLightIntensity, socketLightRange);
         socket.SetAttachedWindow(windowAnchor);
+        windowAnchor.GetComponent<GraphWindow3D>()?.RegisterAnchorSocket(socket);
         socket.SetConnectionAvailable(true);
         _sockets.Add(socket);
+
+        IgnoreSocketCollisions(socket);
+
     }
 
-    /// <summary>Prepares the node for kinematic ray movement while it is held.</summary>
+    /// <summary>Prepares the node for ray movement while it is held.</summary>
     public void SetGrabbedPhysicsState()
     {
         Initialize();
@@ -83,7 +87,9 @@ public sealed class GraphNode3D : MonoBehaviour
 
         _rigidbody.isKinematic = true;
         _rigidbody.useGravity = false;
-        _rigidbody.constraints = RigidbodyConstraints.None;
+        _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+        _rigidbody.linearVelocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
     }
 
     /// <summary>Restores dynamic gravity-driven physics after the node is released.</summary>
@@ -96,6 +102,7 @@ public sealed class GraphNode3D : MonoBehaviour
         _rigidbody.isKinematic = false;
         _rigidbody.useGravity = true;
         _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+        _rigidbody.WakeUp();
     }
 
     internal void AddAssignedSocket(GraphSocket3D socket)
@@ -110,6 +117,24 @@ public sealed class GraphNode3D : MonoBehaviour
             _sockets.Remove(socket);
     }
 
+    internal void IgnoreSocketCollisions(GraphSocket3D socket)
+    {
+        if (socket == null)
+            return;
+
+        var nodeColliders = GetComponentsInChildren<Collider>(true);
+        var socketColliders = socket.GetComponentsInChildren<Collider>(true);
+        foreach (var nodeCollider in nodeColliders)
+        {
+            if (nodeCollider == null)
+                continue;
+            foreach (var socketCollider in socketColliders)
+            {
+                if (socketCollider != null && nodeCollider != socketCollider)
+                    Physics.IgnoreCollision(nodeCollider, socketCollider, true);
+            }
+        }
+    }
 
     private void ConfigureNodeInteraction()
     {
@@ -122,6 +147,8 @@ public sealed class GraphNode3D : MonoBehaviour
         _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
         _rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
         _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        _rigidbody.linearVelocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
 
         if (nodeGrabCollider != null && nodeGrabCollider.gameObject != gameObject)
         {

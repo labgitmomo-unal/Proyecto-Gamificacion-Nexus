@@ -23,6 +23,9 @@ public sealed class GraphGrabController : MonoBehaviour
     private float _nodeRayDistance;
     private Vector3 _nodeRootOffset;
     private Quaternion _nodeTargetRotation;
+    private Vector3 _nodeGrabStartVelocity;
+    private Vector3 _nodeGrabStartAngularVelocity;
+
     private Vector3 _nodeTargetPosition;
 
     private GraphSocket3D _heldSocket;
@@ -136,6 +139,8 @@ public sealed class GraphGrabController : MonoBehaviour
         _nodeRootOffset = closestBody.position - closestHit.point;
         _nodeTargetPosition = closestBody.position;
         _nodeTargetRotation = closestBody.rotation;
+        _nodeGrabStartVelocity = closestBody.linearVelocity;
+        _nodeGrabStartAngularVelocity = closestBody.angularVelocity;
 
         closestNode.SetGrabbedPhysicsState();
         closestBody.linearVelocity = Vector3.zero;
@@ -195,7 +200,7 @@ public sealed class GraphGrabController : MonoBehaviour
 
     private void MoveHeldBodies()
     {
-        if (_heldNodeBody != null)
+        if (_heldNode != null && _heldNodeBody != null && _heldNodeBody.isKinematic)
         {
             _heldNodeBody.MovePosition(_nodeTargetPosition);
             _heldNodeBody.MoveRotation(_nodeTargetRotation);
@@ -207,7 +212,7 @@ public sealed class GraphGrabController : MonoBehaviour
 
     private void ReleaseNode()
     {
-        if (_heldNodeBody != null)
+        if (_heldNode != null && _heldNodeBody != null)
         {
             _heldNode.SetReleasedPhysicsState();
             _heldNodeBody.linearVelocity = Vector3.zero;

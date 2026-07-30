@@ -27,6 +27,8 @@ public sealed class GraphSocket3D : MonoBehaviour
     private Transform _attractionTargetWindow;
     private float _attractionElapsed;
     private bool _hasCachedOriginalPose;
+
+    private bool _windowAttractionEnabled;
     private Vector3 _originalAnchorLocalPosition;
     private Quaternion _originalAnchorLocalRotation;
     private Vector3 _originalAnchorLocalScale;
@@ -118,6 +120,30 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     public GraphNode3D OriginalOwnerNode => _originalOwnerNode;
 
+    public bool IsFreeBody => _rigidbodyReference != null
+        && !_isDragging
+        && !_isAttracting
+        && !_rigidbodyReference.isKinematic
+        && transform.parent == null;
+
+    internal bool TryAttachToWindow(GraphWindow3D window)
+    {
+        if (window == null || !IsFreeBody || originalWindowAnchor == null)
+            return false;
+
+        RemoveExistingEdge();
+        var edgeObject = new GameObject($"GraphEdge_{originalWindowAnchor.name}_{window.name}");
+        var edge = edgeObject.AddComponent<GraphEdge>();
+        edge.Initialize(originalWindowAnchor, window.transform, edgeMaterial, lineWidth);
+        _connectedEdge = edge;
+        ClearTemporaryLine();
+        AttachToWindow(window.transform, true);
+        SetAnchoredPhysicsState();
+        SetAlwaysOnVisualState();
+        return true;
+    }
+
+
     /// <summary>Gets the node currently owning this socket assignment.</summary>
     public GraphNode3D AssignedOwnerNode => _ownerNode;
 
@@ -142,14 +168,15 @@ public sealed class GraphSocket3D : MonoBehaviour
             return;
 
         _isAttracting = false;
+        _windowAttractionEnabled = false;
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
         CacheOriginalAnchorPose();
         _isDragging = true;
         RemoveExistingEdge();
         ClearTemporaryLine();
+        SetInteractionColliders(false);
         SetAnchoredPhysicsState();
-        _dragTargetPosition = transform.position;
         transform.SetParent(_ownerNode != null ? _ownerNode.transform : null, true);
         _temporaryLine = CreateLine("TemporaryGraphCable");
         SetAlwaysOnVisualState();
@@ -181,18 +208,18 @@ public sealed class GraphSocket3D : MonoBehaviour
         var target = FindClosestWindowSocket();
         if (!IsValidConnectionTarget(target))
         {
-            ReleaseAsFreeBody();
+            RestoreToOriginalWindow();
             return;
         }
 
         var targetWindow = target.attachedWindowAnchor;
         var displacedSocket = target.FindSocketOccupyingWindow(targetWindow);
-        if (displacedSocket != null || target.transform.parent == targetWindow)
-        {
-            ReleaseAsFreeBody();
-            return;
-        }
+        if (displacedSocket != null)
+            displacedSocket.RestoreToOriginalWindow();
 
+        if (target._ownerNode != null)
+            target._ownerNode.IgnoreSocketCollisions(this);
+        _windowAttractionEnabled = true;
         _isAttracting = true;
         _attractionTargetSocket = target;
         _attractionTargetWindow = targetWindow;
@@ -208,7 +235,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         if (!_isDragging && !_isAttracting)
             return;
         _isDragging = false;
-        ReleaseAsFreeBody();
+        RestoreToOriginalWindow();
     }
 
     private void ApplyAttractionMovement()
@@ -241,6 +268,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _connectedEdge = edge;
         target.SetIncomingConnection(edge);
         AttachToWindow(targetWindow);
+        SetInteractionColliders(true);
         SetAnchoredPhysicsState();
         SetAlwaysOnVisualState();
     }
@@ -248,6 +276,7 @@ public sealed class GraphSocket3D : MonoBehaviour
     private void ReleaseAsFreeBody()
     {
         _isAttracting = false;
+        _windowAttractionEnabled = false;
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
         ClearTemporaryLine();
@@ -256,8 +285,10 @@ public sealed class GraphSocket3D : MonoBehaviour
             return;
         _rigidbodyReference.linearVelocity = Vector3.zero;
         _rigidbodyReference.angularVelocity = Vector3.zero;
-        _rigidbodyReference.isKinematic = false;
-        _rigidbodyReference.useGravity = true;
+        _rigidbodyReference.isKinematic = true;
+        _rigidbodyReference.useGravity = false;
+        _rigidbodyReference.constraints = RigidbodyConstraints.FreezePosition
+            | RigidbodyConstraints.FreezeRotation;
     }
 
     internal void NotifyEdgeRemoved(GraphEdge edge)
@@ -267,11 +298,26 @@ public sealed class GraphSocket3D : MonoBehaviour
         SetAlwaysOnVisualState();
     }
 
+    private void SetInteractionColliders(bool enabled)
+    {
+        if (_interactionColliders == null)
+            return;
+
+        foreach (var interactionCollider in _interactionColliders)
+        {
+            if (interactionCollider != null)
+                interactionCollider.enabled = enabled;
+        }
+    }
+
+
     private void EnsureInteractionCollider()
     {
         if (GetComponent<SphereCollider>() == null)
             gameObject.AddComponent<SphereCollider>();
     }
+
+    internal bool CanBeAutoAttached => _windowAttractionEnabled;
 
     private void ConfigurePhysicsBody()
     {
@@ -308,7 +354,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         transform.localRotation = _originalAnchorLocalRotation;
         transform.localScale = _originalAnchorLocalScale;
         _lastValidLocalPosition = transform.localPosition;
-        _lastValidLocalRotation = transform.localRotation;
+        SetInteractionColliders(true);
         SetAnchoredPhysicsState();
         SetAlwaysOnVisualState();
     }
@@ -401,7 +447,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         Destroy(edge.gameObject);
     }
 
-    private void AttachToWindow(Transform targetWindow)
+    private void AttachToWindow(Transform targetWindow, bool preserveWorldPose = false)
     {
         if (targetWindow == null)
             return;
@@ -413,9 +459,13 @@ public sealed class GraphSocket3D : MonoBehaviour
             _ownerNode = targetNode;
         }
         attachedWindowAnchor = targetWindow;
-        transform.SetParent(targetWindow, false);
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
+        transform.SetParent(targetWindow, preserveWorldPose);
+        targetNode?.IgnoreSocketCollisions(this);
+        if (!preserveWorldPose)
+        {
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+        }
     }
 
     private void SanitizeTransform()
