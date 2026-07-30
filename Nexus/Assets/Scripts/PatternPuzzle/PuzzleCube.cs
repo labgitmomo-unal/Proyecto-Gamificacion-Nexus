@@ -1,6 +1,9 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit;
+
 
 namespace PatternPuzzle
 {
@@ -15,6 +18,7 @@ namespace PatternPuzzle
         public PuzzleCubeColor color = PuzzleCubeColor.None;
 
         public bool IsValidated { get; private set; }
+        public Vector3 OriginalScale => _dispenserScale;
 
         private XRGrabInteractable _grabInteractable;
         private Rigidbody _rigidbody;
@@ -27,6 +31,7 @@ namespace PatternPuzzle
         private void Awake()
         {
             _grabInteractable = GetComponent<XRGrabInteractable>();
+            _grabInteractable.trackScale = false;
             _rigidbody = GetComponent<Rigidbody>();
 
             // Posicion/rotacion/scale/parent inicial dentro del dispensador
@@ -34,6 +39,19 @@ namespace PatternPuzzle
             _dispenserRotation = transform.rotation;
             _dispenserScale = transform.localScale;
             _dispenserParent = transform.parent;
+
+            _grabInteractable.selectEntered.AddListener(OnGrabbed);
+            _grabInteractable.selectExited.AddListener(OnReleased);
+        }
+
+        private void OnGrabbed(SelectEnterEventArgs args)
+        {
+            Debug.Log($"PuzzleCube {color} GRABBED by {args.interactorObject.transform.name} | localScale: {transform.localScale} | lossyScale: {transform.lossyScale} | parent: {(transform.parent ? transform.parent.name : "null")}");
+        }
+
+        private void OnReleased(SelectExitEventArgs args)
+        {
+            Debug.Log($"PuzzleCube {color} RELEASED from {args.interactorObject.transform.name} | localScale: {transform.localScale} | lossyScale: {transform.lossyScale} | parent: {(transform.parent ? transform.parent.name : "null")}");
         }
 
         public void SetInteractable(bool value)
