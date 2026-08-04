@@ -74,7 +74,7 @@ namespace PatternPuzzle
             }
         }
 
-private void HandleCubePlaced(SelectEnterEventArgs args)
+        private void HandleCubePlaced(SelectEnterEventArgs args)
         {
             var cube = args.interactableObject.transform.GetComponent<PuzzleCube>();
             if (cube == null || Manager == null) return;
