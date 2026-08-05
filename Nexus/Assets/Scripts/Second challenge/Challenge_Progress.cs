@@ -16,12 +16,19 @@ public class Challenge_Progress : MonoBehaviour
     [Header("Nono")]
     public Transform nonoDestination;
 
+    [Header("Elevator Sequence")]
+    [SerializeField] private Transform elevatorRef;
+    [SerializeField] private Transform boardingPointRef;
+    [SerializeField] private Transform elevatorTopPointRef;
+    [SerializeField] private Transform finalDestinationRef;
+
     [Header("Audios")]
     public AudioSource Explain_Challenge_2;
     [SerializeField] private AudioSource Challenge_Complete_Sound;
     public AudioSource Indicator_Challenge_3;
 
     private bool audioPlayed = false;
+    private bool wasTimerExpired = false;
 
     private int remainingItems;
     private int failedItems;
@@ -80,6 +87,7 @@ public class Challenge_Progress : MonoBehaviour
     public void TimeExpired()
     {
         failedItems = remainingItems;
+        wasTimerExpired = true;
 
         Debug.Log(
             $"Quedaron {failedItems} items sin clasificar"
@@ -141,7 +149,38 @@ public class Challenge_Progress : MonoBehaviour
                 Indicator_Challenge_3.Play();
         }
 
-        StartCoroutine(EsperarAudioYVolar());
+        if (wasTimerExpired)
+        {
+            wasTimerExpired = false;
+            TryStartElevatorSequence();
+        }
+        else
+        {
+            StartCoroutine(EsperarAudioYVolar());
+        }
+    }
+
+    private void TryStartElevatorSequence()
+    {
+        if (Nono_Guide.Instance == null)
+        {
+            Debug.LogWarning("[Challenge_Progress] Nono_Guide.Instance is null, cannot start elevator sequence.");
+            return;
+        }
+
+        if (Nono_Guide.Instance.IsElevatorSequenceActive)
+        {
+            Debug.LogWarning("[Challenge_Progress] Elevator sequence already active.");
+            return;
+        }
+
+        if (elevatorRef == null || boardingPointRef == null || elevatorTopPointRef == null || finalDestinationRef == null)
+        {
+            Debug.LogWarning("[Challenge_Progress] Cannot start elevator sequence: one or more references are null.");
+            return;
+        }
+
+        Nono_Guide.Instance.StartElevatorSequence(elevatorRef, boardingPointRef, elevatorTopPointRef, finalDestinationRef);
     }
 
     private IEnumerator EsperarAudioYVolar()
