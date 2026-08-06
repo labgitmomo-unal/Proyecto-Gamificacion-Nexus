@@ -80,6 +80,13 @@ public class Reto2_Avenidas : MonoBehaviour
     [Tooltip("Feedback visual al fallar (opcional).")]
     [SerializeField] private GameObject feedbackFallo;
 
+    [Header("Colores de respuesta")]
+    [Tooltip("Color del botón al acertar la avenida correcta.")]
+    [SerializeField] private Color _colorCorrecto = new Color(0f, 1f, 0.1f);
+
+    [Tooltip("Color del botón al elegir una avenida incorrecta.")]
+    [SerializeField] private Color _colorIncorrecto = new Color(1f, 0.05f, 0.1f);
+
     [Header("Tráfico")]
     [Tooltip("Opcional: al acertar también se avanza el tráfico del puente. Si se deja vacío se busca solo.")]
     [SerializeField] private BridgeControlManager bridgeControl;
@@ -279,7 +286,14 @@ public class Reto2_Avenidas : MonoBehaviour
         if (Completado) return;
 
         Intentos++;
-        if (index == AvenidaCorrectaIndex)
+        bool correcto = index == AvenidaCorrectaIndex;
+
+        LockPanel();
+
+        if (index >= 0 && index < _generatedButtons.Count && _generatedButtons[index] != null)
+            SetButtonColor(_generatedButtons[index], correcto ? _colorCorrecto : _colorIncorrecto);
+
+        if (correcto)
         {
             Completado = true;
             Debug.Log($"[Reto2] ¡Correcto! {avenidas[index].nombre} ({NivelConvertido(nivelCorreccion)}) a los {Intentos} intentos.", this);
@@ -289,7 +303,7 @@ public class Reto2_Avenidas : MonoBehaviour
         }
         else
         {
-            Debug.Log($"[Reto2] Fallo (intento {Intentos}): {avenidas[index].nombre} no es la correcta. Reintentar.", this);
+            Debug.Log($"[Reto2] Fallo (intento {Intentos}): {avenidas[index].nombre} no es la correcta. Panel bloqueado.", this);
             onChallengeFallido?.Invoke();
             if (feedbackFallo != null)
             {
@@ -297,5 +311,21 @@ public class Reto2_Avenidas : MonoBehaviour
                 feedbackFallo.SetActive(true);
             }
         }
+    }
+
+    private void LockPanel()
+    {
+        for (int i = 0; i < _generatedButtons.Count; i++)
+        {
+            if (_generatedButtons[i] != null)
+                _generatedButtons[i].interactable = false;
+        }
+    }
+
+    private void SetButtonColor(Button btn, Color color)
+    {
+        btn.transition = Selectable.Transition.None;
+        var img = btn.targetGraphic;
+        if (img != null) img.color = color;
     }
 }
