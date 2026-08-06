@@ -14,9 +14,9 @@ public class BridgeControlManager : MonoBehaviour
     [Range(1f, 30f)]
     public float tiempoAvance = 15f;
 
-    [Header("Velocidad final MÁS ALTA en el 4º toque (flujo permanente)")]
+    [Header("Velocidad final en el 4º toque (flujo permanente y fluido)")]
     [Range(0.1f, 3f)]
-    public float velocidadAvance = 0.4f;
+    public float velocidadAvance = 1f;
 
     [Header("Trancón: intervalos de spawn al avanzar (jam)")]
     [Range(0.01f, 2f)]
@@ -101,6 +101,35 @@ public class BridgeControlManager : MonoBehaviour
             if (sp != null && !_spawners.Contains(sp))
                 _spawners.Add(sp);
         }
+    }
+
+    /// <summary>
+    /// Congestión DESDE EL INICIO del juego: el tráfico nace ya lento y apretado
+    /// (velocidad de trancón + spawns densos), sin pausar la instanciación.
+    /// Usado por la cinemática en lugar de velocidad completa.
+    /// </summary>
+    public void AplicarCongestionInicial()
+    {
+        if (spawnerTemplate == null)
+            AutoFindTemplate();
+        if (spawnerTemplate == null) return;
+
+        CacheSpawners();
+        RebuildTemplateCache();
+
+        Vector3 lentoVel = VelocidadDeTrancon();
+        SetAllTemplatesSpeed(lentoVel);
+
+        foreach (var mc in ObtenerTodosLosMovementControllers())
+        {
+            if (mc == null || mc == spawnerTemplate) continue;
+            AplicarVelocidadAuto(mc, lentoVel);
+        }
+
+        // Spawns densos para el look "pegados", pero SEGUIMOS instanciando
+        // para que el tráfico fluya lento y no quede vacío.
+        AplicarSpawnTrancon(true);
+        Debug.Log($"[BridgeControl] Congestión inicial aplicada: velocidad {lentoVel.x:F1}, spawns densos.", this);
     }
 
     // Pausar/reanudar la instanciación de naves. En ROJO no debe aparecer

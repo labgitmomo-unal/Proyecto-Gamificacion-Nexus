@@ -233,7 +233,12 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void MostrarCongestion()
     {
-        TrafficManager.Instance.SetVelocidad(1f);
+        // Congestión desde el inicio: tráfico lento y apretado, no a velocidad completa.
+        if (bridgeControl != null)
+            bridgeControl.AplicarCongestionInicial();
+        else
+            TrafficManager.Instance.SetVelocidad(1f);
+
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
             spawner.minSpawnInterval = 0.3f;
