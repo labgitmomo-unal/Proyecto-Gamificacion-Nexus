@@ -18,6 +18,12 @@ public class BridgeControlManager : MonoBehaviour
     [Range(0.1f, 3f)]
     public float velocidadAvance = 0.4f;
 
+    [Header("Trancón: intervalos de spawn al avanzar (jam)")]
+    [Range(0.01f, 2f)]
+    public float tranconSpawnMin = 0.15f;
+    [Range(0.05f, 3f)]
+    public float tranconSpawnMax = 0.5f;
+
     public bool IsComplete { get; private set; }
     public bool IsActive { get; private set; }
     public bool IsReleased => _releaseTimer > 0f;
@@ -27,6 +33,7 @@ public class BridgeControlManager : MonoBehaviour
 
     private float _releaseTimer = 0f;
     private List<BridgeCarFreezer> _freezers = new List<BridgeCarFreezer>();
+    private List<RandomObjectSpawner> _spawners = new List<RandomObjectSpawner>();
 
     // Cache de TODAS las plantillas "Script Move" de los RandomObjectSpawner:
     // las naves NUEVAS que se instancien durante el challenge deben nacer ya
@@ -81,7 +88,44 @@ public class BridgeControlManager : MonoBehaviour
             return;
         }
 
+        CacheSpawners();
+
         TrafficManager.Instance.RegistrarPlantilla(spawnerTemplate);
+    }
+
+    private void CacheSpawners()
+    {
+        _spawners.Clear();
+        foreach (var sp in FindObjectsByType<RandomObjectSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (sp != null && !_spawners.Contains(sp))
+                _spawners.Add(sp);
+        }
+    }
+
+    // Pausar/reanudar la instanciación de naves. En ROJO no debe aparecer
+    // ninguna nave nueva.
+    private void PausarSpawners(bool on)
+    {
+        foreach (var sp in _spawners)
+        {
+            if (sp != null)
+                sp.SetSpawningEnabled(!on);
+        }
+    }
+
+    // Al avanzar (VERDE) aumentamos la densidad de spawns para simular un trancón:
+    // reducimos el intervalo a tranconSpawnMin..tranconSpawnMax.
+    private void AplicarSpawnTrancon(bool on)
+    {
+        foreach (var sp in _spawners)
+        {
+            if (sp == null) continue;
+            if (on)
+                sp.SetSpawnIntervalOverride(tranconSpawnMin, tranconSpawnMax);
+            else
+                sp.ClearSpawnIntervalOverride();
+        }
     }
 
     private List<MovementController> ObtenerTodosLosMovementControllers()
@@ -98,6 +142,10 @@ public class BridgeControlManager : MonoBehaviour
         freezer.manager = this;
         freezer.originalVelocity = mc.initialVelocity;
         freezer.UpdateFreezePosition();
+        // Garantiza que el auto quede DETENIDO aunque el freezer ya existiera
+        // (AddComponent dispara OnEnable->frozen=true, pero un freezer previo
+        // liberado con TemporalRelease/Release quedaria frozen=false).
+        freezer.Refreeze();
         return freezer;
     }
 
@@ -116,6 +164,10 @@ public class BridgeControlManager : MonoBehaviour
 
         var tc = FindFirstObjectByType<TrafficCleanup>();
         if (tc != null) tc.CancelInvoke("Cleanup");
+
+        // ROJO: no se instancia ninguna nave nueva durante la detención.
+        CacheSpawners();
+        PausarSpawners(true);
 
         // Plantillas lentas/detenidas para que las naves nuevas nazcan controladas.
         Vector3 lentoVel = VelocidadDeTrancon();
@@ -177,6 +229,8 @@ public class BridgeControlManager : MonoBehaviour
             // Se acabó el tiempo de avance: vuelve a ROJO y se detiene todo.
             if (_releaseTimer <= 0f)
             {
+                PausarSpawners(true);
+                AplicarSpawnTrancon(false);
                 foreach (var f in _freezers)
                 {
                     if (f != null && !f.IsFrozen)
@@ -231,6 +285,10 @@ public class BridgeControlManager : MonoBehaviour
             }
 
             _releaseTimer = tiempoAvance;
+
+            // VERDE: se reanuda la instanciación y con mayor densidad (trancón).
+            PausarSpawners(false);
+            AplicarSpawnTrancon(true);
         }
         else
         {
@@ -244,6 +302,10 @@ public class BridgeControlManager : MonoBehaviour
         _releaseTimer = 0f;
         IsComplete = true;
         IsActive = false;
+
+        // Flujo permanente: densidad normal de spawns (sin trancón).
+        PausarSpawners(false);
+        AplicarSpawnTrancon(false);
 
         var tc = FindFirstObjectByType<TrafficCleanup>();
         if (tc != null)
@@ -286,6 +348,8 @@ public class BridgeControlManager : MonoBehaviour
         ReleaseCount = 0;
         IsComplete = false;
         IsActive = false;
+        PausarSpawners(false);
+        AplicarSpawnTrancon(false);
     }
 
     public void OnFreezerDestroyed(BridgeCarFreezer freezer)

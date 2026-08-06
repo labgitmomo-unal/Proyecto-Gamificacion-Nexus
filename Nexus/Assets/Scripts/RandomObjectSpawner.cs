@@ -15,6 +15,9 @@ public class RandomObjectSpawner : MonoBehaviour
 
     private Queue<GameObject> pool = new Queue<GameObject>();
     private Dictionary<GameObject, MovementController> cloneToTemplate = new Dictionary<GameObject, MovementController>();
+    private bool _spawningEnabled = true;
+    private float _intervalOverrideMin = -1f;
+    private float _intervalOverrideMax = -1f;
 
     void OnEnable()
     {
@@ -26,11 +29,32 @@ public class RandomObjectSpawner : MonoBehaviour
         StopAllCoroutines();
     }
 
+    public void SetSpawningEnabled(bool enabled)
+    {
+        _spawningEnabled = enabled;
+    }
+
+    public void SetSpawnIntervalOverride(float min, float max)
+    {
+        _intervalOverrideMin = min;
+        _intervalOverrideMax = max;
+    }
+
+    public void ClearSpawnIntervalOverride()
+    {
+        _intervalOverrideMin = -1f;
+        _intervalOverrideMax = -1f;
+    }
+
     IEnumerator SpawnLoop()
     {
         while (true)
         {
-            float delay = Random.Range(minSpawnInterval, maxSpawnInterval);
+            while (!_spawningEnabled) yield return null;
+
+            float min = _intervalOverrideMin >= 0f ? _intervalOverrideMin : minSpawnInterval;
+            float max = _intervalOverrideMax >= 0f ? _intervalOverrideMax : maxSpawnInterval;
+            float delay = Random.Range(min, max);
             yield return new WaitForSeconds(delay);
             SpawnOne();
         }
@@ -88,23 +112,22 @@ public class RandomObjectSpawner : MonoBehaviour
         foreach (var template in optionalScripts)
         {
             if (template == null) continue;
+            if (template is not MovementController mcTemplate) continue;
+
             System.Type t = template.GetType();
             Component existing = target.GetComponent(t);
             if (existing == null)
                 existing = target.AddComponent(t);
-            if (existing is MovementController mcTemplate)
+
+            if (existing is MovementController mcTarget && mcTarget != null)
             {
-                MovementController mcTarget = existing as MovementController;
-                if (mcTarget != null)
-                {
-                    mcTarget.useVelocity = mcTemplate.useVelocity;
-                    mcTarget.useRotation = mcTemplate.useRotation;
-                    mcTarget.useAcceleration = mcTemplate.useAcceleration;
-                    mcTarget.initialVelocity = mcTemplate.initialVelocity;
-                    mcTarget.acceleration = mcTemplate.acceleration;
-                    mcTarget.rotationSpeed = mcTemplate.rotationSpeed;
-                    mcTarget.offsetRange = mcTemplate.offsetRange;
-                }
+                mcTarget.useVelocity = mcTemplate.useVelocity;
+                mcTarget.useRotation = mcTemplate.useRotation;
+                mcTarget.useAcceleration = mcTemplate.useAcceleration;
+                mcTarget.initialVelocity = mcTemplate.initialVelocity;
+                mcTarget.acceleration = mcTemplate.acceleration;
+                mcTarget.rotationSpeed = mcTemplate.rotationSpeed;
+                mcTarget.offsetRange = mcTemplate.offsetRange;
             }
         }
     }
