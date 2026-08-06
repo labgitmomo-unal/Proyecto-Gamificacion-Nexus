@@ -226,7 +226,8 @@ public class Reto2_Avenidas : MonoBehaviour
         sb.AppendLine();
         for (int i = 0; i < avenidas.Count; i++)
         {
-            sb.AppendLine($"{avenidas[i].nombre}: {SecuenciaComoTexto(avenidas[i].secuencia)}");
+            sb.AppendLine(avenidas[i].nombre + ":");
+            sb.AppendLine("    " + SecuenciaComoTexto(avenidas[i].secuencia));
         }
 
         textoProblema.text = sb.ToString();
