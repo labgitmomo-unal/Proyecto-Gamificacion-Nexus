@@ -78,6 +78,7 @@ namespace PatternPuzzle
         {
             var cube = args.interactableObject.transform.GetComponent<PuzzleCube>();
             if (cube == null || Manager == null) return;
+
             Manager.OnCubePlaced(cube, this);
         }
 

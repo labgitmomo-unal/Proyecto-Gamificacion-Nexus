@@ -14,6 +14,10 @@ public class BridgeTeleportTrigger : MonoBehaviour
     [Header("Activar tras teletransporte")]
     public GameObject bridgePatternManager;
 
+    [Header("Temporizador")]
+    [Tooltip("Temporizador del Nivel_Patrones que se inicia al completar la teletransportacion.")]
+    public PatternPuzzle.Timer_Patrones timerToStart;
+
     private CanvasGroup _fadeCanvasGroup;
     private XROrigin _xrOrigin;
     private bool _teleported = false;
@@ -62,6 +66,10 @@ public class BridgeTeleportTrigger : MonoBehaviour
         // Activar el pattern manager
         if (bridgePatternManager != null)
             bridgePatternManager.SetActive(true);
+
+        // Iniciar el temporizador del Nivel_Patrones
+        if (timerToStart != null)
+            timerToStart.Start_Timer();
 
         // Desactivar este GameObject (ya no necesario)
         gameObject.SetActive(false);

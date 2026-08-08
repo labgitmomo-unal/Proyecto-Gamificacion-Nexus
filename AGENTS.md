@@ -35,9 +35,9 @@ Auth via `AuthManager.cs` (login/register panels, TMP input, scene management)
 | `Read_Json/Read_Json.cs` | Static helper: reads JSON via `DriveDataLoader.ReadLocalJson()`, extracts unique categories |
 | `Second challenge/` (7 scripts) | Category matching challenge: `Category_Spawner`, `Category_Item_Button`, `Category_Challenger_Manager`, `Relation_Manager`, `Instantiate_Categories`, `Challenge_Progress`, `Timer_2` |
 | `Traffic/TrafficManager.cs` | Singleton controlling flying traffic speed via `SetVelocidad(0–2f)` |
-| `Traffic/TrafficCleanup.cs` | Cleans up far-away traffic clones using `MovementController` + `RandomObjectSpawner` (both from third-party `_DLNK/` asset) |
+| `Traffic/TrafficCleanup.cs` | Cleans up far-away traffic clones using `MovementController` + `RandomObjectSpawner` |
+| `RandomObjectSpawner.cs` | Spawns flying cars from the Car Line Spawner prefab (`_DLNK/`). Uses `optionalScripts` to copy MovementController values. |
 | `Cinematic_1_Controller.cs` | Cinematic camera switch + traffic congestion. Uses `PlayableDirector` + Cinemachine. |
-| `CinematicOptimizer.cs` | Prewarms traffic pools + audio before cinematic |
 | `QuestOptimizer.cs` | Quest-specific performance tuning |
 | `AdaptiveQuality.cs` | Dynamic render scale / shadow distance based on FPS |
 | `ShaderPrewarm.cs` | Shader warmup on start |
@@ -50,7 +50,7 @@ Auth via `AuthManager.cs` (login/register panels, TMP input, scene management)
 
 ## Architecture Notes
 - Communication: static events (`OnDataLoaded`, `OnBotonObjetivoEliminado`) + singleton (`TrafficManager.Instance`)
-- `RandomObjectSpawner` and `MovementController` classes are defined in the third-party city asset (`Assets/_DLNK/`), not in `Scripts/`
+- `MovementController` is defined in the third-party city asset (`Assets/_DLNK/`); `RandomObjectSpawner.cs` is a custom replacement in `Assets/Scripts/`
 - Cinematic uses Unity Playables (`PlayableDirector`) + Cinemachine virtual cameras
 - `Oculus` folder present in Assets (OVR integration alongside OpenXR)
 
