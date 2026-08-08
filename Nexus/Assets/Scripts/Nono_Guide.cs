@@ -22,7 +22,29 @@ public class Nono_Guide : MonoBehaviour
 
     public static Nono_Guide Instance { get; private set; }
     public bool IsMoving => isMoving;
+    public bool IsElevatorSequenceActive => elevatorPhase != ElevatorSequencePhase.None;
     public event Action OnArrived;
+
+    [Header("Elevator Sequence")]
+    [SerializeField] private float elevatorMovementThreshold = 0.05f;
+    [SerializeField] private float elevatorArrivalThreshold = 0.5f;
+
+    private enum ElevatorSequencePhase
+    {
+        None,
+        FlyingToBoardingPoint,
+        WaitingForElevatorMovement,
+        FollowingElevator,
+        FlyingToFinalDestination
+    }
+
+    private ElevatorSequencePhase elevatorPhase = ElevatorSequencePhase.None;
+    private Transform seqElevator;
+    private Transform seqElevatorTopPoint;
+    private Transform seqFinalDestination;
+    private float lastElevatorY;
+    private float elevatorTopY;
+    private bool prevAutoListen;
 
     private bool audioWasPlaying = false;
     private bool hasMoved = false;
@@ -85,6 +107,56 @@ public class Nono_Guide : MonoBehaviour
                 audioWasPlaying = false;
                 MoveToAutoTarget();
             }
+        }
+
+        // Elevator sequence tracking — takes priority over idle and normal movement
+        if (elevatorPhase == ElevatorSequencePhase.WaitingForElevatorMovement)
+        {
+            if (seqElevator == null)
+            {
+                CancelElevatorSequence();
+                return;
+            }
+
+            float currentElevatorY = seqElevator.position.y;
+            float deltaY = currentElevatorY - lastElevatorY;
+            if (Mathf.Abs(deltaY) > elevatorMovementThreshold)
+            {
+                elevatorPhase = ElevatorSequencePhase.FollowingElevator;
+                lastElevatorY = currentElevatorY;
+            }
+            return;
+        }
+
+        if (elevatorPhase == ElevatorSequencePhase.FollowingElevator)
+        {
+            if (seqElevator == null)
+            {
+                CancelElevatorSequence();
+                return;
+            }
+
+            float currentElevatorY = seqElevator.position.y;
+            float deltaY = currentElevatorY - lastElevatorY;
+
+            Vector3 pos = transform.position;
+            pos.y += deltaY;
+            pos.y = Mathf.Min(pos.y, elevatorTopY);
+            transform.position = pos;
+
+            lastElevatorY = currentElevatorY;
+
+            float nonoDistToP2 = Mathf.Abs(transform.position.y - seqElevatorTopPoint.position.y);
+            float elevatorDistToP2 = Mathf.Abs(seqElevator.position.y - seqElevatorTopPoint.position.y);
+
+            if (nonoDistToP2 < elevatorArrivalThreshold && elevatorDistToP2 < elevatorArrivalThreshold)
+            {
+                idleY = transform.position.y;
+                autoListen = prevAutoListen;
+                elevatorPhase = ElevatorSequencePhase.FlyingToFinalDestination;
+                FlyTo(seqFinalDestination);
+            }
+            return;
         }
 
         if (isMoving)
@@ -176,5 +248,76 @@ public class Nono_Guide : MonoBehaviour
     private void StopMoving()
     {
         isMoving = false;
+    }
+
+    public void StartElevatorSequence(Transform elevator, Transform boardingPoint, Transform elevatorTopPoint, Transform finalDestination)
+    {
+        if (elevatorPhase != ElevatorSequencePhase.None)
+        {
+            Debug.LogWarning("[Nono_Guide] Elevator sequence already active, ignoring call.");
+            return;
+        }
+
+        if (elevator == null || boardingPoint == null || elevatorTopPoint == null || finalDestination == null)
+        {
+            Debug.LogWarning("[Nono_Guide] Cannot start elevator sequence: one or more references are null.");
+            return;
+        }
+
+        seqElevator = elevator;
+        seqElevatorTopPoint = elevatorTopPoint;
+        seqFinalDestination = finalDestination;
+        elevatorTopY = elevatorTopPoint.position.y;
+
+        prevAutoListen = autoListen;
+        autoListen = false;
+
+        elevatorPhase = ElevatorSequencePhase.FlyingToBoardingPoint;
+        OnArrived += HandleElevatorSequenceArrival;
+
+        FlyTo(boardingPoint);
+    }
+
+    private void HandleElevatorSequenceArrival()
+    {
+        switch (elevatorPhase)
+        {
+            case ElevatorSequencePhase.FlyingToBoardingPoint:
+                if (seqElevator == null)
+                {
+                    CancelElevatorSequence();
+                    return;
+                }
+                lastElevatorY = seqElevator.position.y;
+                elevatorPhase = ElevatorSequencePhase.WaitingForElevatorMovement;
+                break;
+
+            case ElevatorSequencePhase.FlyingToFinalDestination:
+                elevatorPhase = ElevatorSequencePhase.None;
+                autoListen = prevAutoListen;
+                seqElevator = null;
+                seqElevatorTopPoint = null;
+                seqFinalDestination = null;
+                OnArrived -= HandleElevatorSequenceArrival;
+                break;
+        }
+    }
+
+    private void CancelElevatorSequence()
+    {
+        elevatorPhase = ElevatorSequencePhase.None;
+        autoListen = prevAutoListen;
+        seqElevator = null;
+        seqElevatorTopPoint = null;
+        seqFinalDestination = null;
+        OnArrived -= HandleElevatorSequenceArrival;
+    }
+
+    void OnDisable()
+    {
+        if (elevatorPhase != ElevatorSequencePhase.None)
+        {
+            CancelElevatorSequence();
+        }
     }
 }
