@@ -15,6 +15,10 @@ public sealed class PanelCronometro : MonoBehaviour
     [SerializeField] private AudioSource startAudio;
     [SerializeField] private AudioSource demonstrationAudio;
     [SerializeField] private AudioSource completionAudio;
+    [SerializeField] private Nono_Guide nonoGuide;
+    [SerializeField] private Transform elevatorRef;
+    [SerializeField] private Transform boardingPointRef;
+    [SerializeField] private Transform elevatorTopPointRef;
 
     private Button toggleButton;
     private TMP_Text toggleButtonText;
@@ -70,10 +74,18 @@ public sealed class PanelCronometro : MonoBehaviour
         else
         {
             CancelPendingExample();
+            demonstrationAudio?.Stop();
             PlayAudio(completionAudio);
+            StartNonoReturnSequence();
         }
 
         UpdateDisplay();
+    }
+
+    private void StartNonoReturnSequence()
+    {
+        Nono_Guide guide = nonoGuide != null ? nonoGuide : Nono_Guide.Instance;
+        guide?.StartReturnElevatorSequence(elevatorRef, boardingPointRef, elevatorTopPointRef);
     }
 
     private IEnumerator StartExampleAfterDelay()
