@@ -21,9 +21,22 @@ public sealed class GraphExampleSequence : MonoBehaviour
     [SerializeField] private float nodeSettleDuration = DefaultNodeSettleDuration;
 
     private bool sequenceRunning;
+    private bool sequenceFailed;
 
     /// <summary>Raised when the example finishes moving the nodes and connecting the socket.</summary>
     public event Action SequenceCompleted;
+    /// <summary>Returns whether a node belongs to the protected demonstration.</summary>
+    public bool IsExampleNode(GraphNode3D node)
+    {
+        return node != null && (node == firstExampleNode || node == secondExampleNode);
+    }
+
+    /// <summary>Returns whether an edge is the protected demonstration edge.</summary>
+    public bool IsExampleEdge(GraphEdge edge)
+    {
+        return edge != null && edge.PreserveOnReset;
+    }
+
 
     private void Update()
     {
@@ -59,11 +72,18 @@ public sealed class GraphExampleSequence : MonoBehaviour
         }
 
         sequenceRunning = true;
+        sequenceFailed = false;
         SetExampleSocketInterpolation(RigidbodyInterpolation.None);
         yield return MoveNode(firstExampleNode, firstDestination);
         yield return MoveNode(secondExampleNode, secondDestination);
         SetExampleSocketInterpolation(RigidbodyInterpolation.Interpolate);
         yield return MoveSocketToTarget();
+        if (sequenceFailed)
+        {
+            sequenceRunning = false;
+            yield break;
+        }
+
         sequenceRunning = false;
         SequenceCompleted?.Invoke();
     }
@@ -100,7 +120,13 @@ public sealed class GraphExampleSequence : MonoBehaviour
 
     private IEnumerator MoveSocketToTarget()
     {
-        markedSocket.StartDrag();
+        if (!markedSocket.StartDrag())
+        {
+            sequenceFailed = true;
+            yield break;
+        }
+
+        markedSocket.MarkNextConnectionAsExample();
         var startPosition = markedSocket.transform.position;
         var elapsed = 0f;
 

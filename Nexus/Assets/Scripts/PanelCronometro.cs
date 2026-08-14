@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +10,6 @@ public sealed class PanelCronometro : MonoBehaviour
     private const string StartLabel = "Iniciar";
     private const string StopLabel = "Detener";
     private const string InitialTimeLabel = "00:00";
-    private const string ScoreLabel = "Puntaje: 0";
 
     [SerializeField] private GraphExampleSequence graphExampleSequence;
     [SerializeField] private AudioSource startAudio;
@@ -21,16 +21,24 @@ public sealed class PanelCronometro : MonoBehaviour
     [SerializeField] private Transform elevatorTopPointRef;
 
     private Button toggleButton;
+    private Button resetButton;
+    private RectTransform toggleButtonRect;
+    private RectTransform resetButtonRect;
     private TMP_Text toggleButtonText;
     private TMP_Text timerText;
     private TMP_Text scoreText;
     private Coroutine exampleStartCoroutine;
     private bool isRunning;
     private float elapsedSeconds;
+    private int score;
 
     private void Awake()
     {
-        toggleButton = GetComponentInChildren<Button>(true);
+        toggleButton = transform.Find("BotonControl")?.GetComponent<Button>()
+            ?? GetComponentInChildren<Button>(true);
+        resetButton = transform.Find("BotonReiniciar")?.GetComponent<Button>();
+        toggleButtonRect = toggleButton != null ? toggleButton.GetComponent<RectTransform>() : null;
+        resetButtonRect = resetButton != null ? resetButton.GetComponent<RectTransform>() : null;
         timerText = FindText("Cronometro");
         scoreText = FindText("Puntaje");
         toggleButtonText = toggleButton != null ? toggleButton.GetComponentInChildren<TMP_Text>(true) : null;
@@ -38,6 +46,11 @@ public sealed class PanelCronometro : MonoBehaviour
         if (toggleButton != null)
         {
             toggleButton.onClick.AddListener(HandleButtonPressed);
+        }
+
+        if (resetButton != null)
+        {
+            resetButton.onClick.AddListener(HandleResetPressed);
         }
 
         elapsedSeconds = 0f;
@@ -74,6 +87,7 @@ public sealed class PanelCronometro : MonoBehaviour
         else
         {
             CancelPendingExample();
+            startAudio?.Stop();
             demonstrationAudio?.Stop();
             PlayAudio(completionAudio);
             StartNonoReturnSequence();
@@ -106,6 +120,62 @@ public sealed class PanelCronometro : MonoBehaviour
         graphExampleSequence?.StartSequence();
         exampleStartCoroutine = null;
     }
+
+    /// <summary>Restores playable graph nodes and removes player-created edges without changing the stop flow.</summary>
+    public void ResetGraph()
+    {
+        var nodes = FindObjectsByType<GraphNode3D>(FindObjectsSortMode.None);
+        var sockets = new List<GraphSocket3D>(FindObjectsByType<GraphSocket3D>(FindObjectsSortMode.None));
+
+        foreach (var socket in sockets)
+        {
+            if (socket == null || (graphExampleSequence != null && graphExampleSequence.IsExampleNode(socket.OriginalOwnerNode)))
+            {
+                continue;
+            }
+
+            socket.ResetToOriginalState();
+        }
+
+        foreach (var node in nodes)
+        {
+            if (node == null || (graphExampleSequence != null && graphExampleSequence.IsExampleNode(node)))
+            {
+                continue;
+            }
+
+            node.ResetToInitialPose();
+        }
+
+        var edges = FindObjectsByType<GraphEdge>(FindObjectsSortMode.None);
+        foreach (var edge in edges)
+        {
+            if (edge == null)
+            {
+                continue;
+            }
+
+            bool isExampleEdge = graphExampleSequence != null && graphExampleSequence.IsExampleEdge(edge);
+            if (!isExampleEdge)
+            {
+                Destroy(edge.gameObject);
+            }
+        }
+
+        CancelPendingExample();
+        startAudio?.Stop();
+        demonstrationAudio?.Stop();
+        isRunning = false;
+        elapsedSeconds = 0f;
+        score = 0;
+        UpdateDisplay();
+    }
+
+    private void HandleResetPressed()
+    {
+        ResetGraph();
+    }
+
 
     private void CancelPendingExample()
     {
@@ -144,12 +214,38 @@ public sealed class PanelCronometro : MonoBehaviour
 
         if (scoreText != null)
         {
-            scoreText.text = ScoreLabel;
+            scoreText.text = $"Puntaje: {score}";
         }
 
         if (toggleButtonText != null)
         {
             toggleButtonText.text = isRunning ? StopLabel : StartLabel;
+        }
+
+        UpdateButtonLayout();
+    }
+
+    private void UpdateButtonLayout()
+    {
+        if (toggleButtonRect != null)
+        {
+            toggleButtonRect.anchoredPosition = isRunning
+                ? new Vector2(-170f, -250f)
+                : new Vector2(0f, -250f);
+            toggleButtonRect.sizeDelta = isRunning
+                ? new Vector2(300f, 140f)
+                : new Vector2(500f, 140f);
+        }
+
+        if (resetButtonRect != null)
+        {
+            resetButtonRect.anchoredPosition = new Vector2(170f, -250f);
+            resetButtonRect.sizeDelta = new Vector2(300f, 140f);
+        }
+
+        if (resetButton != null)
+        {
+            resetButton.gameObject.SetActive(isRunning);
         }
     }
 }

@@ -12,6 +12,14 @@ public sealed class GraphEdge : MonoBehaviour
     private GraphSocket3D _startSocket;
     private GraphSocket3D _endSocket;
     private Vector3 _freeEndPosition;
+    public bool PreserveOnReset { get; private set; }
+
+    /// <summary>Marks this edge as the demonstration edge that survives a graph reset.</summary>
+    public void SetPreserveOnReset(bool preserve)
+    {
+        PreserveOnReset = preserve;
+    }
+
     private bool _usesFreeEnd;
 
     private void Awake()
