@@ -1,10 +1,11 @@
-using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class PanelCronometro : MonoBehaviour
 {
+    private const float ExampleStartDelaySeconds = 2f;
     private const string StartLabel = "Iniciar";
     private const string StopLabel = "Detener";
     private const string InitialTimeLabel = "00:00";
@@ -12,12 +13,14 @@ public sealed class PanelCronometro : MonoBehaviour
 
     [SerializeField] private GraphExampleSequence graphExampleSequence;
     [SerializeField] private AudioSource startAudio;
+    [SerializeField] private AudioSource demonstrationAudio;
     [SerializeField] private AudioSource completionAudio;
 
     private Button toggleButton;
     private TMP_Text toggleButtonText;
     private TMP_Text timerText;
     private TMP_Text scoreText;
+    private Coroutine exampleStartCoroutine;
     private bool isRunning;
     private float elapsedSeconds;
 
@@ -33,22 +36,9 @@ public sealed class PanelCronometro : MonoBehaviour
             toggleButton.onClick.AddListener(HandleButtonPressed);
         }
 
-        if (graphExampleSequence != null)
-        {
-            graphExampleSequence.SequenceCompleted += HandleSequenceCompleted;
-        }
-
         elapsedSeconds = 0f;
         isRunning = false;
         UpdateDisplay();
-    }
-
-    private void OnDestroy()
-    {
-        if (graphExampleSequence != null)
-        {
-            graphExampleSequence.SequenceCompleted -= HandleSequenceCompleted;
-        }
     }
 
     private void Update()
@@ -62,7 +52,7 @@ public sealed class PanelCronometro : MonoBehaviour
         UpdateDisplay();
     }
 
-    /// <summary>Starts or pauses the timer and launches the graph example when starting from the panel.</summary>
+    /// <summary>Starts or pauses the timer and controls the configured graph example sequence.</summary>
     public void ToggleTimer()
     {
         HandleButtonPressed();
@@ -75,15 +65,45 @@ public sealed class PanelCronometro : MonoBehaviour
         if (isRunning)
         {
             PlayAudio(startAudio);
-            graphExampleSequence?.StartSequence();
+            exampleStartCoroutine = StartCoroutine(StartExampleAfterDelay());
+        }
+        else
+        {
+            CancelPendingExample();
+            PlayAudio(completionAudio);
         }
 
         UpdateDisplay();
     }
 
-    private void HandleSequenceCompleted()
+    private IEnumerator StartExampleAfterDelay()
     {
-        PlayAudio(completionAudio);
+        if (startAudio != null)
+        {
+            yield return new WaitWhile(() => startAudio.isPlaying);
+        }
+
+        yield return new WaitForSeconds(ExampleStartDelaySeconds);
+
+        if (!isRunning)
+        {
+            yield break;
+        }
+
+        PlayAudio(demonstrationAudio);
+        graphExampleSequence?.StartSequence();
+        exampleStartCoroutine = null;
+    }
+
+    private void CancelPendingExample()
+    {
+        if (exampleStartCoroutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(exampleStartCoroutine);
+        exampleStartCoroutine = null;
     }
 
     private static void PlayAudio(AudioSource audioSource)

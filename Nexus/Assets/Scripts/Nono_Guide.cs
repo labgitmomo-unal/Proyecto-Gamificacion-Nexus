@@ -7,6 +7,9 @@ public class Nono_Guide : MonoBehaviour
     [Header("Auto-flight (audio trigger)")]
     public bool autoListen = true;
     public List<AudioSource> audioSources;
+    [Header("Graph introduction")]
+    public AudioSource graphIntroAudio;
+
     public string autoTargetName = "Target_Panel_1";
 
     [Header("Look-at when idle")]
@@ -154,6 +157,11 @@ public class Nono_Guide : MonoBehaviour
                 idleY = transform.position.y;
                 autoListen = prevAutoListen;
                 elevatorPhase = ElevatorSequencePhase.FlyingToFinalDestination;
+                hasMoved = true;
+                if (graphIntroAudio != null)
+                {
+                    graphIntroAudio.Play();
+                }
                 FlyTo(seqFinalDestination);
             }
             return;
