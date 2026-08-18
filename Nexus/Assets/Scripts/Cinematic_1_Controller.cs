@@ -116,6 +116,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         for (int i = 0; i < _cachedLODGroups.Length; i++)
         {
             var lg = _cachedLODGroups[i];
+            if (lg == null) continue;
             if (lg.name.Contains("StreetBuilding") || lg.name.Contains("Building") || lg.name.Contains("Rounded"))
             {
                 lg.ForceLOD(ativo ? 2 : -1);
