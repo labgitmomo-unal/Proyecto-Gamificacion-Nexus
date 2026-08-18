@@ -12,7 +12,9 @@ namespace PatternPuzzle
     /// Mismo comportamiento que Timer / Timer_2 (cuenta atras en Watch,
     /// color de fondo segun el tiempo restante, alertas de audio en 75/50/25%)
     /// pero sin depender de una clase de progreso fija: notifica por UnityEvent
-    /// cuando el tiempo se agota y se detiene solo al completar el puzzle.
+    /// cuando el tiempo se agota. El temporizador sigue descontando al completar
+    /// cada reto; solo se detiene cuando se llama a StopTimer() (p. ej. al
+    /// completar el ultimo reto) o cuando el tiempo llega a cero.
     /// </summary>
     public class Timer_Patrones : MonoBehaviour
     {
@@ -26,10 +28,6 @@ namespace PatternPuzzle
 
         [Header("Audio")]
         [SerializeField] private AudioSource alertSource;
-
-        [Header("Progreso")]
-        [Tooltip("Opcional: al completarse se detiene el temporizador automaticamente.")]
-        [SerializeField] private PatternPuzzleManager manager;
 
         [Header("Eventos")]
         [Tooltip("Se invoca cuando el tiempo se agota.")]
@@ -45,18 +43,6 @@ namespace PatternPuzzle
         private bool alert75Played;
         private bool alert50Played;
         private bool alert25Played;
-
-        private void Start()
-        {
-            if (manager != null)
-                manager.onChallengeCompleted.AddListener(StopTimer);
-        }
-
-        private void OnDestroy()
-        {
-            if (manager != null)
-                manager.onChallengeCompleted.RemoveListener(StopTimer);
-        }
 
         public void Start_Timer()
         {
