@@ -83,5 +83,11 @@ unitycloud/
 # Fin del archivo
 # =========================================
 
-# ignora la carpeta del asset de la ciudad
+# ignora la carpeta del asset de la ciudad (tercero, grande, compartido fuera de git).
+# NOTA: el asset contiene Assets/_DLNK/.../RandomObjectSpawner.cs que colisiona con
+# nuestra versión propia en Assets/Scripts/RandomObjectSpawner.cs (CS0101/CS0111:
+# definición duplicada 'RandomObjectSpawner' en el namespace global). Al importar el
+# asset localmente, renombrar su script a DLNK_RandomObjectSpawner (clase y archivo .meta).
 Assets/_DLNK/
+# Defensivo: por si _DLNK/ se des-ignora, bloquear también el script conflictivo.
+Assets/_DLNK/**/RandomObjectSpawner.cs

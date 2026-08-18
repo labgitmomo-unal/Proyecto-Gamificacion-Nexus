@@ -90,6 +90,15 @@ public class ButtonSpawner : MonoBehaviour
             _scrollRect.verticalNormalizedPosition = 1f;
     }
 
+    private Transform AutoResolvePanel()
+    {
+        var sr = GetComponentInParent<ScrollRect>();
+        if (sr != null && sr.content != null) return sr.content;
+        var t = transform.Find("Panel");
+        if (t != null) return t;
+        return null;
+    }
+
     private void SpawnBotones(string json)
     {
         BotonDataList lista;
@@ -103,6 +112,22 @@ public class ButtonSpawner : MonoBehaviour
         if (lista == null || lista.botones == null || lista.botones.Count == 0)
         {
             Debug.LogWarning("[ButtonSpawner] JSON vacio o sin botones.");
+            return;
+        }
+
+        // Robustez: si 'panel' no está asignado en el inspector (p.ej. al restaurar
+        // la escena tras un merge), intentar resolverlo automáticamente.
+        if (panel == null)
+        {
+            panel = AutoResolvePanel();
+            if (panel != null && _scrollRect == null)
+                _scrollRect = panel.GetComponentInParent<ScrollRect>();
+        }
+        if (panel == null)
+        {
+            Debug.LogError("[ButtonSpawner] 'panel' no está asignado. Arrastra el " +
+                           "Transform del contenedor de botones al slot 'panel' del " +
+                           "ButtonSpawner en el inspector.");
             return;
         }
 
