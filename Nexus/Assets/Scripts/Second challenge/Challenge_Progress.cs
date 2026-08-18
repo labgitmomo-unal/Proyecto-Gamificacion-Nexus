@@ -152,7 +152,7 @@ public class Challenge_Progress : MonoBehaviour
         if (wasTimerExpired)
         {
             wasTimerExpired = false;
-            TryStartElevatorSequence();
+            // TryStartElevatorSequence();
         }
         else
         {
@@ -189,6 +189,7 @@ public class Challenge_Progress : MonoBehaviour
             yield return new WaitWhile(() => Indicator_Challenge_3.isPlaying);
 
         if (Nono_Guide.Instance != null && nonoDestination != null)
-            Nono_Guide.Instance.FlyTo(nonoDestination);
+            // Nono_Guide.Instance.FlyTo(nonoDestination);
+            TryStartElevatorSequence();
     }
 }
