@@ -34,7 +34,7 @@ public class TrafficCleanup : MonoBehaviour
         }
     }
 
-    void Cleanup()
+    public void Cleanup()
     {
         if (TrafficManager.Instance == null) return;
 

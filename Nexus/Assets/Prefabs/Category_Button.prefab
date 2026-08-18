@@ -150,6 +150,7 @@ GameObject:
   - component: {fileID: 7482866049555184217}
   - component: {fileID: 6983786517166104674}
   - component: {fileID: 1000312322949183805}
+  - component: {fileID: 1000312322949183806}
   m_Layer: 5
   m_Name: Category_Button
   m_TagString: Untagged
@@ -275,3 +276,20 @@ MonoBehaviour:
   background: {fileID: 7482866049555184217}
   button: {fileID: 6983786517166104674}
   categoryName: 
+--- !u!114 &1000312322949183806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6802351218194367729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d23088c9fc13cd34e98ebe2da3be7403, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category_Item_Button
+  textoUI: {fileID: 4141092598205967278}
+  background: {fileID: 7482866049555184217}
+  button: {fileID: 6983786517166104674}
+  texto: 
+  categoria: 

@@ -1079,10 +1079,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca114eca75be0c54c8fbbcce70ae135b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GraphGrabController
-  rightHand: {fileID: 1717954561962503726}
-  leftHand: {fileID: 1717954561962503726}
-  nodeGrabRadius: 0.5
-  socketGrabRadius: 0.25
+  rightAimTransform: {fileID: 0}
+  leftAimTransform: {fileID: 0}
+  maximumGrabDistance: 20
+  nodeLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  socketLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &1787516059220952802
 GameObject:
   m_ObjectHideFlags: 0

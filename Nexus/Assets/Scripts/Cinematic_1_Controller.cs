@@ -105,6 +105,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         AjustarLimitesTrafico(false);
         SuspenderAdaptiveQuality(false);
         SuspenderTrafficCleanup(false);
+        RestaurarTrafico();
         if (bridgeControl != null) bridgeControl.FreezeBridge();
         StartCoroutine(ShowLogoThenEnableXR());
         Challenge_Indicator_1.Play();
@@ -148,8 +149,8 @@ public class Cinematic_1_Controller : MonoBehaviour
         {
             if (cinematicActiva)
             {
-                cleanup.maxTrafficCars = 35;
-                cleanup.maxDistanceFromCamera = 150f;
+                cleanup.maxTrafficCars = 80;
+                cleanup.maxDistanceFromCamera = 300f;
             }
             else
             {
@@ -232,11 +233,16 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void MostrarCongestion()
     {
-        TrafficManager.Instance.SetVelocidad(0.4f);
+        // Congestión desde el inicio: tráfico lento y apretado, no a velocidad completa.
+        if (bridgeControl != null)
+            bridgeControl.AplicarCongestionInicial();
+        else
+            TrafficManager.Instance.SetVelocidad(1f);
+
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
             spawner.minSpawnInterval = 0.3f;
-            spawner.maxSpawnInterval = 1f;
+            spawner.maxSpawnInterval = 2f;
         }
     }
 
@@ -258,12 +264,8 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     private IEnumerator ShowLogoThenEnableXR()
     {
-        if (nexusLogo != null)
-            nexusLogo.SetActive(true);
-        yield return new WaitForSeconds(3f);
-        if (nexusLogo != null)
-            nexusLogo.SetActive(false);
         if (_xrCamera != null)
             _xrCamera.SetActive(true);
+        yield break;
     }
 }
