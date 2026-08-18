@@ -21,6 +21,8 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     private GraphNode3D _ownerNode;
     private GraphNode3D _originalOwnerNode;
+    private bool _preserveNextConnection;
+
     private bool _isDragging;
     private bool _isAttracting;
     private GraphSocket3D _attractionTargetSocket;
@@ -120,6 +122,26 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     public GraphNode3D OriginalOwnerNode => _originalOwnerNode;
 
+    /// <summary>Marks the next created graph edge as the demonstration edge.</summary>
+    public void MarkNextConnectionAsExample()
+    {
+        _preserveNextConnection = true;
+    }
+
+    /// <summary>Restores this socket, its parent window, and its connection to the initial state.</summary>
+    public void ResetToOriginalState()
+    {
+        RemoveExistingEdge();
+        _isDragging = false;
+        _isAttracting = false;
+        _windowAttractionEnabled = false;
+        _attractionTargetSocket = null;
+        _attractionTargetWindow = null;
+        _preserveNextConnection = false;
+        RestoreToOriginalWindow();
+    }
+
+
     public bool IsFreeBody => _rigidbodyReference != null
         && !_isDragging
         && !_isAttracting
@@ -162,10 +184,12 @@ public sealed class GraphSocket3D : MonoBehaviour
     }
 
     /// <summary>Begins a physical socket drag and caches its exact return pose.</summary>
-    public void StartDrag()
+    public bool StartDrag()
     {
         if (_isDragging || _isAttracting || originalWindowAnchor == null)
-            return;
+        {
+            return false;
+        }
 
         _isAttracting = false;
         _windowAttractionEnabled = false;
@@ -180,6 +204,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         transform.SetParent(_ownerNode != null ? _ownerNode.transform : null, true);
         _temporaryLine = CreateLine("TemporaryGraphCable");
         SetAlwaysOnVisualState();
+        return true;
     }
 
     /// <summary>Stores the next world-space position applied during the physics step.</summary>
@@ -264,6 +289,8 @@ public sealed class GraphSocket3D : MonoBehaviour
         var targetOwnerName = target._ownerNode != null ? target._ownerNode.name : target.name;
         var edgeObject = new GameObject($"GraphEdge_{ownerName}_{targetOwnerName}");
         var edge = edgeObject.AddComponent<GraphEdge>();
+        edge.SetPreserveOnReset(_preserveNextConnection);
+        _preserveNextConnection = false;
         edge.Initialize(originalWindowAnchor, targetWindow, edgeMaterial, lineWidth);
         _connectedEdge = edge;
         target.SetIncomingConnection(edge);
@@ -347,6 +374,13 @@ public sealed class GraphSocket3D : MonoBehaviour
         ClearTemporaryLine();
         if (originalWindowAnchor == null || !_hasCachedOriginalPose)
             return;
+
+        if (_ownerNode != _originalOwnerNode)
+        {
+            _ownerNode?.RemoveAssignedSocket(this);
+            _originalOwnerNode?.AddAssignedSocket(this);
+            _ownerNode = _originalOwnerNode;
+        }
 
         attachedWindowAnchor = originalWindowAnchor;
         transform.SetParent(originalWindowAnchor, false);

@@ -1,8 +1,9 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>Runs the example graph movement sequence when the K key is pressed.</summary>
+/// <summary>Runs the example graph movement sequence from the K key or the graph panel.</summary>
 public sealed class GraphExampleSequence : MonoBehaviour
 {
     private const float DefaultNodeMoveDuration = 1.5f;
@@ -19,37 +20,81 @@ public sealed class GraphExampleSequence : MonoBehaviour
     [SerializeField] private float socketMoveDuration = DefaultSocketMoveDuration;
     [SerializeField] private float nodeSettleDuration = DefaultNodeSettleDuration;
 
-    private bool _sequenceRunning;
+    private bool sequenceRunning;
+    private bool sequenceFailed;
+
+    /// <summary>Raised when the example finishes moving the nodes and connecting the socket.</summary>
+    public event Action SequenceCompleted;
+    /// <summary>Returns whether a node belongs to the protected demonstration.</summary>
+    public bool IsExampleNode(GraphNode3D node)
+    {
+        return node != null && (node == firstExampleNode || node == secondExampleNode);
+    }
+
+    /// <summary>Returns whether an edge is the protected demonstration edge.</summary>
+    public bool IsExampleEdge(GraphEdge edge)
+    {
+        return edge != null && edge.PreserveOnReset;
+    }
+
 
     private void Update()
     {
         if (Keyboard.current != null
-            && Keyboard.current.kKey.wasPressedThisFrame
-            && !_sequenceRunning)
+            && Keyboard.current.kKey.wasPressedThisFrame)
         {
-            StartCoroutine(RunSequence());
+            StartSequence();
         }
+    }
+
+    /// <summary>Starts the configured example sequence unless it is already running.</summary>
+    public void StartSequence()
+    {
+        if (sequenceRunning)
+        {
+            return;
+        }
+
+        StartCoroutine(RunSequence());
+    }
+
+    /// <summary>Returns whether the example sequence is currently moving nodes or sockets.</summary>
+    public bool IsSequenceRunning()
+    {
+        return sequenceRunning;
     }
 
     private IEnumerator RunSequence()
     {
         if (!AreReferencesValid())
+        {
             yield break;
+        }
 
-        _sequenceRunning = true;
+        sequenceRunning = true;
+        sequenceFailed = false;
         SetExampleSocketInterpolation(RigidbodyInterpolation.None);
         yield return MoveNode(firstExampleNode, firstDestination);
         yield return MoveNode(secondExampleNode, secondDestination);
         SetExampleSocketInterpolation(RigidbodyInterpolation.Interpolate);
         yield return MoveSocketToTarget();
-        _sequenceRunning = false;
+        if (sequenceFailed)
+        {
+            sequenceRunning = false;
+            yield break;
+        }
+
+        sequenceRunning = false;
+        SequenceCompleted?.Invoke();
     }
 
     private IEnumerator MoveNode(GraphNode3D node, Transform destination)
     {
         var body = node.PhysicsBody;
         if (body == null)
+        {
             yield break;
+        }
 
         var startPosition = body.position;
         var elapsed = 0f;
@@ -75,7 +120,13 @@ public sealed class GraphExampleSequence : MonoBehaviour
 
     private IEnumerator MoveSocketToTarget()
     {
-        markedSocket.StartDrag();
+        if (!markedSocket.StartDrag())
+        {
+            sequenceFailed = true;
+            yield break;
+        }
+
+        markedSocket.MarkNextConnectionAsExample();
         var startPosition = markedSocket.transform.position;
         var elapsed = 0f;
 
@@ -104,13 +155,17 @@ public sealed class GraphExampleSequence : MonoBehaviour
     private static void SetSocketInterpolation(GraphNode3D node, RigidbodyInterpolation interpolation)
     {
         if (node == null)
+        {
             return;
+        }
 
         foreach (var socket in node.Sockets)
         {
             var socketBody = socket != null ? socket.GetComponent<Rigidbody>() : null;
             if (socketBody == null)
+            {
                 continue;
+            }
 
             socketBody.interpolation = interpolation;
             socketBody.linearVelocity = Vector3.zero;

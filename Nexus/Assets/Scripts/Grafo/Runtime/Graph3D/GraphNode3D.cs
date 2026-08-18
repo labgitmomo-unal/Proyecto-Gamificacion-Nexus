@@ -21,6 +21,10 @@ public sealed class GraphNode3D : MonoBehaviour
     private readonly List<GraphSocket3D> _sockets = new();
     private Rigidbody _rigidbody;
     private bool _initialized;
+    private Vector3 _initialPosition;
+    private Quaternion _initialRotation;
+    private Vector3 _initialLocalScale;
+
 
     public IReadOnlyList<GraphSocket3D> Sockets => _sockets;
 
@@ -41,6 +45,9 @@ public sealed class GraphNode3D : MonoBehaviour
         if (_initialized)
             return;
 
+        _initialPosition = transform.position;
+        _initialRotation = transform.rotation;
+        _initialLocalScale = transform.localScale;
         _initialized = true;
         ConfigureNodeInteraction();
         RegisterPersistentSockets();
@@ -103,6 +110,23 @@ public sealed class GraphNode3D : MonoBehaviour
         _rigidbody.useGravity = true;
         _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
         _rigidbody.WakeUp();
+    }
+
+    /// <summary>Restores this node root to the pose captured when it was initialized.</summary>
+    public void ResetToInitialPose()
+    {
+        Initialize();
+        if (_rigidbody == null)
+            return;
+
+        _rigidbody.isKinematic = true;
+        _rigidbody.linearVelocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
+        transform.SetPositionAndRotation(_initialPosition, _initialRotation);
+        transform.localScale = _initialLocalScale;
+        _rigidbody.position = _initialPosition;
+        _rigidbody.rotation = _initialRotation;
+        SetReleasedPhysicsState();
     }
 
     internal void AddAssignedSocket(GraphSocket3D socket)
