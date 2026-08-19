@@ -13,6 +13,7 @@ public class Nono_Guide : MonoBehaviour
     public string autoTargetName = "Target_Panel_1";
 
     [Header("Look-at when idle")]
+    public bool facePlayer = true;
     public Transform lookAtTarget;
     public float rotateSpeed = 3f;
 
@@ -55,6 +56,7 @@ public class Nono_Guide : MonoBehaviour
     private float elevatorBottomY;
     private bool hasReachedGraphDestination;
     private bool prevAutoListen;
+    private bool isAttachedToElevator;
 
     private bool audioWasPlaying;
     private bool hasMoved;
@@ -81,14 +83,7 @@ public class Nono_Guide : MonoBehaviour
             autoTargetName = "Target_Panel_1";
         }
 
-        if (lookAtTarget == null)
-        {
-            var go = GameObject.Find("Nono_Facing_Target");
-            if (go != null)
-            {
-                lookAtTarget = go.transform;
-            }
-        }
+        ResolvePlayerLookTarget();
     }
 
     [ContextMenu("Find References")]
@@ -132,6 +127,13 @@ public class Nono_Guide : MonoBehaviour
             }
         }
 
+        ResolvePlayerLookTarget();
+
+        if (isAttachedToElevator)
+        {
+            RotateTowardsLookAtTarget();
+        }
+
         if (elevatorPhase == ElevatorSequencePhase.WaitingForElevatorMovement)
         {
             if (seqElevator == null)
@@ -141,8 +143,8 @@ public class Nono_Guide : MonoBehaviour
             }
 
             float currentElevatorY = seqElevator.position.y;
-            float deltaY = currentElevatorY - lastElevatorY;
-            if (deltaY > elevatorMovementThreshold)
+            float elevatorDisplacement = currentElevatorY - elevatorBottomY;
+            if (elevatorDisplacement > elevatorMovementThreshold)
             {
                 elevatorPhase = ElevatorSequencePhase.FollowingElevator;
                 lastElevatorY = currentElevatorY;
@@ -159,17 +161,12 @@ public class Nono_Guide : MonoBehaviour
             }
 
             float currentElevatorY = seqElevator.position.y;
-            float deltaY = currentElevatorY - lastElevatorY;
-            Vector3 pos = transform.position;
-            pos.y += deltaY;
-            pos.y = Mathf.Min(pos.y, elevatorTopY);
-            transform.position = pos;
             lastElevatorY = currentElevatorY;
 
-            float nonoDistToP2 = Mathf.Abs(transform.position.y - seqElevatorTopPoint.position.y);
-            float elevatorDistToP2 = Mathf.Abs(seqElevator.position.y - seqElevatorTopPoint.position.y);
-            if (nonoDistToP2 < elevatorArrivalThreshold && elevatorDistToP2 < elevatorArrivalThreshold)
+            float elevatorDistToP2 = Mathf.Abs(currentElevatorY - (seqElevatorTopPoint.position.y - (seqBoardingPoint.position.y - elevatorBottomY)));
+            if (elevatorDistToP2 < elevatorArrivalThreshold)
             {
+                DetachFromElevator();
                 idleY = transform.position.y;
                 autoListen = prevAutoListen;
                 elevatorPhase = ElevatorSequencePhase.FlyingToFinalDestination;
@@ -210,16 +207,11 @@ public class Nono_Guide : MonoBehaviour
             }
 
             float currentElevatorY = seqElevator.position.y;
-            float deltaY = currentElevatorY - lastElevatorY;
-            Vector3 pos = transform.position;
-            pos.y += deltaY;
-            pos.y = Mathf.Max(pos.y, seqBoardingPoint.position.y);
-            transform.position = pos;
             lastElevatorY = currentElevatorY;
 
-            if (Mathf.Abs(currentElevatorY - elevatorBottomY) < elevatorArrivalThreshold
-                && Mathf.Abs(transform.position.y - seqBoardingPoint.position.y) < elevatorArrivalThreshold)
+            if (Mathf.Abs(currentElevatorY - elevatorBottomY) < elevatorArrivalThreshold)
             {
+                DetachFromElevator();
                 idleY = transform.position.y;
                 elevatorPhase = ElevatorSequencePhase.ReturningToBoardingPoint;
                 FlyTo(seqBoardingPoint);
@@ -254,21 +246,49 @@ public class Nono_Guide : MonoBehaviour
             pos.y = idleY + Mathf.Sin(Time.time * floatFrequency) * floatAmplitude;
             transform.position = pos;
 
-            if (lookAtTarget != null)
+            RotateTowardsLookAtTarget();
+        }
+    }
+
+    private void ResolvePlayerLookTarget()
+    {
+        if (!facePlayer)
+        {
+            if (lookAtTarget == null)
             {
-                Vector3 lookDir = lookAtTarget.position - transform.position;
-                lookDir.y = 0;
-                if (lookDir.sqrMagnitude > 0.001f)
+                var fallback = GameObject.Find("Nono_Facing_Target");
+                if (fallback != null)
                 {
-                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDir.normalized, Vector3.up), Time.deltaTime * rotateSpeed);
+                    lookAtTarget = fallback.transform;
                 }
             }
+            return;
         }
+
+        Camera playerCamera = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
+        if (playerCamera != null)
+        {
+            lookAtTarget = playerCamera.transform;
+        }
+    }
+
+    private void RotateTowardsLookAtTarget()
+    {
+        if (lookAtTarget == null) return;
+
+        Vector3 lookDir = lookAtTarget.position - transform.position;
+        lookDir.y = 0;
+        if (lookDir.sqrMagnitude <= 0.001f) return;
+
+        Quaternion targetRotation = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            Time.deltaTime * rotateSpeed);
     }
 
     private bool IsAnyAudioPlaying()
     {
-        if (audioSources == null) return false;
         for (int i = 0; i < audioSources.Count; i++)
         {
             if (audioSources[i] != null && audioSources[i].isPlaying)
@@ -389,6 +409,24 @@ public class Nono_Guide : MonoBehaviour
         FlyTo(seqElevatorTopPoint);
     }
 
+    private void AttachToElevator()
+    {
+        if (seqElevator == null || isAttachedToElevator) return;
+
+        transform.SetParent(seqElevator, true);
+        isAttachedToElevator = true;
+        Debug.Log("[Nono_Guide] Nono attached to elevator for synchronized movement.");
+    }
+
+    private void DetachFromElevator()
+    {
+        if (!isAttachedToElevator) return;
+
+        transform.SetParent(null, true);
+        isAttachedToElevator = false;
+        Debug.Log("[Nono_Guide] Nono detached from elevator at upper reference.");
+    }
+
     private void HandleElevatorSequenceArrival()
     {
         switch (elevatorPhase)
@@ -399,6 +437,7 @@ public class Nono_Guide : MonoBehaviour
                     CancelElevatorSequence();
                     return;
                 }
+                AttachToElevator();
                 lastElevatorY = seqElevator.position.y;
                 elevatorPhase = ElevatorSequencePhase.WaitingForElevatorMovement;
                 break;
@@ -420,6 +459,7 @@ public class Nono_Guide : MonoBehaviour
                     CancelElevatorSequence();
                     return;
                 }
+                AttachToElevator();
                 lastElevatorY = seqElevator.position.y;
                 elevatorPhase = ElevatorSequencePhase.WaitingForElevatorDescent;
                 break;
@@ -439,6 +479,7 @@ public class Nono_Guide : MonoBehaviour
 
     private void CancelElevatorSequence()
     {
+        DetachFromElevator();
         elevatorPhase = ElevatorSequencePhase.None;
         autoListen = prevAutoListen;
         seqElevator = null;

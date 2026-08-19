@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -18,7 +19,16 @@ public sealed class GraphGrabController : MonoBehaviour
     private readonly RaycastHit[] _nodeRaycastHits = new RaycastHit[RaycastHitCapacity];
     private readonly RaycastHit[] _socketRaycastHits = new RaycastHit[RaycastHitCapacity];
 
+    private sealed class SocketInterpolationState
+    {
+        public Rigidbody Body;
+        public RigidbodyInterpolation Interpolation;
+    }
+
+    private readonly List<SocketInterpolationState> _heldNodeSocketInterpolation = new();
+
     private GraphNode3D _heldNode;
+    private GraphNode3D _capturedInterpolationNode;
     private Rigidbody _heldNodeBody;
     private float _nodeRayDistance;
     private Vector3 _nodeRootOffset;
@@ -34,6 +44,7 @@ public sealed class GraphGrabController : MonoBehaviour
 
     private bool _rightPressed;
     private bool _leftPressed;
+    private bool _nodeReleasePending;
 
     private void Update()
     {
@@ -53,7 +64,7 @@ public sealed class GraphGrabController : MonoBehaviour
 
     private void OnDisable()
     {
-        ReleaseNode();
+        ReleaseNodeImmediately();
         if (_heldSocket != null)
             _heldSocket.CancelDrag();
         _heldSocket = null;
@@ -74,7 +85,7 @@ public sealed class GraphGrabController : MonoBehaviour
         else if (releasing && _rightPressed)
         {
             _rightPressed = false;
-            ReleaseNode();
+            RequestNodeRelease();
         }
     }
 
@@ -142,6 +153,7 @@ public sealed class GraphGrabController : MonoBehaviour
         _nodeGrabStartVelocity = closestBody.linearVelocity;
         _nodeGrabStartAngularVelocity = closestBody.angularVelocity;
 
+        CaptureSocketInterpolation(closestNode);
         closestNode.SetGrabbedPhysicsState();
         closestBody.linearVelocity = Vector3.zero;
         closestBody.angularVelocity = Vector3.zero;
@@ -208,19 +220,102 @@ public sealed class GraphGrabController : MonoBehaviour
 
         if (_heldSocket != null)
             _heldSocket.ApplyDragMovement();
+
+        if (_nodeReleasePending)
+            FinalizePendingNodeRelease();
     }
 
-    private void ReleaseNode()
+    private void RequestNodeRelease()
     {
-        if (_heldNode != null && _heldNodeBody != null)
+        if (_heldNode == null || _heldNodeBody == null)
+            return;
+
+        _nodeReleasePending = true;
+    }
+
+    private void ReleaseNodeImmediately()
+    {
+        if (_heldNode == null || _heldNodeBody == null)
         {
-            _heldNode.SetReleasedPhysicsState();
-            _heldNodeBody.linearVelocity = Vector3.zero;
-            _heldNodeBody.angularVelocity = Vector3.zero;
+            RestoreSocketInterpolation();
+            _nodeReleasePending = false;
+            return;
         }
 
+        if (_heldNodeBody.isKinematic)
+        {
+            _heldNodeBody.MovePosition(_nodeTargetPosition);
+            _heldNodeBody.MoveRotation(_nodeTargetRotation);
+        }
+
+        FinalizePendingNodeRelease();
+    }
+
+    private void FinalizePendingNodeRelease()
+    {
+        if (_heldNode == null || _heldNodeBody == null)
+        {
+            RestoreSocketInterpolation();
+            _nodeReleasePending = false;
+            return;
+        }
+
+        if (_heldNodeBody.isKinematic)
+        {
+            _heldNodeBody.MovePosition(_nodeTargetPosition);
+            _heldNodeBody.MoveRotation(_nodeTargetRotation);
+        }
+
+        var releasedNode = _heldNode;
+        releasedNode.SetReleasedPhysicsState();
+        _heldNodeBody.linearVelocity = Vector3.zero;
+        _heldNodeBody.angularVelocity = Vector3.zero;
+        RestoreSocketInterpolation(releasedNode);
         _heldNode = null;
         _heldNodeBody = null;
+        _nodeReleasePending = false;
+    }
+
+    private void CaptureSocketInterpolation(GraphNode3D node)
+    {
+        RestoreSocketInterpolation();
+        _capturedInterpolationNode = node;
+        if (node == null)
+            return;
+
+        foreach (var socket in node.Sockets)
+        {
+            var body = socket != null ? socket.GetComponent<Rigidbody>() : null;
+            if (body == null)
+                continue;
+
+            _heldNodeSocketInterpolation.Add(new SocketInterpolationState
+            {
+                Body = body,
+                Interpolation = body.interpolation
+            });
+            body.interpolation = RigidbodyInterpolation.None;
+        }
+    }
+
+    private void RestoreSocketInterpolation(GraphNode3D node)
+    {
+        if (_capturedInterpolationNode != node)
+            return;
+
+        RestoreSocketInterpolation();
+    }
+
+    private void RestoreSocketInterpolation()
+    {
+        foreach (var state in _heldNodeSocketInterpolation)
+        {
+            if (state?.Body != null)
+                state.Body.interpolation = state.Interpolation;
+        }
+
+        _heldNodeSocketInterpolation.Clear();
+        _capturedInterpolationNode = null;
     }
 
     private void ReleaseSocket()

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -18,6 +19,19 @@ public sealed class GraphSocket3D : MonoBehaviour
     [SerializeField] private Transform originalWindowAnchor;
     [SerializeField] private Transform attachedWindowAnchor;
     [SerializeField] private Rigidbody _rigidbodyReference;
+
+    private sealed class SuspendedConnection
+    {
+        public GraphEdge Edge;
+        public GraphSocket3D TargetSocket;
+        public Transform TargetWindow;
+        public Material Material;
+        public float Width;
+        public bool PreserveOnReset;
+    }
+
+    private readonly List<GraphEdge> _connectedEdges = new();
+    private readonly List<SuspendedConnection> _suspendedConnections = new();
 
     private GraphNode3D _ownerNode;
     private GraphNode3D _originalOwnerNode;
@@ -131,7 +145,8 @@ public sealed class GraphSocket3D : MonoBehaviour
     /// <summary>Restores this socket, its parent window, and its connection to the initial state.</summary>
     public void ResetToOriginalState()
     {
-        RemoveExistingEdge();
+        RemoveAllConnections();
+        _suspendedConnections.Clear();
         _isDragging = false;
         _isAttracting = false;
         _windowAttractionEnabled = false;
@@ -153,11 +168,10 @@ public sealed class GraphSocket3D : MonoBehaviour
         if (window == null || !IsFreeBody || originalWindowAnchor == null)
             return false;
 
-        RemoveExistingEdge();
-        var edgeObject = new GameObject($"GraphEdge_{originalWindowAnchor.name}_{window.name}");
-        var edge = edgeObject.AddComponent<GraphEdge>();
-        edge.Initialize(originalWindowAnchor, window.transform, edgeMaterial, lineWidth);
-        _connectedEdge = edge;
+        RemoveOwnConnections();
+        var edge = CreatePersistentEdge(window.AnchorSocket, window.transform);
+        if (edge == null)
+            return false;
         ClearTemporaryLine();
         AttachToWindow(window.transform, true);
         SetAnchoredPhysicsState();
@@ -196,8 +210,8 @@ public sealed class GraphSocket3D : MonoBehaviour
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
         CacheOriginalAnchorPose();
+        CaptureOwnConnectionsForDrag();
         _isDragging = true;
-        RemoveExistingEdge();
         ClearTemporaryLine();
         SetInteractionColliders(false);
         SetAnchoredPhysicsState();
@@ -238,10 +252,6 @@ public sealed class GraphSocket3D : MonoBehaviour
         }
 
         var targetWindow = target.attachedWindowAnchor;
-        var displacedSocket = target.FindSocketOccupyingWindow(targetWindow);
-        if (displacedSocket != null)
-            displacedSocket.RestoreToOriginalWindow();
-
         if (target._ownerNode != null)
             target._ownerNode.IgnoreSocketCollisions(this);
         _windowAttractionEnabled = true;
@@ -284,16 +294,15 @@ public sealed class GraphSocket3D : MonoBehaviour
         _isAttracting = false;
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
-        target.RemoveExistingEdge();
-        var ownerName = _ownerNode != null ? _ownerNode.name : name;
-        var targetOwnerName = target._ownerNode != null ? target._ownerNode.name : target.name;
-        var edgeObject = new GameObject($"GraphEdge_{ownerName}_{targetOwnerName}");
-        var edge = edgeObject.AddComponent<GraphEdge>();
-        edge.SetPreserveOnReset(_preserveNextConnection);
+        RemoveSuspendedConnections();
+        var preserveOnReset = _preserveNextConnection;
+        var edge = CreatePersistentEdge(target, targetWindow, edgeMaterial, lineWidth, preserveOnReset);
+        if (edge == null)
+        {
+            RestoreToOriginalWindow();
+            return;
+        }
         _preserveNextConnection = false;
-        edge.Initialize(originalWindowAnchor, targetWindow, edgeMaterial, lineWidth);
-        _connectedEdge = edge;
-        target.SetIncomingConnection(edge);
         AttachToWindow(targetWindow);
         SetInteractionColliders(true);
         SetAnchoredPhysicsState();
@@ -307,6 +316,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
         ClearTemporaryLine();
+        RestoreSuspendedConnections();
         transform.SetParent(null, true);
         if (_rigidbodyReference == null)
             return;
@@ -320,9 +330,21 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     internal void NotifyEdgeRemoved(GraphEdge edge)
     {
-        if (_connectedEdge == edge)
-            _connectedEdge = null;
+        if (edge != null)
+            _connectedEdges.Remove(edge);
         SetAlwaysOnVisualState();
+    }
+
+    internal void RegisterEdge(GraphEdge edge)
+    {
+        if (edge != null && !_connectedEdges.Contains(edge))
+            _connectedEdges.Add(edge);
+    }
+
+    internal void UnregisterEdge(GraphEdge edge)
+    {
+        if (edge != null)
+            _connectedEdges.Remove(edge);
     }
 
     private void SetInteractionColliders(bool enabled)
@@ -373,7 +395,10 @@ public sealed class GraphSocket3D : MonoBehaviour
     {
         ClearTemporaryLine();
         if (originalWindowAnchor == null || !_hasCachedOriginalPose)
+        {
+            RestoreSuspendedConnections();
             return;
+        }
 
         if (_ownerNode != _originalOwnerNode)
         {
@@ -391,6 +416,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         SetInteractionColliders(true);
         SetAnchoredPhysicsState();
         SetAlwaysOnVisualState();
+        RestoreSuspendedConnections();
     }
 
     private void SetAnchoredPhysicsState()
@@ -454,31 +480,122 @@ public sealed class GraphSocket3D : MonoBehaviour
         return closest;
     }
 
-    private GraphSocket3D FindSocketOccupyingWindow(Transform window)
+    private void CaptureOwnConnectionsForDrag()
     {
-        if (_ownerNode == null || window == null)
-            return null;
-        foreach (var socket in _ownerNode.Sockets)
+        _suspendedConnections.Clear();
+        CleanupInvalidConnections();
+        foreach (var edge in _connectedEdges)
         {
-            if (socket != null && socket != this && socket.attachedWindowAnchor == window)
-                return socket;
+            if (edge == null || edge.StartSocket != this)
+                continue;
+
+            edge.SetVisible(false);
+            _suspendedConnections.Add(new SuspendedConnection
+            {
+                Edge = edge,
+                TargetSocket = edge.EndSocket,
+                TargetWindow = edge.EndPoint,
+                Material = edgeMaterial,
+                Width = lineWidth,
+                PreserveOnReset = edge.PreserveOnReset
+            });
         }
-        return null;
     }
 
-    private void SetIncomingConnection(GraphEdge edge)
+    private void RestoreSuspendedConnections()
     {
-        _connectedEdge = edge;
-        SetAlwaysOnVisualState();
-    }
-
-    private void RemoveExistingEdge()
-    {
-        if (_connectedEdge == null)
+        if (_suspendedConnections.Count == 0)
             return;
-        var edge = _connectedEdge;
-        _connectedEdge = null;
-        Destroy(edge.gameObject);
+
+        foreach (var connection in _suspendedConnections)
+        {
+            if (connection == null || connection.TargetWindow == null || connection.TargetWindow == originalWindowAnchor)
+            {
+                if (connection?.Edge != null)
+                    Destroy(connection.Edge.gameObject);
+                continue;
+            }
+
+            if (connection.Edge != null && connection.Edge.EndPoint != null)
+            {
+                connection.Edge.SetVisible(true);
+                RegisterEdge(connection.Edge);
+                continue;
+            }
+
+            if (connection.Edge != null)
+                Destroy(connection.Edge.gameObject);
+            CreatePersistentEdge(
+                connection.TargetSocket,
+                connection.TargetWindow,
+                connection.Material,
+                connection.Width,
+                connection.PreserveOnReset);
+        }
+
+        _suspendedConnections.Clear();
+    }
+
+    private void RemoveSuspendedConnections()
+    {
+        RemoveOwnConnections();
+        _suspendedConnections.Clear();
+    }
+
+    private void RemoveAllConnections()
+    {
+        foreach (var edge in new List<GraphEdge>(_connectedEdges))
+        {
+            if (edge == null)
+                continue;
+            _connectedEdges.Remove(edge);
+            Destroy(edge.gameObject);
+        }
+
+        _connectedEdges.Clear();
+    }
+
+    private void RemoveOwnConnections()
+    {
+        foreach (var edge in new List<GraphEdge>(_connectedEdges))
+        {
+            if (edge == null || edge.StartSocket != this)
+                continue;
+            _connectedEdges.Remove(edge);
+            Destroy(edge.gameObject);
+        }
+    }
+
+    private void CleanupInvalidConnections()
+    {
+        _connectedEdges.RemoveAll(edge => edge == null);
+    }
+
+    private GraphEdge CreatePersistentEdge(
+        GraphSocket3D targetSocket,
+        Transform targetWindow,
+        Material material = null,
+        float width = -1f,
+        bool preserveOnReset = false)
+    {
+        if (originalWindowAnchor == null || targetWindow == null)
+            return null;
+
+        var ownerName = _ownerNode != null ? _ownerNode.name : name;
+        var targetOwnerName = targetSocket != null && targetSocket._ownerNode != null
+            ? targetSocket._ownerNode.name
+            : targetWindow.name;
+        var edgeObject = new GameObject($"GraphEdge_{ownerName}_{targetOwnerName}");
+        var edge = edgeObject.AddComponent<GraphEdge>();
+        edge.SetPreserveOnReset(preserveOnReset);
+        edge.Initialize(
+            this,
+            targetSocket,
+            originalWindowAnchor,
+            targetWindow,
+            material != null ? material : edgeMaterial,
+            width >= 0f ? width : lineWidth);
+        return edge;
     }
 
     private void AttachToWindow(Transform targetWindow, bool preserveWorldPose = false)

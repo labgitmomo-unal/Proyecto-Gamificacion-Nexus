@@ -27,8 +27,9 @@ public class Challenge_Progress : MonoBehaviour
     [SerializeField] private AudioSource Challenge_Complete_Sound;
     public AudioSource Indicator_Challenge_3;
 
+    private const string TimeoutMessage = "Tiempo\nAgotado";
+
     private bool audioPlayed = false;
-    private bool wasTimerExpired = false;
 
     private int remainingItems;
     private int failedItems;
@@ -87,16 +88,16 @@ public class Challenge_Progress : MonoBehaviour
     public void TimeExpired()
     {
         failedItems = remainingItems;
-        wasTimerExpired = true;
 
         Debug.Log(
             $"Quedaron {failedItems} items sin clasificar"
         );
 
-        BlockItemsPanel("Tiempo\nAgotado");
+        BlockItemsPanel(TimeoutMessage, false);
+        TryStartElevatorSequence();
     }
 
-    private void BlockItemsPanel(string mensaje)
+    private void BlockItemsPanel(string mensaje, bool waitForIndicator = true)
     {
         if (Challenge_Complete_Sound != null)
             Challenge_Complete_Sound.Play();
@@ -149,15 +150,40 @@ public class Challenge_Progress : MonoBehaviour
                 Indicator_Challenge_3.Play();
         }
 
-        if (wasTimerExpired)
-        {
-            wasTimerExpired = false;
-            // TryStartElevatorSequence();
-        }
-        else
-        {
+        if (waitForIndicator)
             StartCoroutine(EsperarAudioYVolar());
+    }
+
+    private void MoveNonoToBoardingPointAfterTimeout()
+    {
+        if (Nono_Guide.Instance == null)
+        {
+            Debug.LogWarning("[Challenge_Progress] Nono_Guide.Instance es null al terminar el tiempo.");
+            return;
         }
+
+        if (boardingPointRef == null)
+        {
+            Debug.LogWarning("[Challenge_Progress] boardingPointRef es null al terminar el tiempo.");
+            return;
+        }
+
+        if (Nono_Guide.Instance.IsElevatorSequenceActive)
+        {
+            Debug.LogWarning("[Challenge_Progress] Nono ya tiene una secuencia de ascensor activa.");
+            return;
+        }
+
+        Transform destination = nonoDestination != null ? nonoDestination : boardingPointRef;
+        if (destination == null)
+        {
+            Debug.LogWarning("[Challenge_Progress] No hay destino configurado para Nono al terminar el tiempo.");
+            return;
+        }
+
+        Nono_Guide.Instance.DisableAutoListen();
+        Nono_Guide.Instance.FlyTo(destination);
+        Debug.Log($"[Challenge_Progress] Tiempo agotado: Nono volando directamente a {destination.name}.");
     }
 
     private void TryStartElevatorSequence()
@@ -180,6 +206,7 @@ public class Challenge_Progress : MonoBehaviour
             return;
         }
 
+        Debug.Log("[Challenge_Progress] Iniciando secuencia de Nono hacia ReferenciaMomoAscensorP1.");
         Nono_Guide.Instance.StartElevatorSequence(elevatorRef, boardingPointRef, elevatorTopPointRef, finalDestinationRef);
     }
 
