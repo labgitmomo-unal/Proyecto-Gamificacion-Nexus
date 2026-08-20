@@ -33,6 +33,13 @@ namespace PatternPuzzle
         [Tooltip("Se invoca cuando la cuenta regresiva comienza.")]
         public UnityEvent onTimerStarted;
 
+        [Header("Reto 2 - Revelar")]
+        [Tooltip("Indicador de teleport del Reto 2. Se activa al completar el Reto 1.")]
+        public GameObject smTeleportIndicator2;
+
+        [Tooltip("Trigger/panel de activacion del Reto 2. Se activa al completar el Reto 1.")]
+        public GameObject activacionPanel;
+
         public bool IsIntroPlaying { get; private set; }
 
         private Coroutine sirenRoutine;
@@ -41,6 +48,19 @@ namespace PatternPuzzle
         {
             if (timer == null)
                 timer = FindFirstObjectByType<Timer_Patrones>();
+        }
+
+        private void Start()
+        {
+            var reto1 = FindFirstObjectByType<PatternPuzzleManager>();
+            if (reto1 != null)
+            {
+                reto1.onChallengeCompleted.AddListener(OnReto1Completado);
+            }
+            else
+            {
+                Debug.LogWarning("[Nivel_Patrones_Organizer] No se encontro PatternPuzzleManager del Reto 1 para revelar el Reto 2.");
+            }
         }
 
         public void StartLevelIntro()
@@ -83,9 +103,10 @@ namespace PatternPuzzle
 
             while (true)
             {
-                yield return new WaitForSeconds(interval);
                 if (sirenAudio != null)
                     sirenAudio.Play();
+
+                yield return new WaitForSeconds(interval);
             }
         }
 
@@ -111,6 +132,17 @@ namespace PatternPuzzle
             StartSirenLoop();
             onTimerStarted?.Invoke();
             Debug.Log("[Nivel_Patrones_Organizer] Cuenta regresiva iniciada.");
+        }
+
+        public void OnReto1Completado()
+        {
+            if (smTeleportIndicator2 != null)
+                smTeleportIndicator2.SetActive(true);
+
+            if (activacionPanel != null)
+                activacionPanel.SetActive(true);
+
+            Debug.Log("[Nivel_Patrones_Organizer] Reto 1 completado: Reto 2 revelado.");
         }
     }
 }

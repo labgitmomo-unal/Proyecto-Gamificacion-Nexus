@@ -248,11 +248,14 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void RestaurarTrafico()
     {
-        TrafficManager.Instance.RestaurarVelocidad();
+        // El flujo debe seguir viéndose igual que durante la cinemática
+        // (tráfico denso y a velocidad de trancón). No restauramos la
+        // velocidad completa: RestaurarVelocidad() volvería a la velocidad
+        // original alta y el tráfico se vería más fluido.
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
-            spawner.minSpawnInterval = 0.5f;
-            spawner.maxSpawnInterval = 4f;
+            spawner.minSpawnInterval = 0.3f;
+            spawner.maxSpawnInterval = 2f;
         }
     }
 
