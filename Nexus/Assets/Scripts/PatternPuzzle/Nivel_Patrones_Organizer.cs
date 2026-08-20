@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 namespace PatternPuzzle
 {
@@ -40,6 +41,11 @@ namespace PatternPuzzle
         [Tooltip("Trigger/panel de activacion del Reto 2. Se activa al completar el Reto 1.")]
         public GameObject activacionPanel;
 
+        [Header("Audio de instrucciones")]
+        [Tooltip("Audio que indica al jugador que debe hacer despues de completar el Reto 1 (por ejemplo, dirigirse al indicador del Reto 2).")]
+        public AudioSource reto1CompletadoAudio;
+
+        public Transform nonoDestination;
         public bool IsIntroPlaying { get; private set; }
 
         private Coroutine sirenRoutine;
@@ -136,6 +142,10 @@ namespace PatternPuzzle
 
         public void OnReto1Completado()
         {
+            if (reto1CompletadoAudio != null && reto1CompletadoAudio.clip != null)
+                reto1CompletadoAudio.Play();
+                StartCoroutine(WaitForReto1Audio());
+
             if (smTeleportIndicator2 != null)
                 smTeleportIndicator2.SetActive(true);
 
@@ -143,6 +153,17 @@ namespace PatternPuzzle
                 activacionPanel.SetActive(true);
 
             Debug.Log("[Nivel_Patrones_Organizer] Reto 1 completado: Reto 2 revelado.");
+        }
+
+        private IEnumerator WaitForReto1Audio()
+        {
+            if (reto1CompletadoAudio != null)
+                yield return new WaitWhile(() => reto1CompletadoAudio.isPlaying);
+            
+            if (Nono_Guide.Instance != null && nonoDestination != null)
+                Nono_Guide.Instance.FlyTo(nonoDestination);
+
+            Debug.Log("[Nivel_Patrones_Organizer] Audio de instrucciones del Reto 2 finalizado.");
         }
     }
 }
