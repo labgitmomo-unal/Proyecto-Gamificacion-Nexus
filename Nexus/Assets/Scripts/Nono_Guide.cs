@@ -325,6 +325,27 @@ public class Nono_Guide : MonoBehaviour
         isMoving = true;
     }
 
+    public void TeleportTo(Transform target)
+    {
+        if (target == null) return;
+        TeleportToPosition(target.position);
+    }
+
+    public void TeleportToPosition(Vector3 position)
+    {
+        if (elevatorPhase != ElevatorSequencePhase.None)
+        {
+            CancelElevatorSequence();
+        }
+
+        hasMoved = true;
+        audioWasPlaying = false;
+        isMoving = false;
+        transform.position = position;
+        idleY = position.y;
+        Debug.Log($"[Nono_Guide] Nono teleported to {position}");
+    }
+
     public void DisableAutoListen()
     {
         autoListen = false;

@@ -18,6 +18,10 @@ public class BridgeTeleportTrigger : MonoBehaviour
     [Tooltip("Temporizador del Nivel_Patrones que se inicia al completar la teletransportacion.")]
     public PatternPuzzle.Timer_Patrones timerToStart;
 
+    [Header("Organizador del nivel")]
+    [Tooltip("Administra la secuencia del Nivel_Patrones: reproduce el audio de introducción (Nono explica el nivel) y al terminar inicia el temporizador. Si se deja vacio, se busca automaticamente en la escena.")]
+    public PatternPuzzle.Nivel_Patrones_Organizer organizer;
+
     [Header("Semáforo / Detención de tráfico")]
     [Tooltip("Si se deja vacio, se busca automaticamente en la escena. Al teletransportar al Nivel_Patrones se lanza el semáforo en ROJO (FreezeBridge).")]
     public BridgeControlManager bridgeControl;
@@ -63,7 +67,13 @@ public class BridgeTeleportTrigger : MonoBehaviour
 
         // Teleport
         if (_xrOrigin != null && teleportDestination != null)
+        {
             _xrOrigin.transform.position = teleportDestination.position;
+
+            // Nono se teletransporta con el jugador al mismo punto
+            if (Nono_Guide.Instance != null)
+                Nono_Guide.Instance.TeleportTo(teleportDestination);
+        }
 
         yield return new WaitForSeconds(0.2f);
 
@@ -78,8 +88,14 @@ public class BridgeTeleportTrigger : MonoBehaviour
         if (bridgePatternManager != null)
             bridgePatternManager.SetActive(true);
 
-        // Iniciar el temporizador del Nivel_Patrones
-        if (timerToStart != null)
+        // Iniciar el flujo del Nivel_Patrones: Nono explica el nivel
+        // y el organizador inicia el temporizador cuando el audio termina
+        if (organizer == null)
+            organizer = FindFirstObjectByType<PatternPuzzle.Nivel_Patrones_Organizer>();
+
+        if (organizer != null)
+            organizer.StartLevelIntro();
+        else if (timerToStart != null)
             timerToStart.Start_Timer();
 
         // Desactivar este GameObject (ya no necesario)
