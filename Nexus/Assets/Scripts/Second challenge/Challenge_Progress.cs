@@ -93,8 +93,8 @@ public class Challenge_Progress : MonoBehaviour
             $"Quedaron {failedItems} items sin clasificar"
         );
 
-        BlockItemsPanel(TimeoutMessage, false);
-        TryStartElevatorSequence();
+        BlockItemsPanel(TimeoutMessage);
+        // TryStartElevatorSequence();
     }
 
     private void BlockItemsPanel(string mensaje, bool waitForIndicator = true)

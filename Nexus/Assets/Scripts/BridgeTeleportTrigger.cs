@@ -18,6 +18,10 @@ public class BridgeTeleportTrigger : MonoBehaviour
     [Tooltip("Temporizador del Nivel_Patrones que se inicia al completar la teletransportacion.")]
     public PatternPuzzle.Timer_Patrones timerToStart;
 
+    [Header("Semáforo / Detención de tráfico")]
+    [Tooltip("Si se deja vacio, se busca automaticamente en la escena. Al teletransportar al Nivel_Patrones se lanza el semáforo en ROJO (FreezeBridge).")]
+    public BridgeControlManager bridgeControl;
+
     private CanvasGroup _fadeCanvasGroup;
     private XROrigin _xrOrigin;
     private bool _teleported = false;
@@ -30,6 +34,9 @@ public class BridgeTeleportTrigger : MonoBehaviour
 
         if (_xrOrigin == null)
             _xrOrigin = FindObjectOfType<XROrigin>();
+
+        if (bridgeControl == null)
+            bridgeControl = FindFirstObjectByType<BridgeControlManager>();
     }
 
     void OnTriggerEnter(Collider other)
@@ -62,6 +69,10 @@ public class BridgeTeleportTrigger : MonoBehaviour
 
         // Fade in
         yield return StartCoroutine(Fade(1f, 0f));
+
+        // Iniciar la mecánica del semáforo (detención del tráfico) al llegar al nivel
+        if (bridgeControl != null)
+            bridgeControl.FreezeBridge();
 
         // Activar el pattern manager
         if (bridgePatternManager != null)

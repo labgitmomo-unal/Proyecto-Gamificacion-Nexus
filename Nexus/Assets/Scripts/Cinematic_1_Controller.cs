@@ -106,7 +106,6 @@ public class Cinematic_1_Controller : MonoBehaviour
         SuspenderAdaptiveQuality(false);
         SuspenderTrafficCleanup(false);
         RestaurarTrafico();
-        if (bridgeControl != null) bridgeControl.FreezeBridge();
         StartCoroutine(ShowLogoThenEnableXR());
         Challenge_Indicator_1.Play();
     }
