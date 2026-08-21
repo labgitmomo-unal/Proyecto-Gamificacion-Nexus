@@ -65,6 +65,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.b
+      value: 0.015686275
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.g
+      value: 0.92156863
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: attachedWindowAnchor
       value: 
       objectReference: {fileID: 4982202338806738925}
@@ -75,6 +87,18 @@ PrefabInstance:
     - target: {fileID: 9001226344608691217, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_DistanceCalculationMode
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.b
+      value: 0.015686275
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.g
+      value: 0.92156863
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.r
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_RenderMode
@@ -156,6 +180,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: attachedWindowAnchor
       value: 
       objectReference: {fileID: 4982202338448313578}
@@ -166,6 +194,10 @@ PrefabInstance:
     - target: {fileID: 9001226344608691217, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_DistanceCalculationMode
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.r
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_RenderMode
@@ -247,6 +279,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: attachedWindowAnchor
       value: 
       objectReference: {fileID: 4982202339253140707}
@@ -257,6 +301,18 @@ PrefabInstance:
     - target: {fileID: 9001226344608691217, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_DistanceCalculationMode
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.r
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_RenderMode
@@ -746,9 +802,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GraphNode3D
   socketPrefab: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
   socketScale: 0.18
-  socketColor: {r: 0, g: 1, b: 1, a: 1}
-  socketLightIntensity: 3
-  socketLightRange: 2.5
+  socketColor01: {r: 1, g: 1, b: 1, a: 1}
+  socketColor02: {r: 1, g: 0, b: 0, a: 1}
+  socketColor03: {r: 1, g: 0.5, b: 0, a: 1}
+  socketColor04: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  socketLightIntensity: 0.75
+  socketLightRange: 0.75
   windowNameToken: Window
   placementSurface: {fileID: 0}
   nodeGrabCollider: {fileID: 2016608207434258188}
@@ -886,6 +945,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.g
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: edgeColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8374387752798957997, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: attachedWindowAnchor
       value: 
       objectReference: {fileID: 4982202338384606069}
@@ -896,6 +967,18 @@ PrefabInstance:
     - target: {fileID: 9001226344608691217, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_DistanceCalculationMode
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.g
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
+      propertyPath: m_Color.r
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9176394377244673590, guid: 3f270130ad19abb4eba80d66b32521c7, type: 3}
       propertyPath: m_RenderMode

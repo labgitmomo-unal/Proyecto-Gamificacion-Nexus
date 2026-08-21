@@ -2274,7 +2274,6 @@ GameObject:
   - component: {fileID: 7822923476223549260}
   - component: {fileID: 7418758435712192170}
   - component: {fileID: 6606121515740182658}
-  - component: {fileID: 5998307304703831013}
   m_Layer: 0
   m_Name: ActivationPanel
   m_TagString: Untagged
@@ -2333,20 +2332,5 @@ MonoBehaviour:
   sm_TeleportIndicator: {fileID: 0}
   canvasGroup: {fileID: 6054195810063591606}
   fadeDuration: 0.5
+  hideCanvasOutsideTrigger: 1
   progreso: {fileID: 0}
---- !u!114 &5998307304703831013
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8418745092831820893}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91f3ac2a8f70740855f766d8c1975c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ButtonSpawner
-  buttonPrefab: {fileID: 1325212890578143468, guid: e16a2ab8c9576c6498eb34ed6dd36af0, type: 3}
-  panel: {fileID: 0}
-  fontSizeMax: 50
-  fontSizeMin: 14

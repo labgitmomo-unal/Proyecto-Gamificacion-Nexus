@@ -22,13 +22,17 @@ public sealed class PanelCronometro : MonoBehaviour
 
     private Button toggleButton;
     private Button resetButton;
+    private Button finalizeButton;
     private RectTransform toggleButtonRect;
     private RectTransform resetButtonRect;
+    private RectTransform finalizeButtonRect;
     private TMP_Text toggleButtonText;
     private TMP_Text timerText;
     private TMP_Text scoreText;
     private Coroutine exampleStartCoroutine;
+    private bool sessionActive;
     private bool isRunning;
+    private bool showStopOptions;
     private float elapsedSeconds;
     private int score;
 
@@ -37,8 +41,10 @@ public sealed class PanelCronometro : MonoBehaviour
         toggleButton = transform.Find("BotonControl")?.GetComponent<Button>()
             ?? GetComponentInChildren<Button>(true);
         resetButton = transform.Find("BotonReiniciar")?.GetComponent<Button>();
+        finalizeButton = transform.Find("BotonFinalizar")?.GetComponent<Button>();
         toggleButtonRect = toggleButton != null ? toggleButton.GetComponent<RectTransform>() : null;
         resetButtonRect = resetButton != null ? resetButton.GetComponent<RectTransform>() : null;
+        finalizeButtonRect = finalizeButton != null ? finalizeButton.GetComponent<RectTransform>() : null;
         timerText = FindText("Cronometro");
         scoreText = FindText("Puntaje");
         toggleButtonText = toggleButton != null ? toggleButton.GetComponentInChildren<TMP_Text>(true) : null;
@@ -53,9 +59,29 @@ public sealed class PanelCronometro : MonoBehaviour
             resetButton.onClick.AddListener(HandleResetPressed);
         }
 
+        if (finalizeButton != null)
+        {
+            finalizeButton.onClick.AddListener(HandleFinalizePressed);
+        }
+
+        if (graphExampleSequence != null)
+        {
+            graphExampleSequence.SequenceCompleted += HandleExampleCompleted;
+        }
+
         elapsedSeconds = 0f;
+        sessionActive = false;
         isRunning = false;
+        showStopOptions = false;
         UpdateDisplay();
+    }
+
+    private void OnDestroy()
+    {
+        if (graphExampleSequence != null)
+        {
+            graphExampleSequence.SequenceCompleted -= HandleExampleCompleted;
+        }
     }
 
     private void Update()
@@ -69,7 +95,7 @@ public sealed class PanelCronometro : MonoBehaviour
         UpdateDisplay();
     }
 
-    /// <summary>Starts or pauses the timer and controls the configured graph example sequence.</summary>
+    /// <summary>Starts the demonstration or opens the stop options for the current session.</summary>
     public void ToggleTimer()
     {
         HandleButtonPressed();
@@ -77,22 +103,45 @@ public sealed class PanelCronometro : MonoBehaviour
 
     private void HandleButtonPressed()
     {
-        isRunning = !isRunning;
-
-        if (isRunning)
+        if (sessionActive)
         {
-            PlayAudio(startAudio);
-            exampleStartCoroutine = StartCoroutine(StartExampleAfterDelay());
-        }
-        else
-        {
-            CancelPendingExample();
-            startAudio?.Stop();
-            demonstrationAudio?.Stop();
-            PlayAudio(completionAudio);
-            StartNonoReturnSequence();
+            StopSession();
+            return;
         }
 
+        StartSession();
+    }
+
+    private void StartSession()
+    {
+        sessionActive = true;
+        isRunning = false;
+        showStopOptions = false;
+        PlayAudio(startAudio);
+        exampleStartCoroutine = StartCoroutine(StartExampleAfterDelay());
+        UpdateDisplay();
+    }
+
+    private void StopSession()
+    {
+        sessionActive = false;
+        isRunning = false;
+        showStopOptions = true;
+        CancelPendingExample();
+        startAudio?.Stop();
+        demonstrationAudio?.Stop();
+        PlayAudio(completionAudio);
+        UpdateDisplay();
+    }
+
+    private void HandleExampleCompleted()
+    {
+        if (!sessionActive)
+        {
+            return;
+        }
+
+        isRunning = true;
         UpdateDisplay();
     }
 
@@ -111,7 +160,7 @@ public sealed class PanelCronometro : MonoBehaviour
 
         yield return new WaitForSeconds(ExampleStartDelaySeconds);
 
-        if (!isRunning)
+        if (!sessionActive)
         {
             yield break;
         }
@@ -121,7 +170,7 @@ public sealed class PanelCronometro : MonoBehaviour
         exampleStartCoroutine = null;
     }
 
-    /// <summary>Restores playable graph nodes and removes player-created edges without changing the stop flow.</summary>
+    /// <summary>Restores playable graph nodes and removes player-created edges.</summary>
     public void ResetGraph()
     {
         var nodes = FindObjectsByType<GraphNode3D>(FindObjectsSortMode.None);
@@ -165,7 +214,9 @@ public sealed class PanelCronometro : MonoBehaviour
         CancelPendingExample();
         startAudio?.Stop();
         demonstrationAudio?.Stop();
+        sessionActive = false;
         isRunning = false;
+        showStopOptions = false;
         elapsedSeconds = 0f;
         score = 0;
         UpdateDisplay();
@@ -176,6 +227,14 @@ public sealed class PanelCronometro : MonoBehaviour
         ResetGraph();
     }
 
+    private void HandleFinalizePressed()
+    {
+        sessionActive = false;
+        isRunning = false;
+        showStopOptions = false;
+        UpdateDisplay();
+        StartNonoReturnSequence();
+    }
 
     private void CancelPendingExample()
     {
@@ -219,7 +278,7 @@ public sealed class PanelCronometro : MonoBehaviour
 
         if (toggleButtonText != null)
         {
-            toggleButtonText.text = isRunning ? StopLabel : StartLabel;
+            toggleButtonText.text = sessionActive ? StopLabel : StartLabel;
         }
 
         UpdateButtonLayout();
@@ -227,25 +286,46 @@ public sealed class PanelCronometro : MonoBehaviour
 
     private void UpdateButtonLayout()
     {
+        bool showSessionControls = sessionActive;
+        bool showDecisionControls = showStopOptions;
+
+        if (toggleButton != null)
+        {
+            toggleButton.gameObject.SetActive(!showDecisionControls);
+        }
+
         if (toggleButtonRect != null)
         {
-            toggleButtonRect.anchoredPosition = isRunning
+            toggleButtonRect.anchoredPosition = showSessionControls
                 ? new Vector2(-170f, -250f)
                 : new Vector2(0f, -250f);
-            toggleButtonRect.sizeDelta = isRunning
+            toggleButtonRect.sizeDelta = showSessionControls
                 ? new Vector2(300f, 140f)
                 : new Vector2(500f, 140f);
         }
 
+        if (resetButton != null)
+        {
+            resetButton.gameObject.SetActive(showSessionControls || showDecisionControls);
+        }
+
         if (resetButtonRect != null)
         {
-            resetButtonRect.anchoredPosition = new Vector2(170f, -250f);
+            resetButtonRect.anchoredPosition = showDecisionControls
+                ? new Vector2(-170f, -250f)
+                : new Vector2(170f, -250f);
             resetButtonRect.sizeDelta = new Vector2(300f, 140f);
         }
 
-        if (resetButton != null)
+        if (finalizeButton != null)
         {
-            resetButton.gameObject.SetActive(isRunning);
+            finalizeButton.gameObject.SetActive(showDecisionControls);
+        }
+
+        if (finalizeButtonRect != null)
+        {
+            finalizeButtonRect.anchoredPosition = new Vector2(170f, -250f);
+            finalizeButtonRect.sizeDelta = new Vector2(300f, 140f);
         }
     }
 }

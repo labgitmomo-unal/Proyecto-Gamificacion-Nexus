@@ -69,14 +69,17 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             MonitorMovementEnd();
         }
 
-        CorrectDescentHorizontalDrift();
-
         if (!playerInside || waitingForMovement || elevatorMoving || !WasControllerButtonPressed())
         {
             return;
         }
 
         ActivateOriginalElevatorTrigger();
+    }
+
+    private void LateUpdate()
+    {
+        CorrectDescentHorizontalDrift();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -95,12 +98,12 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         {
             playerInside = false;
             playerCollider = null;
-            playerTransform = null;
-            correctingDescent = false;
 
-            if (!waitingForMovement && !elevatorMoving && floorChangeTrigger != null)
+            if (!waitingForMovement && !elevatorMoving)
             {
-                floorChangeTrigger.enabled = false;
+                playerTransform = null;
+                correctingDescent = false;
+                DisableFloorChangeTrigger();
             }
         }
     }
@@ -175,7 +178,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
         elevatorMoving = false;
         correctingDescent = false;
-        floorChangeTrigger.enabled = false;
+        DisableFloorChangeTrigger();
     }
 
     private void CorrectDescentHorizontalDrift()
@@ -202,6 +205,14 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         currentPosition.x = expectedPosition.x;
         currentPosition.z = expectedPosition.z;
         playerTransform.position = currentPosition;
+    }
+
+    private void DisableFloorChangeTrigger()
+    {
+        if (floorChangeTrigger != null)
+        {
+            floorChangeTrigger.enabled = false;
+        }
     }
 
     private static InputAction CreateButtonAction(string actionName, params string[] controlPaths)

@@ -10,9 +10,12 @@ public sealed class GraphNode3D : MonoBehaviour
 
     [SerializeField] private GraphSocket3D socketPrefab;
     [SerializeField] private float socketScale = 0.18f;
-    [SerializeField] private Color socketColor = Color.cyan;
-    [SerializeField] private float socketLightIntensity = 3f;
-    [SerializeField] private float socketLightRange = 2.5f;
+    [SerializeField] private Color socketColor01 = Color.white;
+    [SerializeField] private Color socketColor02 = Color.red;
+    [SerializeField] private Color socketColor03 = new(1f, 0.5f, 0f, 1f);
+    [SerializeField] private Color socketColor04 = Color.yellow;
+    [SerializeField] private float socketLightIntensity = 0.75f;
+    [SerializeField] private float socketLightRange = 0.75f;
     [SerializeField] private string windowNameToken = "Window";
     [SerializeField] private Collider placementSurface;
     [SerializeField] private BoxCollider nodeGrabCollider;
@@ -63,6 +66,11 @@ public sealed class GraphNode3D : MonoBehaviour
     /// <summary>Registers a persistent socket and associates it with its original window anchor.</summary>
     public void RegisterSocket(GraphSocket3D socket, Transform windowAnchor)
     {
+        RegisterSocket(socket, windowAnchor, GetSocketColor(_sockets.Count));
+    }
+
+    private void RegisterSocket(GraphSocket3D socket, Transform windowAnchor, Color color)
+    {
         if (socket == null || windowAnchor == null)
         {
             Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: no se puede registrar un socket o ventana nulos.", this);
@@ -75,7 +83,7 @@ public sealed class GraphNode3D : MonoBehaviour
             return;
         }
 
-        socket.Configure(socketColor, this, socketLightIntensity, socketLightRange);
+        socket.Configure(color, this, socketLightIntensity, socketLightRange);
         socket.SetAttachedWindow(windowAnchor);
         windowAnchor.GetComponent<GraphWindow3D>()?.RegisterAnchorSocket(socket);
         socket.SetConnectionAvailable(true);
@@ -203,7 +211,7 @@ public sealed class GraphNode3D : MonoBehaviour
 
         var registrationCount = Mathf.Min(SocketCount, Mathf.Min(anchors.Count, persistentSockets.Count));
         for (var i = 0; i < registrationCount; i++)
-            RegisterSocket(persistentSockets[i], anchors[i]);
+            RegisterSocket(persistentSockets[i], anchors[i], GetSocketColor(i));
 
         if (persistentSockets.Count == 0 && socketPrefab != null)
         {
@@ -235,7 +243,24 @@ public sealed class GraphNode3D : MonoBehaviour
             var socket = Instantiate(socketPrefab, anchor, false);
             socket.name = $"GraphSocket_Light_{i + 1}";
             socket.transform.localScale = Vector3.one * socketScale;
-            RegisterSocket(socket, anchor);
+            RegisterSocket(socket, anchor, GetSocketColor(i));
         }
+    }
+
+    private Color GetSocketColor(int socketIndex)
+    {
+        if (socketIndex < 0 || socketIndex >= SocketCount)
+        {
+            Debug.LogWarning($"[{nameof(GraphNode3D)}] {name}: índice de socket fuera de rango ({socketIndex}); se usará el último color.", this);
+            socketIndex = SocketCount - 1;
+        }
+
+        return socketIndex switch
+        {
+            0 => socketColor01,
+            1 => socketColor02,
+            2 => socketColor03,
+            _ => socketColor04
+        };
     }
 }

@@ -27,6 +27,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         public Transform TargetWindow;
         public Material Material;
         public float Width;
+        public Color Color;
         public bool PreserveOnReset;
     }
 
@@ -74,6 +75,14 @@ public sealed class GraphSocket3D : MonoBehaviour
         SetAlwaysOnVisualState();
     }
 
+    private void OnValidate()
+    {
+        _propertyBlock ??= new MaterialPropertyBlock();
+        _renderer ??= GetComponentInChildren<Renderer>(true);
+        _lights ??= GetComponentsInChildren<Light>(true);
+        SetAlwaysOnVisualState();
+    }
+
     private void Update()
     {
         SanitizeTransform();
@@ -110,6 +119,8 @@ public sealed class GraphSocket3D : MonoBehaviour
         {
             if (light == null)
                 continue;
+            light.transform.localPosition = Vector3.zero;
+            light.transform.localRotation = Quaternion.identity;
             light.enabled = true;
             light.color = edgeColor;
             if (lightIntensity >= 0f)
@@ -133,6 +144,8 @@ public sealed class GraphSocket3D : MonoBehaviour
         }
         attachedWindowAnchor = window;
     }
+
+    internal Color EdgeColor => edgeColor;
 
     public GraphNode3D OriginalOwnerNode => _originalOwnerNode;
 
@@ -165,18 +178,11 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     internal bool TryAttachToWindow(GraphWindow3D window)
     {
-        if (window == null || !IsFreeBody || originalWindowAnchor == null)
+        if (window == null || !IsFreeBody || originalWindowAnchor == null || window.transform == null)
             return false;
 
-        RemoveOwnConnections();
-        var edge = CreatePersistentEdge(window.AnchorSocket, window.transform);
-        if (edge == null)
-            return false;
-        ClearTemporaryLine();
-        AttachToWindow(window.transform, true);
-        SetAnchoredPhysicsState();
-        SetAlwaysOnVisualState();
-        return true;
+        var targetSocket = window.AnchorSocket;
+        return TryCreateConnectionAtRelease(targetSocket, window.transform);
     }
 
 
@@ -210,6 +216,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
         CacheOriginalAnchorPose();
+        _dragTargetPosition = transform.position;
         CaptureOwnConnectionsForDrag();
         _isDragging = true;
         ClearTemporaryLine();
@@ -237,7 +244,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _rigidbodyReference.MovePosition(_dragTargetPosition);
     }
 
-    /// <summary>Ends dragging and either attracts the socket to a free window or releases it as a dynamic body.</summary>
+    /// <summary>Ends dragging, creates a logical edge inside the snap radius, and restores the socket.</summary>
     public void ReleaseDrag()
     {
         if (!_isDragging)
@@ -251,20 +258,10 @@ public sealed class GraphSocket3D : MonoBehaviour
             return;
         }
 
-        var targetWindow = target.attachedWindowAnchor;
-        if (target._ownerNode != null)
-            target._ownerNode.IgnoreSocketCollisions(this);
-        _windowAttractionEnabled = true;
-        _isAttracting = true;
-        _attractionTargetSocket = target;
-        _attractionTargetWindow = targetWindow;
-        _attractionElapsed = 0f;
-        ClearTemporaryLine();
-        SetAnchoredPhysicsState();
-        SetAlwaysOnVisualState();
+        TryCreateConnectionAtRelease(target, target.attachedWindowAnchor);
     }
 
-    /// <summary>Cancels an interrupted drag and leaves the socket free at its current pose.</summary>
+    /// <summary>Cancels an interrupted drag and restores the socket to its original anchor.</summary>
     public void CancelDrag()
     {
         if (!_isDragging && !_isAttracting)
@@ -273,13 +270,45 @@ public sealed class GraphSocket3D : MonoBehaviour
         RestoreToOriginalWindow();
     }
 
+    private bool TryCreateConnectionAtRelease(GraphSocket3D target, Transform targetWindow)
+    {
+        if (!IsValidConnectionTarget(target) || originalWindowAnchor == null || targetWindow == null)
+        {
+            RestoreToOriginalWindow();
+            return false;
+        }
+
+        var preserveOnReset = _preserveNextConnection;
+        var edge = CreatePersistentEdge(
+            target,
+            targetWindow,
+            edgeMaterial,
+            lineWidth,
+            preserveOnReset,
+            edgeColor);
+        if (edge == null)
+        {
+            RestoreToOriginalWindow();
+            return false;
+        }
+
+        _preserveNextConnection = false;
+        _isAttracting = false;
+        _windowAttractionEnabled = false;
+        _attractionTargetSocket = null;
+        _attractionTargetWindow = null;
+        ClearTemporaryLine();
+        RestoreToOriginalWindow();
+        return true;
+    }
+
     private void ApplyAttractionMovement()
     {
         if (!_isAttracting || _rigidbodyReference == null)
             return;
         if (_attractionTargetSocket == null || _attractionTargetWindow == null)
         {
-            ReleaseAsFreeBody();
+            RestoreToOriginalWindow();
             return;
         }
 
@@ -294,38 +323,12 @@ public sealed class GraphSocket3D : MonoBehaviour
         _isAttracting = false;
         _attractionTargetSocket = null;
         _attractionTargetWindow = null;
-        RemoveSuspendedConnections();
-        var preserveOnReset = _preserveNextConnection;
-        var edge = CreatePersistentEdge(target, targetWindow, edgeMaterial, lineWidth, preserveOnReset);
-        if (edge == null)
-        {
-            RestoreToOriginalWindow();
-            return;
-        }
-        _preserveNextConnection = false;
-        AttachToWindow(targetWindow);
-        SetInteractionColliders(true);
-        SetAnchoredPhysicsState();
-        SetAlwaysOnVisualState();
+        TryCreateConnectionAtRelease(target, targetWindow);
     }
 
     private void ReleaseAsFreeBody()
     {
-        _isAttracting = false;
-        _windowAttractionEnabled = false;
-        _attractionTargetSocket = null;
-        _attractionTargetWindow = null;
-        ClearTemporaryLine();
-        RestoreSuspendedConnections();
-        transform.SetParent(null, true);
-        if (_rigidbodyReference == null)
-            return;
-        _rigidbodyReference.linearVelocity = Vector3.zero;
-        _rigidbodyReference.angularVelocity = Vector3.zero;
-        _rigidbodyReference.isKinematic = true;
-        _rigidbodyReference.useGravity = false;
-        _rigidbodyReference.constraints = RigidbodyConstraints.FreezePosition
-            | RigidbodyConstraints.FreezeRotation;
+        RestoreToOriginalWindow();
     }
 
     internal void NotifyEdgeRemoved(GraphEdge edge)
@@ -394,6 +397,10 @@ public sealed class GraphSocket3D : MonoBehaviour
     private void RestoreToOriginalWindow()
     {
         ClearTemporaryLine();
+        _isAttracting = false;
+        _windowAttractionEnabled = false;
+        _attractionTargetSocket = null;
+        _attractionTargetWindow = null;
         if (originalWindowAnchor == null || !_hasCachedOriginalPose)
         {
             RestoreSuspendedConnections();
@@ -413,6 +420,14 @@ public sealed class GraphSocket3D : MonoBehaviour
         transform.localRotation = _originalAnchorLocalRotation;
         transform.localScale = _originalAnchorLocalScale;
         _lastValidLocalPosition = transform.localPosition;
+        _lastValidLocalRotation = transform.localRotation;
+        if (_rigidbodyReference != null)
+        {
+            _rigidbodyReference.position = transform.position;
+            _rigidbodyReference.rotation = transform.rotation;
+            _rigidbodyReference.linearVelocity = Vector3.zero;
+            _rigidbodyReference.angularVelocity = Vector3.zero;
+        }
         SetInteractionColliders(true);
         SetAnchoredPhysicsState();
         SetAlwaysOnVisualState();
@@ -497,6 +512,7 @@ public sealed class GraphSocket3D : MonoBehaviour
                 TargetWindow = edge.EndPoint,
                 Material = edgeMaterial,
                 Width = lineWidth,
+                Color = edge.EdgeColor,
                 PreserveOnReset = edge.PreserveOnReset
             });
         }
@@ -530,7 +546,8 @@ public sealed class GraphSocket3D : MonoBehaviour
                 connection.TargetWindow,
                 connection.Material,
                 connection.Width,
-                connection.PreserveOnReset);
+                connection.PreserveOnReset,
+                connection.Color);
         }
 
         _suspendedConnections.Clear();
@@ -574,9 +591,10 @@ public sealed class GraphSocket3D : MonoBehaviour
     private GraphEdge CreatePersistentEdge(
         GraphSocket3D targetSocket,
         Transform targetWindow,
-        Material material = null,
-        float width = -1f,
-        bool preserveOnReset = false)
+        Material material,
+        float width,
+        bool preserveOnReset,
+        Color color)
     {
         if (originalWindowAnchor == null || targetWindow == null)
             return null;
@@ -594,7 +612,8 @@ public sealed class GraphSocket3D : MonoBehaviour
             originalWindowAnchor,
             targetWindow,
             material != null ? material : edgeMaterial,
-            width >= 0f ? width : lineWidth);
+            width,
+            color);
         return edge;
     }
 
@@ -650,6 +669,8 @@ public sealed class GraphSocket3D : MonoBehaviour
         {
             if (socketLight == null)
                 continue;
+            socketLight.transform.localPosition = Vector3.zero;
+            socketLight.transform.localRotation = Quaternion.identity;
             socketLight.enabled = true;
             socketLight.color = edgeColor;
         }

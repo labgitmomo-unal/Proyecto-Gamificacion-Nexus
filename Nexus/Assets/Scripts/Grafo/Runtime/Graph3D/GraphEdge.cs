@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class GraphEdge : MonoBehaviour
 {
     private const float DefaultLineWidth = 0.05f;
+    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     private LineRenderer _lineRenderer;
     private Transform _startPoint;
@@ -12,6 +13,7 @@ public sealed class GraphEdge : MonoBehaviour
     private GraphSocket3D _startSocket;
     private GraphSocket3D _endSocket;
     private Vector3 _freeEndPosition;
+    private Color _edgeColor = Color.white;
     private bool _usesFreeEnd;
 
     public bool PreserveOnReset { get; private set; }
@@ -19,6 +21,7 @@ public sealed class GraphEdge : MonoBehaviour
     internal GraphSocket3D StartSocket => _startSocket;
     internal GraphSocket3D EndSocket => _endSocket;
     internal Transform EndPoint => _endPoint;
+    internal Color EdgeColor => _edgeColor;
 
     /// <summary>Marks this edge as the demonstration edge that survives a graph reset.</summary>
     public void SetPreserveOnReset(bool preserve)
@@ -37,14 +40,20 @@ public sealed class GraphEdge : MonoBehaviour
     /// <summary>Initializes a persistent edge between two graph sockets.</summary>
     public void Initialize(GraphSocket3D start, GraphSocket3D end, Material edgeMaterial, float width)
     {
-        Initialize(start, end, start != null ? start.transform : null, end != null ? end.transform : null, edgeMaterial, width);
+        Initialize(start, end, start != null ? start.transform : null, end != null ? end.transform : null, edgeMaterial, width, start != null ? start.EdgeColor : Color.white);
     }
 
     internal void Initialize(GraphSocket3D start, GraphSocket3D end, Transform startPoint, Transform endPoint, Material edgeMaterial, float width)
     {
+        Initialize(start, end, startPoint, endPoint, edgeMaterial, width, start != null ? start.EdgeColor : Color.white);
+    }
+
+    internal void Initialize(GraphSocket3D start, GraphSocket3D end, Transform startPoint, Transform endPoint, Material edgeMaterial, float width, Color color)
+    {
         _startSocket = start;
         _endSocket = end;
-        Initialize(startPoint, endPoint, edgeMaterial, width);
+        _edgeColor = color;
+        Initialize(startPoint, endPoint, edgeMaterial, width, color);
         _startSocket?.RegisterEdge(this);
         _endSocket?.RegisterEdge(this);
     }
@@ -52,14 +61,23 @@ public sealed class GraphEdge : MonoBehaviour
     /// <summary>Initializes an edge from world-space transforms.</summary>
     public void Initialize(Transform start, Transform end, Material edgeMaterial, float width)
     {
+        Initialize(start, end, edgeMaterial, width, Color.white);
+    }
+
+    private void Initialize(Transform start, Transform end, Material edgeMaterial, float width, Color color)
+    {
         _startPoint = start;
         _endPoint = end;
+        _edgeColor = color;
         _usesFreeEnd = end == null;
         _freeEndPosition = start != null ? start.position : Vector3.zero;
+        if (_lineRenderer == null)
+            return;
         if (edgeMaterial != null)
             _lineRenderer.sharedMaterial = edgeMaterial;
         _lineRenderer.startWidth = width;
         _lineRenderer.endWidth = width;
+        ApplyColor();
         Refresh();
     }
 
@@ -67,6 +85,17 @@ public sealed class GraphEdge : MonoBehaviour
     public void Initialize(Transform start, Transform end, Material edgeMaterial)
     {
         Initialize(start, end, edgeMaterial, DefaultLineWidth);
+    }
+
+    private void ApplyColor()
+    {
+        if (_lineRenderer == null)
+            return;
+
+        var propertyBlock = new MaterialPropertyBlock();
+        _lineRenderer.GetPropertyBlock(propertyBlock);
+        propertyBlock.SetColor(BaseColorId, _edgeColor);
+        _lineRenderer.SetPropertyBlock(propertyBlock);
     }
 
     /// <summary>Updates the free endpoint of a temporary edge.</summary>

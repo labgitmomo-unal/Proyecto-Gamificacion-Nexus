@@ -22,10 +22,11 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (_viewerCamera == null || !_viewerCamera.isActiveAndEnabled)
-            _viewerCamera = FindActiveViewerCamera();
+        var activeViewerCamera = FindActiveViewerCamera();
+        if (activeViewerCamera != null)
+            _viewerCamera = activeViewerCamera;
 
-        if (_viewerCamera == null)
+        if (_viewerCamera == null || !_viewerCamera.isActiveAndEnabled)
             return;
 
         UpdateVisibility(false);
@@ -57,14 +58,24 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private Camera FindActiveViewerCamera()
     {
+        var mainCamera = Camera.main;
+        if (mainCamera != null && mainCamera.isActiveAndEnabled && !mainCamera.orthographic && mainCamera.targetTexture == null)
+            return mainCamera;
+
         var cameras = Camera.allCameras;
+        Camera fallbackCamera = null;
         foreach (var camera in cameras)
         {
-            if (camera != null && camera.isActiveAndEnabled && camera.stereoTargetEye != StereoTargetEyeMask.None)
-                return camera;
+            if (camera == null || !camera.isActiveAndEnabled || camera.stereoTargetEye == StereoTargetEyeMask.None)
+                continue;
+
+            fallbackCamera ??= camera;
+            if (camera.orthographic || camera.targetTexture != null)
+                continue;
+            return camera;
         }
 
-        return null;
+        return fallbackCamera;
     }
 
     private void UpdateVisibility(bool force)
