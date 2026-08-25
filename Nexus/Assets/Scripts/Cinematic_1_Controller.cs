@@ -233,16 +233,47 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void MostrarCongestion()
     {
-        // Congestión desde el inicio: tráfico lento y apretado, no a velocidad completa.
+        // Aplicar congestión inicial de velocidad (coches lentos)
         if (bridgeControl != null)
             bridgeControl.AplicarCongestionInicial();
         else
             TrafficManager.Instance.SetVelocidad(1f);
 
+        // --- Restablecer el comportamiento del spawner excluido y limpiar overrides ---
+        // Después de AplicarCongestionInicial() (que internamente llama AplicarSpawnTrancon(true)),
+        // los intervalos de todos los spawner se ven afectados. Necesitamos:
+        // 1. Restablecer el spawner excluido ('Car Line Spawner (2)') a sus intervalos originales
+        //    para que conserve su flujo actual.
+        // 2. Limpiar los overrides de los demas spawner para que sus intervalos aleatorizados
+        //    (establecidos por TrafficRandomizer en Awake) queden activos.
+
+        // Encontrar el juego objeto excluido
+        GameObject excludedGo = null;
+        foreach (var go in UnityEngine.Object.FindObjectsOfType<GameObject>(true))
+        {
+            if (go.name == "Car Line Spawner (2)")
+            {
+                excludedGo = go;
+                break;
+            }
+        }
+
+        // Procesar cada spawner
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
-            spawner.minSpawnInterval = 0.3f;
-            spawner.maxSpawnInterval = 2f;
+            if (spawner.gameObject == excludedGo)
+            {
+                // Restablecer al spawner excluido a sus intervalos originales (0.3 y 1.6)
+                // para que conserve su comportamiento actual independientemente de la cinemática.
+                spawner.minSpawnInterval = 0.3f;
+                spawner.maxSpawnInterval = 1.6f;
+            }
+            else
+            {
+                // Limpiar override para que los campos min/max aleatorizados por TrafficRandomizer
+                // queden activos y no sean sobrescritos por la congestión cinematográfica.
+                spawner.ClearSpawnIntervalOverride();
+            }
         }
     }
 
