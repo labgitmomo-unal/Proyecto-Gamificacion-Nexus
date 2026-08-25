@@ -248,15 +248,41 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void RestaurarTrafico()
     {
-        // El flujo debe seguir viéndose igual que durante la cinemática
-        // (tráfico denso y a velocidad de trancón). No restauramos la
-        // velocidad completa: RestaurarVelocidad() volvería a la velocidad
-        // original alta y el tráfico se vería más fluido.
+        // --- RE-APLICAR EXACTAMENTE EL ESTADO DE CONGESTIÓN DE LA CINEMÁTICA ---
+        // Al volver a aplicar los mismos ajustes que al inicio, el tráfico se
+        // mantendrá idéntico y no notará ningún cambio al finalizar la cinemática.
+
+        // 1. Restablecer velocidad de plantillas y clones, e intervalos de spawn
+        //    al estado "trancón" que tenía durante la cinemática.
+        if (bridgeControl != null)
+        {
+            bridgeControl.AplicarCongestionInicial();
+        }
+        else
+        {
+            // Fallback si no hay referencia a BridgeControl.
+            foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
+            {
+                spawner.minSpawnInterval = 0.3f;
+                spawner.maxSpawnInterval = 2f;
+            }
+            // También asegurar que la velocidad del TrafficManager sea la de trancón.
+            TrafficManager.Instance?.SetVelocidad(1f);
+        }
+
+        // 2. Suspender la limpieza de tráfico para evitar que elimine coches
+        //    después de la cinemática (mismo comportamiento que durante la cinemática).
+        SuspenderTrafficCleanup(true);
+
+        // 3. Confirmar que los intervalos de spawn se mantienen (por si alguna
+        //    llamada posterior los hubiera alterado).
         foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
         {
             spawner.minSpawnInterval = 0.3f;
             spawner.maxSpawnInterval = 2f;
         }
+
+        Debug.Log("[Cinematic_1_Control] Estado de tráfico re-aplicado para consistencia total con la cinemática.", this);
     }
 
     IEnumerator RestoreTrafficAfterDelay(float delay)
