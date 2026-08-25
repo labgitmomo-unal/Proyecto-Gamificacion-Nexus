@@ -19,6 +19,41 @@ public class RandomObjectSpawner : MonoBehaviour
     private float _intervalOverrideMin = -1f;
     private float _intervalOverrideMax = -1f;
 
+    // Public properties to access override values
+    public float IntervalOverrideMin => _intervalOverrideMin;
+    public float IntervalOverrideMax => _intervalOverrideMax;
+
+    private void Awake()
+    {
+        ConfigureFixedInterval();
+    }
+
+    private void ConfigureFixedInterval()
+    {
+        string name = gameObject.name;
+        
+        if (name.Contains("Car Line Spawner (2)"))
+        {
+            minSpawnInterval = 0.3f;
+            maxSpawnInterval = 1.6f;
+        }
+        else if (name.Contains("Spawner (0)") || name.Contains("Spawner (4)") || name.Contains("Spawner (6)"))
+        {
+            minSpawnInterval = 0.5f;
+            maxSpawnInterval = 2.0f;
+        }
+        else if (name.Contains("Spawner (1)") || name.Contains("Spawner (3)") || name.Contains("Spawner (5)") || name.Contains("Spawner (8)") || name.Contains("Spawner (10)"))
+        {
+            minSpawnInterval = 0.1f;
+            maxSpawnInterval = 0.5f;
+        }
+        else if (name.Contains("Spawner (2)") && !name.Contains("Car Line"))
+        {
+            minSpawnInterval = 0.1f;
+            maxSpawnInterval = 0.4f;
+        }
+    }
+
     void OnEnable()
     {
         StartCoroutine(SpawnLoop());
@@ -86,7 +121,10 @@ public class RandomObjectSpawner : MonoBehaviour
         if (mc != null)
         {
             if (TrafficManager.Instance != null)
+            {
                 TrafficManager.Instance.RegistrarClon(mc);
+                TrafficManager.Instance.RegisterSpawnTime(mc);
+            }
         }
     }
 

@@ -7,10 +7,13 @@ public class TrafficCleanup : MonoBehaviour
 
     public int maxTrafficCars = 80;
     public float maxDistanceFromCamera = 300f;
+    public float minSpawnTimeBeforeCleanup = 5f; // Minimum time (seconds) a vehicle must exist before it can be cleaned up
 
     private List<MovementController> toRemove = new List<MovementController>();
     private RandomObjectSpawner[] spawners;
     private bool authMode;
+    // Track spawn time for each cloned vehicle
+    private Dictionary<MovementController, float> spawnTimes = new Dictionary<MovementController, float>();
 
     void Awake()
     {
@@ -34,9 +37,23 @@ public class TrafficCleanup : MonoBehaviour
         }
     }
 
+    // Register a vehicle's spawn time
+    public void RegisterSpawnTime(MovementController mc)
+    {
+        if (mc != null && !spawnTimes.ContainsKey(mc))
+            spawnTimes[mc] = Time.time;
+    }
+
+    // Called when a vehicle is despawned/recycled
+    public void UnregisterSpawnTime(MovementController mc)
+    {
+        spawnTimes.Remove(mc);
+    }
+
     public void Cleanup()
     {
         if (TrafficManager.Instance == null) return;
+        if (authMode) return; // Skip cleanup in auth mode
 
         var clones = TrafficManager.Instance.ObtenerClones();
         if (clones == null) return;
@@ -50,17 +67,26 @@ public class TrafficCleanup : MonoBehaviour
             MovementController mc = clones[i];
             if (mc == null) continue;
 
+            // Skip cleanup for vehicles that haven't been alive long enough
+            if (spawnTimes.TryGetValue(mc, out float spawnTime))
+            {
+                if (Time.time - spawnTime < minSpawnTimeBeforeCleanup)
+                    continue; // Vehicle too new, skip cleanup
+            }
+
             float dist = cam != null
                 ? Vector3.Distance(cam.transform.position, mc.transform.position)
                 : 0f;
 
             if (dist > maxDistanceFromCamera || mc.transform.position.y < -100f)
                 toRemove.Add(mc);
+            // If we skipped due to min time, we don't add to remove
         }
 
         int exceso = clones.Count - maxTrafficCars;
         if (exceso > 0)
         {
+            // Sort by distance (farthest first) to decide what to remove
             clones.Sort((a, b) =>
             {
                 if (a == null || b == null) return 0;
@@ -70,8 +96,19 @@ public class TrafficCleanup : MonoBehaviour
             });
             for (int i = 0; i < clones.Count && toRemove.Count < exceso; i++)
             {
-                if (clones[i] != null && !toRemove.Contains(clones[i]))
-                    toRemove.Add(clones[i]);
+                MovementController mc = clones[i];
+                if (mc == null) continue;
+                // Only remove if it's past the minimum spawn time
+                if (spawnTimes.TryGetValue(mc, out float spawnTime))
+                {
+                    if (Time.time - spawnTime >= minSpawnTimeBeforeCleanup)
+                        toRemove.Add(mc);
+                }
+                else
+                {
+                    // No spawn time tracked, allow cleanup
+                    toRemove.Add(mc);
+                }
             }
         }
 

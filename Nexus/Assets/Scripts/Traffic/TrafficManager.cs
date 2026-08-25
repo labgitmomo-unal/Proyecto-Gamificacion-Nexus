@@ -167,6 +167,16 @@ public class TrafficManager : MonoBehaviour
         return clonesActivos;
     }
 
+    /// <summary>Registra el tiempo de spawn de un clon para controlar cuándo puede ser limpiado.</summary>
+    public void RegisterSpawnTime(MovementController mc)
+    {
+    }
+
+    /// <summary>Desregistra el tiempo de spawn de un clon.</summary>
+    public void UnregisterSpawnTime(MovementController mc)
+    {
+    }
+
     private Vector3 ObtenerVelocidadBasePorDireccion(Vector3 velocidadActual)
     {
         foreach (var kvp in velocidadesOriginales)

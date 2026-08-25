@@ -104,8 +104,9 @@ public class Cinematic_1_Controller : MonoBehaviour
         if (vistaPilotoCamera != null) vistaPilotoCamera.enabled = false;
         AjustarLimitesTrafico(false);
         SuspenderAdaptiveQuality(false);
-        SuspenderTrafficCleanup(false);
-        RestaurarTrafico();
+        // --- NO reactivar la limpieza ni RestaurarTrafico para mantener tráfico congelado ---
+        // SuspenderTrafficCleanup(false);
+        // RestaurarTrafico();
         StartCoroutine(ShowLogoThenEnableXR());
         Challenge_Indicator_1.Play();
     }
@@ -233,87 +234,25 @@ public class Cinematic_1_Controller : MonoBehaviour
 
     public void MostrarCongestion()
     {
-        // Aplicar congestión inicial de velocidad (coches lentos)
-        if (bridgeControl != null)
-            bridgeControl.AplicarCongestionInicial();
+        // Aplicar solo velocidad para el trancón, SIN tocar intervalos de spawn
+        // Los intervalos fijos de cada RandomObjectSpawner permanecen inalterados
+        if (trafficManager != null)
+            trafficManager.SetVelocidad(0.5f);
         else
-            TrafficManager.Instance.SetVelocidad(1f);
-
-        // --- Restablecer el comportamiento del spawner excluido y limpiar overrides ---
-        // Después de AplicarCongestionInicial() (que internamente llama AplicarSpawnTrancon(true)),
-        // los intervalos de todos los spawner se ven afectados. Necesitamos:
-        // 1. Restablecer el spawner excluido ('Car Line Spawner (2)') a sus intervalos originales
-        //    para que conserve su flujo actual.
-        // 2. Limpiar los overrides de los demas spawner para que sus intervalos aleatorizados
-        //    (establecidos por TrafficRandomizer en Awake) queden activos.
-
-        // Encontrar el juego objeto excluido
-        GameObject excludedGo = null;
-        foreach (var go in UnityEngine.Object.FindObjectsOfType<GameObject>(true))
+            TrafficManager.Instance?.SetVelocidad(0.5f);
+        
+        // Log para depuración: verificar que los spawners tienen intervalos configurados
+        var spawners = FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
+        foreach (var sp in spawners)
         {
-            if (go.name == "Car Line Spawner (2)")
-            {
-                excludedGo = go;
-                break;
-            }
-        }
-
-        // Procesar cada spawner
-        foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
-        {
-            if (spawner.gameObject == excludedGo)
-            {
-                // Restablecer al spawner excluido a sus intervalos originales (0.3 y 1.6)
-                // para que conserve su comportamiento actual independientemente de la cinemática.
-                spawner.minSpawnInterval = 0.3f;
-                spawner.maxSpawnInterval = 1.6f;
-            }
-            else
-            {
-                // Limpiar override para que los campos min/max aleatorizados por TrafficRandomizer
-                // queden activos y no sean sobrescritos por la congestión cinematográfica.
-                spawner.ClearSpawnIntervalOverride();
-            }
+            Debug.Log($"[Cinematic] Spawner {sp.gameObject.name}: min={sp.minSpawnInterval:F2}, max={sp.maxSpawnInterval:F2}, override={(sp.IntervalOverrideMin >= 0 ? sp.IntervalOverrideMin : "none")}");
         }
     }
 
     public void RestaurarTrafico()
     {
-        // --- RE-APLICAR EXACTAMENTE EL ESTADO DE CONGESTIÓN DE LA CINEMÁTICA ---
-        // Al volver a aplicar los mismos ajustes que al inicio, el tráfico se
-        // mantendrá idéntico y no notará ningún cambio al finalizar la cinemática.
-
-        // 1. Restablecer velocidad de plantillas y clones, e intervalos de spawn
-        //    al estado "trancón" que tenía durante la cinemática.
-        if (bridgeControl != null)
-        {
-            bridgeControl.AplicarCongestionInicial();
-        }
-        else
-        {
-            // Fallback si no hay referencia a BridgeControl.
-            foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
-            {
-                spawner.minSpawnInterval = 0.3f;
-                spawner.maxSpawnInterval = 2f;
-            }
-            // También asegurar que la velocidad del TrafficManager sea la de trancón.
-            TrafficManager.Instance?.SetVelocidad(1f);
-        }
-
-        // 2. Suspender la limpieza de tráfico para evitar que elimine coches
-        //    después de la cinemática (mismo comportamiento que durante la cinemática).
-        SuspenderTrafficCleanup(true);
-
-        // 3. Confirmar que los intervalos de spawn se mantienen (por si alguna
-        //    llamada posterior los hubiera alterado).
-        foreach (var spawner in FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None))
-        {
-            spawner.minSpawnInterval = 0.3f;
-            spawner.maxSpawnInterval = 2f;
-        }
-
-        Debug.Log("[Cinematic_1_Control] Estado de tráfico re-aplicado para consistencia total con la cinemática.", this);
+        // No modificar nada - mantener tráfico congelado exactamente como estaba al inicio de la cinemática
+        Debug.Log("[Cinematic_1_Control] Cinemática terminada - tráfico congelado.", this);
     }
 
     IEnumerator RestoreTrafficAfterDelay(float delay)
