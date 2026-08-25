@@ -29,6 +29,27 @@ public class BridgeControlManager : MonoBehaviour
     public bool IsReleased => _releaseTimer > 0f;
     public int ReleaseCount { get; private set; }
 
+    private static BridgeControlManager _instance;
+    public static BridgeControlManager Instance
+    {
+        get
+        {
+            if (_instance != null)
+                return _instance;
+            
+            _instance = FindFirstObjectByType<BridgeControlManager>();
+            
+            if (_instance == null)
+            {
+                Debug.LogWarning("[BridgeControl] No hay BridgeControlManager en la escena. Funcionalidad limitada.");
+                return null;
+            }
+            return _instance;
+        }
+    }
+
+    // Rest of the class...
+
     public static event System.Action OnAllZonesComplete;
 
     private float _releaseTimer = 0f;
@@ -417,5 +438,24 @@ public class BridgeControlManager : MonoBehaviour
         }
 
         return baseVel * velocidadAvance;
+    }
+    /// <summary>
+    /// Pausa o reanuda la instanciación de un spawner específico por nombre.
+    /// Si on es true, pausa el spawner; si es false, lo reanuda.
+    /// </summary>
+    /// <param name="spawnerName">Nombre exacto del GameObject del spawner</param>
+    /// <param name="on">true para pausar, false para reanudar</param>
+    public void PauseSpawnerByName(string spawnerName, bool on)
+    {
+        foreach (var sp in FindObjectsByType<RandomObjectSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (sp != null && sp.gameObject.name == spawnerName)
+            {
+                sp.SetSpawningEnabled(!on);
+                Debug.Log($"[BridgeControl] Spawner '{spawnerName}' pausado={!on} reanudado={on}", sp);
+                return;
+            }
+        }
+        Debug.LogWarning($"[BridgeControl] No se encontró spawner con nombre '{spawnerName}'");
     }
 }

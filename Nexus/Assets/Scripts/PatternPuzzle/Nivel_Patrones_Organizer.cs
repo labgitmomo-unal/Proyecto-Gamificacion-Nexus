@@ -140,20 +140,23 @@ namespace PatternPuzzle
             Debug.Log("[Nivel_Patrones_Organizer] Cuenta regresiva iniciada.");
         }
 
-        public void OnReto1Completado()
-        {
-            if (reto1CompletadoAudio != null && reto1CompletadoAudio.clip != null)
-                reto1CompletadoAudio.Play();
-                StartCoroutine(WaitForReto1Audio());
+public void OnReto1Completado()
+    {
+        if (reto1CompletadoAudio != null && reto1CompletadoAudio.clip != null)
+            reto1CompletadoAudio.Play();
+        StartCoroutine(WaitForReto1Audio());
 
-            if (smTeleportIndicator2 != null)
-                smTeleportIndicator2.SetActive(true);
+        if (smTeleportIndicator2 != null)
+            smTeleportIndicator2.SetActive(true);
 
-            if (activacionPanel != null)
-                activacionPanel.SetActive(true);
+        if (activacionPanel != null)
+            activacionPanel.SetActive(true);
 
-            Debug.Log("[Nivel_Patrones_Organizer] Reto 1 completado: Reto 2 revelado.");
-        }
+        Debug.Log("[Nivel_Patrones_Organizer] Reto 1 completado: Reto 2 revelado.");
+        
+        // PAUSA SOLO el Car Line Spawner (2), los demás siguen igual
+        BridgeControlManager.Instance.PauseSpawnerByName("Car Line Spawner (2)", true);
+    }
 
         private IEnumerator WaitForReto1Audio()
         {
