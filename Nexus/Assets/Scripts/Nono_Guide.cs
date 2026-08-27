@@ -253,19 +253,7 @@ public class Nono_Guide : MonoBehaviour
 
     private void ResolvePlayerLookTarget()
     {
-        if (!facePlayer)
-        {
-            if (lookAtTarget == null)
-            {
-                var fallback = GameObject.Find("Nono_Facing_Target");
-                if (fallback != null)
-                {
-                    lookAtTarget = fallback.transform;
-                }
-            }
-            return;
-        }
-
+        if (lookAtTarget != null) return;
         if (_cachedPlayerCamera == null)
         {
             _cachedPlayerCamera = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
