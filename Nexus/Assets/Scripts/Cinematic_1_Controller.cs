@@ -80,6 +80,9 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
     }
 
+
+
+
     private IEnumerator IniciarVentanas()
     {
         while (director == null) yield return null;
@@ -92,13 +95,14 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
         _timeOffset = Time.time - (float)director.time;
         Debug.Log("[Cinematic] Director started. timeOffset=" + _timeOffset.ToString("F3") + "s");
-        StartCoroutine(VentanaFarClip(38f, 43f, 53f, 58f));
-        StartCoroutine(VentanaFarClip(55f, 65f, 82f, 87f));
-        StartCoroutine(VentanaFarClip(85f, 90f, 103f, 108f));
+        yield return StartCoroutine(VentanaFarClip(38f, 43f, 53f, 55f));
+        yield return StartCoroutine(VentanaFarClip(55f, 65f, 82f, 85f));
+        yield return StartCoroutine(VentanaFarClip(85f, 90f, 103f, 108f));
     }
 
     void OnCinematicEnd(PlayableDirector d)
     {
+        StopAllCoroutines();
         forcaLODsBaixos(false);
         OcultarNiebla(false);
         VirtualCamera.SetActive(false);
@@ -106,9 +110,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         if (vistaPilotoCamera != null) vistaPilotoCamera.enabled = false;
         AjustarLimitesTrafico(false);
         SuspenderAdaptiveQuality(false);
-        // --- NO reactivar la limpieza ni RestaurarTrafico para mantener tráfico congelado ---
-        // SuspenderTrafficCleanup(false);
-        // RestaurarTrafico();
+        SuspenderTrafficCleanup(false);
         StartCoroutine(ShowLogoThenEnableXR());
         Challenge_Indicator_1.Play();
     }
@@ -121,7 +123,7 @@ public class Cinematic_1_Controller : MonoBehaviour
             if (lg == null) continue;
             if (lg.name.Contains("StreetBuilding") || lg.name.Contains("Building") || lg.name.Contains("Rounded"))
             {
-                lg.ForceLOD(ativo ? 2 : -1);
+                lg.ForceLOD(ativo ? 1 : -1);
             }
         }
     }
@@ -192,6 +194,7 @@ public class Cinematic_1_Controller : MonoBehaviour
         float realTarget = inicio + _timeOffset;
         if (realTarget > Time.time)
             yield return new WaitForSeconds(realTarget - Time.time);
+        if (director.state != PlayState.Playing) yield break;
         float farTarget = 50f;
         float duracion = llegada - inicio;
         float t = 0f;
@@ -209,8 +212,6 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
         if (_urpAsset != null) _urpAsset.renderScale = 0.65f;
         QualitySettings.lodBias = 0.1f;
-        for (int i = 0; i < _cachedLODGroups.Length; i++)
-            _cachedLODGroups[i].ForceLOD(_cachedLODGroups[i].lodCount - 1);
         yield return new WaitForSeconds(fin - llegada);
         duracion = restaurado - fin;
         t = 0f;
@@ -229,9 +230,6 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
         if (_urpAsset != null) _urpAsset.renderScale = 0.8f;
         QualitySettings.lodBias = 0.4f;
-        for (int i = 0; i < _cachedLODGroups.Length; i++)
-            _cachedLODGroups[i].ForceLOD(-1);
-        forcaLODsBaixos(true);
     }
 
     public void MostrarCongestion()
