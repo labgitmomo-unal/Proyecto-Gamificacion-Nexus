@@ -59,6 +59,7 @@ public sealed class GraphSocket3D : MonoBehaviour
     private Renderer _renderer;
     private Light[] _lights;
     private Collider[] _interactionColliders;
+    private bool _isAnchored;
 
     private void Awake()
     {
@@ -72,6 +73,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _interactionColliders = GetComponents<Collider>();
         ConfigurePhysicsBody();
         CacheOriginalAnchorPose();
+        DisableRealtimeLightsForPerformance();
         SetAlwaysOnVisualState();
     }
 
@@ -80,12 +82,27 @@ public sealed class GraphSocket3D : MonoBehaviour
         _propertyBlock ??= new MaterialPropertyBlock();
         _renderer ??= GetComponentInChildren<Renderer>(true);
         _lights ??= GetComponentsInChildren<Light>(true);
+        DisableRealtimeLightsForPerformance();
         SetAlwaysOnVisualState();
+    }
+
+    private void DisableRealtimeLightsForPerformance()
+    {
+        if (_lights == null)
+            return;
+        foreach (var light in _lights)
+        {
+            if (light == null)
+                continue;
+            light.shadows = LightShadows.None;
+            light.renderMode = LightRenderMode.ForceVertex;
+        }
     }
 
     private void Update()
     {
-        SanitizeTransform();
+        if (!_isAnchored)
+            SanitizeTransform();
         if (_temporaryLine == null)
             return;
 
@@ -119,14 +136,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         {
             if (light == null)
                 continue;
-            light.transform.localPosition = Vector3.zero;
-            light.transform.localRotation = Quaternion.identity;
-            light.enabled = true;
-            light.color = edgeColor;
-            if (lightIntensity >= 0f)
-                light.intensity = lightIntensity;
-            if (lightRange >= 0f)
-                light.range = lightRange;
+            light.enabled = false;
         }
         SetAlwaysOnVisualState();
     }
@@ -219,6 +229,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _dragTargetPosition = transform.position;
         CaptureOwnConnectionsForDrag();
         _isDragging = true;
+        _isAnchored = false;
         ClearTemporaryLine();
         SetInteractionColliders(false);
         SetAnchoredPhysicsState();
@@ -445,6 +456,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         }
         _rigidbodyReference.isKinematic = true;
         _rigidbodyReference.useGravity = false;
+        _isAnchored = true;
     }
 
     private void ClearTemporaryLine()
@@ -661,18 +673,6 @@ public sealed class GraphSocket3D : MonoBehaviour
             _renderer.GetPropertyBlock(_propertyBlock);
             _propertyBlock.SetColor(BaseColorId, edgeColor);
             _renderer.SetPropertyBlock(_propertyBlock);
-        }
-
-        if (_lights == null)
-            return;
-        foreach (var socketLight in _lights)
-        {
-            if (socketLight == null)
-                continue;
-            socketLight.transform.localPosition = Vector3.zero;
-            socketLight.transform.localRotation = Quaternion.identity;
-            socketLight.enabled = true;
-            socketLight.color = edgeColor;
         }
     }
 

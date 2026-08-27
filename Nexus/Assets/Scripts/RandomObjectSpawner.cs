@@ -11,7 +11,7 @@ public class RandomObjectSpawner : MonoBehaviour
     public Vector3 minScale = Vector3.one;
     public Vector3 maxScale = Vector3.one;
     public float keepAspectRatio = 1f;
-    public bool usePooling = false;
+    public bool usePooling = true;
 
     private Queue<GameObject> pool = new Queue<GameObject>();
     private Dictionary<GameObject, MovementController> cloneToTemplate = new Dictionary<GameObject, MovementController>();

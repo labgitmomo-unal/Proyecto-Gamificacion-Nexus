@@ -15,6 +15,8 @@ public sealed class GraphEdge : MonoBehaviour
     private Vector3 _freeEndPosition;
     private Color _edgeColor = Color.white;
     private bool _usesFreeEnd;
+    private Vector3 _lastStartPos;
+    private Vector3 _lastEndPos;
 
     public bool PreserveOnReset { get; private set; }
 
@@ -71,6 +73,8 @@ public sealed class GraphEdge : MonoBehaviour
         _edgeColor = color;
         _usesFreeEnd = end == null;
         _freeEndPosition = start != null ? start.position : Vector3.zero;
+        _lastStartPos = _freeEndPosition;
+        _lastEndPos = _endPoint != null ? _endPoint.position : _freeEndPosition;
         if (_lineRenderer == null)
             return;
         if (edgeMaterial != null)
@@ -120,6 +124,10 @@ public sealed class GraphEdge : MonoBehaviour
 
     private void LateUpdate()
     {
+        var startChanged = _startPoint != null && _startPoint.position != _lastStartPos;
+        var endChanged = _endPoint != null && _endPoint.position != _lastEndPos;
+        if (!startChanged && !endChanged)
+            return;
         Refresh();
     }
 
@@ -132,15 +140,18 @@ public sealed class GraphEdge : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        _lineRenderer.SetPosition(0, _startPoint.position);
+        _lastStartPos = _startPoint.position;
+        _lineRenderer.SetPosition(0, _lastStartPos);
         if (_endPoint != null)
         {
-            _lineRenderer.SetPosition(1, _endPoint.position);
+            _lastEndPos = _endPoint.position;
+            _lineRenderer.SetPosition(1, _lastEndPos);
             return;
         }
         if (_usesFreeEnd)
         {
-            _lineRenderer.SetPosition(1, _freeEndPosition);
+            _lastEndPos = _freeEndPosition;
+            _lineRenderer.SetPosition(1, _lastEndPos);
             return;
         }
         Destroy(gameObject);

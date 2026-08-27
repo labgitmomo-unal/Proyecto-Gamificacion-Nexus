@@ -10,9 +10,11 @@ public sealed class GraphWindow3D : MonoBehaviour
     [SerializeField] private LayerMask socketLayerMask = ~0;
     [SerializeField] private int overlapBufferCapacity = DefaultOverlapCapacity;
 
+    private const float CheckInterval = 0.2f;
     private Collider[] _overlapBuffer;
     private GraphSocket3D _anchorSocket;
     private GraphSocket3D _assignedSocket;
+    private float _nextCheckTime;
 
     public GraphSocket3D AnchorSocket => _anchorSocket;
     public GraphSocket3D AssignedSocket => _assignedSocket;
@@ -26,6 +28,10 @@ public sealed class GraphWindow3D : MonoBehaviour
     {
         if (_assignedSocket != null && _assignedSocket.isActiveAndEnabled && !_assignedSocket.IsFreeBody)
             return;
+
+        if (Time.fixedTime < _nextCheckTime)
+            return;
+        _nextCheckTime = Time.fixedTime + CheckInterval;
 
         _assignedSocket = null;
         var count = Physics.OverlapSphereNonAlloc(transform.position, attractionRadius, _overlapBuffer, socketLayerMask, QueryTriggerInteraction.Collide);

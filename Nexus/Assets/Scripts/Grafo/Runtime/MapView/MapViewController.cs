@@ -8,8 +8,8 @@ public sealed class MapViewController : MonoBehaviour
     [SerializeField] private Camera mapCamera;
     [SerializeField] private RawImage displayImage;
     [SerializeField] private GameObject presentationObject;
-    [SerializeField] private int renderTextureSize = 2048;
-    [SerializeField] private int antiAliasing = 4;
+    [SerializeField] private int renderTextureSize = 512;
+    [SerializeField] private int antiAliasing = 1;
     [SerializeField] private float mapYawOffsetDegrees = 180f;
 
     private RenderTexture _renderTexture;

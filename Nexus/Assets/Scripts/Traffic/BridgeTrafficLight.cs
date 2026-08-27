@@ -7,10 +7,11 @@ public class BridgeTrafficLight : MonoBehaviour
     private Renderer myRenderer;
     private Material mat;
     private Color colorOriginal;
+    private int _lastState = -1;
 
     void Start()
     {
-        bridgeControl = FindAnyObjectByType<BridgeControlManager>(FindObjectsInactive.Include);
+        bridgeControl = BridgeControlManager.Instance;
         myRenderer = GetComponent<Renderer>();
         if (myRenderer == null) return;
 
@@ -25,7 +26,8 @@ public class BridgeTrafficLight : MonoBehaviour
     {
         if (bridgeControl == null)
         {
-            bridgeControl = FindAnyObjectByType<BridgeControlManager>(FindObjectsInactive.Include);
+            if (BridgeControlManager.Instance != null)
+                bridgeControl = BridgeControlManager.Instance;
             return;
         }
 
@@ -35,7 +37,11 @@ public class BridgeTrafficLight : MonoBehaviour
         else if (bridgeControl.IsActive)
             nuevoEstado = bridgeControl.IsReleased ? 2 : 1;
 
-        ActualizarLuces(nuevoEstado);
+        if (nuevoEstado != _lastState)
+        {
+            _lastState = nuevoEstado;
+            ActualizarLuces(nuevoEstado);
+        }
     }
 
     private void ActualizarLuces(int estado)

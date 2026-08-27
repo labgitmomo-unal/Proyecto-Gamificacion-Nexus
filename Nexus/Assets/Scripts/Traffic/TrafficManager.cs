@@ -36,6 +36,7 @@ public class TrafficManager : MonoBehaviour
         = new Dictionary<MovementController, float>();
 
     private List<MovementController> clonesActivos = new List<MovementController>();
+    private HashSet<MovementController> clonesActivosSet = new HashSet<MovementController>();
 
     void Awake()
     {
@@ -69,8 +70,9 @@ public class TrafficManager : MonoBehaviour
     /// </summary>
     public void RegistrarClon(MovementController mc)
     {
-        if (mc == null || clonesActivos.Contains(mc)) return;
+        if (mc == null || clonesActivosSet.Contains(mc)) return;
         clonesActivos.Add(mc);
+        clonesActivosSet.Add(mc);
         float spawnerMult = ObtenerMultiplicadorPorDireccion(mc.initialVelocity);
         mc.initialVelocity *= multiplicador * spawnerMult;
     }
@@ -81,8 +83,11 @@ public class TrafficManager : MonoBehaviour
     public void DesregistrarClon(MovementController mc)
     {
         if (mc == null) return;
-        if (clonesActivos.Contains(mc))
+        if (clonesActivosSet.Contains(mc))
+        {
             clonesActivos.Remove(mc);
+            clonesActivosSet.Remove(mc);
+        }
     }
 
     /// <summary>
@@ -101,7 +106,7 @@ public class TrafficManager : MonoBehaviour
         }
 
         // Actualizar clones ya existentes
-        clonesActivos.RemoveAll(mc => mc == null);
+        CleanNullClones();
         foreach (var mc in clonesActivos)
         {
             Vector3 velocidadBase = ObtenerVelocidadBasePorDireccion(mc.initialVelocity);
@@ -128,7 +133,7 @@ public class TrafficManager : MonoBehaviour
         plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMult * templateMult;
 
         // Aplicar a clones que coincidan con esta plantilla (por dirección)
-        clonesActivos.RemoveAll(mc => mc == null);
+        CleanNullClones();
         foreach (var mc in clonesActivos)
         {
             if (!DireccionesCoinciden(mc.initialVelocity, velocidadesOriginales[plantilla])) continue;
@@ -163,7 +168,7 @@ public class TrafficManager : MonoBehaviour
 
     public List<MovementController> ObtenerClones()
     {
-        clonesActivos.RemoveAll(mc => mc == null);
+        CleanNullClones();
         return clonesActivos;
     }
 
@@ -203,5 +208,17 @@ public class TrafficManager : MonoBehaviour
             }
         }
         return 1f;
+    }
+
+    private void CleanNullClones()
+    {
+        for (int i = clonesActivos.Count - 1; i >= 0; i--)
+        {
+            if (clonesActivos[i] == null)
+            {
+                clonesActivosSet.Remove(clonesActivos[i]);
+                clonesActivos.RemoveAt(i);
+            }
+        }
     }
 }

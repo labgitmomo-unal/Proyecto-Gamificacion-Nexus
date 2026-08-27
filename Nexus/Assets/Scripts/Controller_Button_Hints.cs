@@ -45,6 +45,8 @@ public class Controller_Button_Hints : MonoBehaviour
     private Transform _rightController;
     private Camera _camera;
     private float _lastLogTime;
+    private NearFarInteractor _leftInteractor;
+    private NearFarInteractor _rightInteractor;
 
     private void Start()
     {
@@ -75,6 +77,10 @@ public class Controller_Button_Hints : MonoBehaviour
 
         _leftUnits = FindHintUnits(_leftController);
         _rightUnits = FindHintUnits(_rightController);
+
+        // Cache NearFarInteractor references
+        _leftInteractor = _leftController != null ? _leftController.GetComponentInChildren<NearFarInteractor>() : null;
+        _rightInteractor = _rightController != null ? _rightController.GetComponentInChildren<NearFarInteractor>() : null;
 
         if (_leftController == null && _rightController == null)
             Debug.LogWarning("[Controller_Button_Hints] No se encontro NINGUN mando. El script debe estar en un padre de 'Left Controller' y 'Right Controller' (p. ej. el XR Origin).", this);
@@ -136,7 +142,11 @@ public class Controller_Button_Hints : MonoBehaviour
     private bool IsSelectActive(Transform controller)
     {
         if (controller == null) return false;
-        var nf = controller.GetComponentInChildren<NearFarInteractor>();
+        NearFarInteractor nf = null;
+        if (controller == _leftController)
+            nf = _leftInteractor;
+        else if (controller == _rightController)
+            nf = _rightInteractor;
         if (nf != null) return nf.isSelectActive;
         return false;
     }

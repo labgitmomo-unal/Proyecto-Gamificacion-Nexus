@@ -3,7 +3,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class GraphRenderDistanceController : MonoBehaviour
 {
-    [SerializeField] private float maximumVisibleDistance = 140f;
+    [SerializeField] private float maximumVisibleDistance = 60f;
     [SerializeField] private float distanceHysteresis = 3f;
 
     private Renderer[] _renderers;
@@ -22,12 +22,12 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private void LateUpdate()
     {
-        var activeViewerCamera = FindActiveViewerCamera();
-        if (activeViewerCamera != null)
-            _viewerCamera = activeViewerCamera;
-
         if (_viewerCamera == null || !_viewerCamera.isActiveAndEnabled)
-            return;
+        {
+            _viewerCamera = Camera.main;
+            if (_viewerCamera == null)
+                return;
+        }
 
         UpdateVisibility(false);
     }
@@ -40,17 +40,11 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private void DisableLocalDistanceCulling()
     {
-        foreach (var lodGroup in _lodGroups)
-        {
-            if (lodGroup != null)
-                lodGroup.enabled = false;
-        }
-
         foreach (var renderer in _renderers)
         {
             if (renderer != null)
             {
-                renderer.allowOcclusionWhenDynamic = false;
+                renderer.allowOcclusionWhenDynamic = true;
                 renderer.forceRenderingOff = false;
             }
         }
@@ -58,24 +52,19 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private Camera FindActiveViewerCamera()
     {
+        // Return cached camera if still valid
+        if (_viewerCamera != null && _viewerCamera.isActiveAndEnabled && !_viewerCamera.orthographic && _viewerCamera.targetTexture == null)
+            return _viewerCamera;
+
+        // Only search main camera to avoid Camera.allCameras array allocation
         var mainCamera = Camera.main;
         if (mainCamera != null && mainCamera.isActiveAndEnabled && !mainCamera.orthographic && mainCamera.targetTexture == null)
-            return mainCamera;
-
-        var cameras = Camera.allCameras;
-        Camera fallbackCamera = null;
-        foreach (var camera in cameras)
         {
-            if (camera == null || !camera.isActiveAndEnabled || camera.stereoTargetEye == StereoTargetEyeMask.None)
-                continue;
-
-            fallbackCamera ??= camera;
-            if (camera.orthographic || camera.targetTexture != null)
-                continue;
-            return camera;
+            _viewerCamera = mainCamera;
+            return _viewerCamera;
         }
 
-        return fallbackCamera;
+        return null;
     }
 
     private void UpdateVisibility(bool force)

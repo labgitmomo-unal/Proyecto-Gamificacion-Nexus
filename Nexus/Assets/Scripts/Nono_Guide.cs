@@ -63,6 +63,7 @@ public class Nono_Guide : MonoBehaviour
     private bool isMoving;
     private Vector3 moveDestination;
     private float idleY;
+    private Camera _cachedPlayerCamera;
 
     private void Awake()
     {
@@ -265,10 +266,13 @@ public class Nono_Guide : MonoBehaviour
             return;
         }
 
-        Camera playerCamera = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
-        if (playerCamera != null)
+        if (_cachedPlayerCamera == null)
         {
-            lookAtTarget = playerCamera.transform;
+            _cachedPlayerCamera = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
+        }
+        if (_cachedPlayerCamera != null)
+        {
+            lookAtTarget = _cachedPlayerCamera.transform;
         }
     }
 

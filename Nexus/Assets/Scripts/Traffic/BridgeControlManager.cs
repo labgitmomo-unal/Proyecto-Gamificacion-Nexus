@@ -60,6 +60,9 @@ public class BridgeControlManager : MonoBehaviour
     // las naves NUEVAS que se instancien durante el challenge deben nacer ya
     // a la velocidad controlada, sin importar de qué spawner vengan.
     private List<MovementController> _allTemplates = new List<MovementController>();
+    private List<MovementController> _cachedAllMovementControllers = new List<MovementController>();
+    private float _lastMovementControllerCacheTime = 0f;
+    private const float MovementControllerCacheInterval = 1f;
 
     private void RebuildTemplateCache()
     {
@@ -180,8 +183,15 @@ public class BridgeControlManager : MonoBehaviour
 
     private List<MovementController> ObtenerTodosLosMovementControllers()
     {
-        return new List<MovementController>(
-            FindObjectsByType<MovementController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        // Cache for 1 second to avoid FindObjectsByType every call
+        if (Time.time - _lastMovementControllerCacheTime > MovementControllerCacheInterval)
+        {
+            _cachedAllMovementControllers.Clear();
+            _cachedAllMovementControllers.AddRange(
+                FindObjectsByType<MovementController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+            _lastMovementControllerCacheTime = Time.time;
+        }
+        return _cachedAllMovementControllers;
     }
 
     private BridgeCarFreezer ObtenerOCongelar(MovementController mc)

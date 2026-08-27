@@ -17,6 +17,7 @@ public class Cinematic_1_Controller : MonoBehaviour
     public BridgeControlManager bridgeControl;
     public AudioSource Challenge_Indicator_1;
     private LODGroup[] _cachedLODGroups;
+    private RandomObjectSpawner[] _cachedSpawners;
     private Camera _cinematicCamera;
     private UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset _urpAsset;
     private float _timeOffset;
@@ -29,6 +30,7 @@ public class Cinematic_1_Controller : MonoBehaviour
             return;
         }
         _cachedLODGroups = FindObjectsByType<LODGroup>(FindObjectsSortMode.None);
+        _cachedSpawners = FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
         forcaLODsBaixos(true);
         OcultarNiebla(false);
         SuspenderAdaptiveQuality(true);
@@ -150,8 +152,8 @@ public class Cinematic_1_Controller : MonoBehaviour
         {
             if (cinematicActiva)
             {
-                cleanup.maxTrafficCars = 80;
-                cleanup.maxDistanceFromCamera = 300f;
+                cleanup.maxTrafficCars = 40;
+                cleanup.maxDistanceFromCamera = 200f;
             }
             else
             {
@@ -241,11 +243,12 @@ public class Cinematic_1_Controller : MonoBehaviour
         else
             TrafficManager.Instance?.SetVelocidad(0.5f);
         
-        // Log para depuración: verificar que los spawners tienen intervalos configurados
-        var spawners = FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
-        foreach (var sp in spawners)
+        // Use cached spawners to avoid FindObjectsByType allocation
+        if (_cachedSpawners == null) return;
+        foreach (var sp in _cachedSpawners)
         {
-            Debug.Log($"[Cinematic] Spawner {sp.gameObject.name}: min={sp.minSpawnInterval:F2}, max={sp.maxSpawnInterval:F2}, override={(sp.IntervalOverrideMin >= 0 ? sp.IntervalOverrideMin : "none")}");
+            if (sp != null)
+                Debug.Log($"[Cinematic] Spawner {sp.gameObject.name}: min={sp.minSpawnInterval:F2}, max={sp.maxSpawnInterval:F2}, override={(sp.IntervalOverrideMin >= 0 ? sp.IntervalOverrideMin : "none")}");
         }
     }
 
