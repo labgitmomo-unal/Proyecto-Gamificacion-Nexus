@@ -920,6 +920,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PanelCronometro
   graphExampleSequence: {fileID: 0}
+  graphPlacementScoreManager: {fileID: 0}
   startAudio: {fileID: 8185665702863563048}
   demonstrationAudio: {fileID: 4600124224555947850}
   completionAudio: {fileID: 6787647555299421569}
@@ -1347,7 +1348,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: 402903d0553419e40b2da9726391a04c, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -1614,7 +1615,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: 48cf50c7ebfc9324599ca0308a20aeb2, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -2048,7 +2049,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: dca7c0260aa97dc43b622ac680a0a1af, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -2177,7 +2178,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: fe392e1155627644faa4da276d6877da, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1

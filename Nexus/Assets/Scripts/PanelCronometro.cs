@@ -61,6 +61,11 @@ public sealed class PanelCronometro : MonoBehaviour
             resetButton.onClick.AddListener(HandleResetPressed);
         }
 
+        if (finalizeButton != null)
+        {
+            finalizeButton.onClick.AddListener(HandleFinalizePressed);
+        }
+
         if (graphExampleSequence != null)
         {
             graphExampleSequence.SequenceCompleted += HandleExampleCompleted;
