@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class GraphEdge : MonoBehaviour
 {
     private const float DefaultLineWidth = 0.05f;
+    private static readonly Color ExampleEdgeColor = new Color(1f, 0.85f, 0f, 1f);
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     private LineRenderer _lineRenderer;
@@ -27,6 +28,7 @@ public sealed class GraphEdge : MonoBehaviour
     public void SetPreserveOnReset(bool preserve)
     {
         PreserveOnReset = preserve;
+        ApplyColor();
     }
 
     private void Awake()
@@ -94,7 +96,7 @@ public sealed class GraphEdge : MonoBehaviour
 
         var propertyBlock = new MaterialPropertyBlock();
         _lineRenderer.GetPropertyBlock(propertyBlock);
-        propertyBlock.SetColor(BaseColorId, _edgeColor);
+        propertyBlock.SetColor(BaseColorId, PreserveOnReset ? ExampleEdgeColor : _edgeColor);
         _lineRenderer.SetPropertyBlock(propertyBlock);
     }
 

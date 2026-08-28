@@ -35,6 +35,9 @@ public class TrafficManager : MonoBehaviour
     private Dictionary<MovementController, float> multiplicadoresPorPlantilla
         = new Dictionary<MovementController, float>();
 
+    public event System.Action<MovementController> VehicleRegistered;
+    public event System.Action<MovementController> VehicleUnregistered;
+
     private List<MovementController> clonesActivos = new List<MovementController>();
 
     void Awake()
@@ -73,6 +76,7 @@ public class TrafficManager : MonoBehaviour
         clonesActivos.Add(mc);
         float spawnerMult = ObtenerMultiplicadorPorDireccion(mc.initialVelocity);
         mc.initialVelocity *= multiplicador * spawnerMult;
+        VehicleRegistered?.Invoke(mc);
     }
 
     /// <summary>
@@ -82,7 +86,10 @@ public class TrafficManager : MonoBehaviour
     {
         if (mc == null) return;
         if (clonesActivos.Contains(mc))
+        {
             clonesActivos.Remove(mc);
+            VehicleUnregistered?.Invoke(mc);
+        }
     }
 
     /// <summary>

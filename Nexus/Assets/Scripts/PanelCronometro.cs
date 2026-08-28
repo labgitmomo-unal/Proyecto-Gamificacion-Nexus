@@ -12,6 +12,7 @@ public sealed class PanelCronometro : MonoBehaviour
     private const string InitialTimeLabel = "00:00";
 
     [SerializeField] private GraphExampleSequence graphExampleSequence;
+    [SerializeField] private GraphPlacementScoreManager graphPlacementScoreManager;
     [SerializeField] private AudioSource startAudio;
     [SerializeField] private AudioSource demonstrationAudio;
     [SerializeField] private AudioSource completionAudio;
@@ -64,9 +65,9 @@ public sealed class PanelCronometro : MonoBehaviour
             finalizeButton.onClick.AddListener(HandleFinalizePressed);
         }
 
-        if (graphExampleSequence != null)
+        if (graphPlacementScoreManager != null)
         {
-            graphExampleSequence.SequenceCompleted += HandleExampleCompleted;
+            graphPlacementScoreManager.ScoreChanged += HandleScoreChanged;
         }
 
         elapsedSeconds = 0f;
@@ -82,6 +83,16 @@ public sealed class PanelCronometro : MonoBehaviour
         {
             graphExampleSequence.SequenceCompleted -= HandleExampleCompleted;
         }
+
+        if (graphPlacementScoreManager != null)
+        {
+            graphPlacementScoreManager.ScoreChanged -= HandleScoreChanged;
+        }
+    }
+
+    private void Start()
+    {
+        UpdateDisplay();
     }
 
     private void Update()
@@ -142,6 +153,13 @@ public sealed class PanelCronometro : MonoBehaviour
         }
 
         isRunning = true;
+        graphPlacementScoreManager?.BeginEvaluation();
+        UpdateDisplay();
+    }
+
+    private void HandleScoreChanged(int currentScore, int maximumScore)
+    {
+        score = currentScore;
         UpdateDisplay();
     }
 
@@ -218,7 +236,7 @@ public sealed class PanelCronometro : MonoBehaviour
         isRunning = false;
         showStopOptions = false;
         elapsedSeconds = 0f;
-        score = 0;
+        graphPlacementScoreManager?.ResetEvaluation();
         UpdateDisplay();
     }
 
@@ -273,7 +291,14 @@ public sealed class PanelCronometro : MonoBehaviour
 
         if (scoreText != null)
         {
-            scoreText.text = $"Puntaje: {score}";
+            if (graphPlacementScoreManager != null)
+            {
+                scoreText.text = $"Puntaje: {graphPlacementScoreManager.CurrentScore}/{graphPlacementScoreManager.MaximumScore}";
+            }
+            else
+            {
+                scoreText.text = "Puntaje: 0/0";
+            }
         }
 
         if (toggleButtonText != null)
