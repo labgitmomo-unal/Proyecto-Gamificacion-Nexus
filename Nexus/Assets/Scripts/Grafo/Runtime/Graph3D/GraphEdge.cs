@@ -23,6 +23,8 @@ public sealed class GraphEdge : MonoBehaviour
     internal GraphSocket3D EndSocket => _endSocket;
     internal Transform EndPoint => _endPoint;
     internal Color EdgeColor => _edgeColor;
+    internal Color SelectedEdgeColor => _edgeColor;
+    private Color EffectiveColor => PreserveOnReset ? ExampleEdgeColor : _edgeColor;
 
     /// <summary>Marks this edge as the demonstration edge that survives a graph reset.</summary>
     public void SetPreserveOnReset(bool preserve)
@@ -96,7 +98,7 @@ public sealed class GraphEdge : MonoBehaviour
 
         var propertyBlock = new MaterialPropertyBlock();
         _lineRenderer.GetPropertyBlock(propertyBlock);
-        propertyBlock.SetColor(BaseColorId, PreserveOnReset ? ExampleEdgeColor : _edgeColor);
+        propertyBlock.SetColor(BaseColorId, EffectiveColor);
         _lineRenderer.SetPropertyBlock(propertyBlock);
     }
 

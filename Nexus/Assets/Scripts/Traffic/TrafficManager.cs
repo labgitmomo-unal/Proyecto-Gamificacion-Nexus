@@ -1,10 +1,7 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-/// <summary>
-/// Controla la velocidad del tráfico volador modificando los MovementController
-/// de los Car Line Spawner y todos sus clones activos en escena.
-/// </summary>
+/// <summary>Controls traffic speed and keeps the authoritative registry of active vehicles.</summary>
 public class TrafficManager : MonoBehaviour
 {
     private static TrafficManager _instance;
@@ -15,7 +12,8 @@ public class TrafficManager : MonoBehaviour
             if (_instance == null)
             {
                 _instance = FindAnyObjectByType<TrafficManager>(FindObjectsInactive.Include);
-                if (_instance != null) _instance.TryInitialize();
+                if (_instance != null)
+                    _instance.TryInitialize();
             }
             return _instance;
         }
@@ -29,29 +27,36 @@ public class TrafficManager : MonoBehaviour
     [Range(0f, 2f)]
     public float multiplicador = 1f;
 
-    private Dictionary<MovementController, Vector3> velocidadesOriginales
+    private readonly Dictionary<MovementController, Vector3> velocidadesOriginales
         = new Dictionary<MovementController, Vector3>();
-
-    private Dictionary<MovementController, float> multiplicadoresPorPlantilla
+    private readonly Dictionary<MovementController, float> multiplicadoresPorPlantilla
         = new Dictionary<MovementController, float>();
+    private readonly Dictionary<MovementController, GraphTrafficRoad> roadByVehicle
+        = new Dictionary<MovementController, GraphTrafficRoad>();
+    private readonly List<MovementController> clonesActivos = new List<MovementController>();
 
     public event System.Action<MovementController> VehicleRegistered;
     public event System.Action<MovementController> VehicleUnregistered;
 
-    private List<MovementController> clonesActivos = new List<MovementController>();
-
-    void Awake()
+    private void Awake()
     {
-        if (_instance != null && _instance != this) { Destroy(gameObject); return; }
+        if (_instance != null && _instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         _instance = this;
         InitializeDictionaries();
     }
 
-    /// <summary>Garantiza que el singleton esté listo (útil si Awake no se disparó).</summary>
+    /// <summary>Guarantees that the singleton dictionaries are initialized.</summary>
     public void TryInitialize()
     {
-        if (_instance == null) _instance = this;
-        if (velocidadesOriginales.Count > 0) return;
+        if (_instance == null)
+            _instance = this;
+        if (velocidadesOriginales.Count > 0)
+            return;
         InitializeDictionaries();
     }
 
@@ -59,99 +64,115 @@ public class TrafficManager : MonoBehaviour
     {
         velocidadesOriginales.Clear();
         multiplicadoresPorPlantilla.Clear();
-        foreach (var p in plantillas)
+        foreach (var template in plantillas)
         {
-            if (p == null) continue;
-            velocidadesOriginales[p] = p.initialVelocity;
-            multiplicadoresPorPlantilla[p] = 1f;
+            if (template == null)
+                continue;
+            velocidadesOriginales[template] = template.initialVelocity;
+            multiplicadoresPorPlantilla[template] = 1f;
         }
     }
 
-    /// <summary>
-    /// Llamar desde RandomObjectSpawner cuando se instancia un clon.
-    /// </summary>
-    public void RegistrarClon(MovementController mc)
+    /// <summary>Registers a spawned vehicle without assigning a logical road.</summary>
+    public void RegistrarClon(MovementController movementController)
     {
-        if (mc == null || clonesActivos.Contains(mc)) return;
-        clonesActivos.Add(mc);
-        float spawnerMult = ObtenerMultiplicadorPorDireccion(mc.initialVelocity);
-        mc.initialVelocity *= multiplicador * spawnerMult;
-        VehicleRegistered?.Invoke(mc);
+        RegistrarClon(movementController, null);
     }
 
-    /// <summary>
-    /// Llamar desde RandomObjectSpawner cuando se destruye o recicla un clon.
-    /// </summary>
-    public void DesregistrarClon(MovementController mc)
+    /// <summary>Registers a spawned vehicle and preserves its logical road source.</summary>
+    public void RegistrarClon(MovementController movementController, GraphTrafficRoad sourceRoad)
     {
-        if (mc == null) return;
-        if (clonesActivos.Contains(mc))
+        if (movementController == null || clonesActivos.Contains(movementController))
+            return;
+
+        clonesActivos.Add(movementController);
+        var spawnerMultiplier = ObtenerMultiplicadorPorDireccion(movementController.initialVelocity);
+        movementController.initialVelocity *= multiplicador * spawnerMultiplier;
+        roadByVehicle[movementController] = sourceRoad;
+        VehicleRegistered?.Invoke(movementController);
+    }
+
+    /// <summary>Unregisters a vehicle when it is destroyed or returned to a pool.</summary>
+    public void DesregistrarClon(MovementController movementController)
+    {
+        if (movementController == null)
+            return;
+
+        if (clonesActivos.Remove(movementController))
         {
-            clonesActivos.Remove(mc);
-            VehicleUnregistered?.Invoke(mc);
+            roadByVehicle.Remove(movementController);
+            VehicleUnregistered?.Invoke(movementController);
         }
     }
 
-    /// <summary>
-    /// Aplica un multiplicador a plantillas y clones activos (0=detenido, 1=normal).
-    /// </summary>
+    /// <summary>Counts active registered vehicles assigned to a logical road.</summary>
+    public int CountActiveVehicles(GraphTrafficRoad road)
+    {
+        if (road == null)
+            return 0;
+
+        var count = 0;
+        foreach (var vehicle in clonesActivos)
+        {
+            if (vehicle != null && vehicle.gameObject.activeInHierarchy
+                && roadByVehicle.TryGetValue(vehicle, out var assignedRoad)
+                && assignedRoad == road)
+                count++;
+        }
+        return count;
+    }
+
+    /// <summary>Applies a global speed multiplier to templates and registered vehicles.</summary>
     public void SetVelocidad(float nuevoMultiplicador)
     {
         multiplicador = Mathf.Clamp(nuevoMultiplicador, 0f, 2f);
 
-        // Actualizar plantillas (afecta clones futuros)
-        foreach (var p in plantillas)
+        foreach (var template in plantillas)
         {
-            if (p == null || !velocidadesOriginales.ContainsKey(p)) continue;
-            float spawnerMult = multiplicadoresPorPlantilla.TryGetValue(p, out float sm) ? sm : 1f;
-            p.initialVelocity = velocidadesOriginales[p] * multiplicador * spawnerMult;
+            if (template == null || !velocidadesOriginales.ContainsKey(template))
+                continue;
+            var spawnerMultiplier = multiplicadoresPorPlantilla.TryGetValue(template, out var value) ? value : 1f;
+            template.initialVelocity = velocidadesOriginales[template] * multiplicador * spawnerMultiplier;
         }
 
-        // Actualizar clones ya existentes
-        clonesActivos.RemoveAll(mc => mc == null);
-        foreach (var mc in clonesActivos)
+        clonesActivos.RemoveAll(movementController => movementController == null);
+        foreach (var movementController in clonesActivos)
         {
-            Vector3 velocidadBase = ObtenerVelocidadBasePorDireccion(mc.initialVelocity);
-            float spawnerMult = ObtenerMultiplicadorPorDireccion(mc.initialVelocity);
-            mc.initialVelocity = velocidadBase * multiplicador * spawnerMult;
+            var baseVelocity = ObtenerVelocidadBasePorDireccion(movementController.initialVelocity);
+            var spawnerMultiplier = ObtenerMultiplicadorPorDireccion(movementController.initialVelocity);
+            movementController.initialVelocity = baseVelocity * multiplicador * spawnerMultiplier;
         }
     }
 
-    /// <summary>
-    /// Multiplicador INDEPENDIENTE para una plantilla específica.
-    /// 0 = detenido, 1 = normal. No afecta otras plantillas.
-    /// </summary>
+    /// <summary>Applies an independent speed multiplier to one template.</summary>
     public void SetMultiplicadorPorPlantilla(MovementController plantilla, float multiplier)
     {
-        if (plantilla == null || !velocidadesOriginales.ContainsKey(plantilla)) return;
+        if (plantilla == null || !velocidadesOriginales.ContainsKey(plantilla))
+            return;
 
         multiplicadoresPorPlantilla[plantilla] = Mathf.Clamp(multiplier, 0f, 2f);
+        var globalMultiplier = multiplicador;
+        var spawnerMultiplier = multiplicadoresPorPlantilla[plantilla];
+        plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMultiplier * Mathf.Max(spawnerMultiplier, 0.01f);
 
-        float globalMult = multiplicador;
-        float spawnerMult = multiplicadoresPorPlantilla[plantilla];
-
-        // Aplicar a la plantilla (min 0.01 para mantener dirección viva en GetOriginalVelocity)
-        float templateMult = Mathf.Max(spawnerMult, 0.01f);
-        plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMult * templateMult;
-
-        // Aplicar a clones que coincidan con esta plantilla (por dirección)
-        clonesActivos.RemoveAll(mc => mc == null);
-        foreach (var mc in clonesActivos)
+        clonesActivos.RemoveAll(movementController => movementController == null);
+        foreach (var movementController in clonesActivos)
         {
-            if (!DireccionesCoinciden(mc.initialVelocity, velocidadesOriginales[plantilla])) continue;
+            if (!DireccionesCoinciden(movementController.initialVelocity, velocidadesOriginales[plantilla]))
+                continue;
 
-            Vector3 baseVel = ObtenerVelocidadBasePorDireccion(mc.initialVelocity);
-            mc.initialVelocity = baseVel * globalMult * spawnerMult;
+            var baseVelocity = ObtenerVelocidadBasePorDireccion(movementController.initialVelocity);
+            movementController.initialVelocity = baseVelocity * globalMultiplier * spawnerMultiplier;
         }
     }
 
-    /// <summary>Restaura la velocidad normal (multiplicador = 1).</summary>
+    /// <summary>Restores normal traffic speed.</summary>
     public void RestaurarVelocidad() => SetVelocidad(1f);
 
-    /// <summary>Ralentiza el tráfico al porcentaje indicado (ej: 0.1 = 10%).</summary>
+    /// <summary>Reduces traffic speed to the requested multiplier.</summary>
     public void RalentizarTrafico(float porcentaje = 0.1f) => SetVelocidad(porcentaje);
 
-    /// <summary>Devuelve la velocidad base de una plantilla considerando el multiplicador global.</summary>
+    /// <summary>Returns the base velocity of a registered template.</summary>
     public Vector3 GetBaseVelocityForPlantilla(MovementController plantilla)
     {
         if (plantilla == null || !velocidadesOriginales.ContainsKey(plantilla))
@@ -159,56 +180,69 @@ public class TrafficManager : MonoBehaviour
         return velocidadesOriginales[plantilla] * multiplicador;
     }
 
-    /// <summary>Registra una plantilla dinámicamente (útil si no se asignó en Inspector).</summary>
+    /// <summary>Registers a template dynamically when it was not assigned in the Inspector.</summary>
     public void RegistrarPlantilla(MovementController template)
     {
-        if (template == null || plantillas.Contains(template)) return;
+        if (template == null || plantillas.Contains(template))
+            return;
+
         plantillas.Add(template);
         velocidadesOriginales[template] = template.initialVelocity;
         multiplicadoresPorPlantilla[template] = 1f;
     }
 
+    /// <summary>Returns the current registry of spawned vehicles.</summary>
     public List<MovementController> ObtenerClones()
     {
-        clonesActivos.RemoveAll(mc => mc == null);
+        clonesActivos.RemoveAll(movementController => movementController == null);
+        var staleMappings = new List<MovementController>();
+        foreach (var pair in roadByVehicle)
+        {
+            if (pair.Key == null)
+                staleMappings.Add(pair.Key);
+        }
+        foreach (var staleMapping in staleMappings)
+            roadByVehicle.Remove(staleMapping);
         return clonesActivos;
     }
 
-    /// <summary>Registra el tiempo de spawn de un clon para controlar cuándo puede ser limpiado.</summary>
-    public void RegisterSpawnTime(MovementController mc)
+    /// <summary>Registers the time of a vehicle spawn for cleanup integrations.</summary>
+    public void RegisterSpawnTime(MovementController movementController)
     {
     }
 
-    /// <summary>Desregistra el tiempo de spawn de un clon.</summary>
-    public void UnregisterSpawnTime(MovementController mc)
+    /// <summary>Removes the time of a vehicle spawn for cleanup integrations.</summary>
+    public void UnregisterSpawnTime(MovementController movementController)
     {
     }
 
     private Vector3 ObtenerVelocidadBasePorDireccion(Vector3 velocidadActual)
     {
-        foreach (var kvp in velocidadesOriginales)
-            if (DireccionesCoinciden(kvp.Value, velocidadActual))
-                return kvp.Value;
+        foreach (var pair in velocidadesOriginales)
+        {
+            if (DireccionesCoinciden(pair.Value, velocidadActual))
+                return pair.Value;
+        }
 
         return velocidadActual.normalized * 50f;
     }
 
-    private bool DireccionesCoinciden(Vector3 a, Vector3 b)
+    private static bool DireccionesCoinciden(Vector3 first, Vector3 second)
     {
-        if (a.sqrMagnitude < 0.0001f || b.sqrMagnitude < 0.0001f) return false;
-        return Vector3.Dot(a.normalized, b.normalized) > 0.9f;
+        if (first.sqrMagnitude < 0.0001f || second.sqrMagnitude < 0.0001f)
+            return false;
+        return Vector3.Dot(first.normalized, second.normalized) > 0.9f;
     }
 
     private float ObtenerMultiplicadorPorDireccion(Vector3 velocidadActual)
     {
-        foreach (var kvp in multiplicadoresPorPlantilla)
+        foreach (var pair in multiplicadoresPorPlantilla)
         {
-            if (velocidadesOriginales.TryGetValue(kvp.Key, out var velBase) &&
-                DireccionesCoinciden(velBase, velocidadActual))
-            {
-                return kvp.Value;
-            }
+            if (velocidadesOriginales.TryGetValue(pair.Key, out var baseVelocity)
+                && DireccionesCoinciden(baseVelocity, velocidadActual))
+                return pair.Value;
         }
+
         return 1f;
     }
 }

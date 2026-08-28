@@ -51,6 +51,27 @@ public sealed class TrafficTelemetryReader : MonoBehaviour
         PublishCounts(true);
     }
 
+
+    /// <summary>Returns active vehicles owned by the logical road of a local spawner.</summary>
+    public int GetActiveVehicleCount(RandomObjectSpawner spawner)
+    {
+        if (spawner == null)
+            return 0;
+
+        var manager = TrafficManager.Instance;
+        if (manager == null)
+            return 0;
+
+        var roads = FindObjectsByType<GraphTrafficRoad>(FindObjectsSortMode.None);
+        foreach (var road in roads)
+        {
+            if (road != null && road.OwnsSpawner(spawner.transform))
+                return manager.CountActiveVehicles(road);
+        }
+
+        return 0;
+    }
+
     /// <summary>Reconciles active vehicles with TrafficManager without changing traffic behaviour.</summary>
     public void RefreshSnapshot()
     {

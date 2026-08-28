@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -35,7 +36,7 @@ public sealed class PanelCronometro : MonoBehaviour
     private bool isRunning;
     private bool showStopOptions;
     private float elapsedSeconds;
-    private int score;
+    private float score;
 
     private void Awake()
     {
@@ -60,9 +61,9 @@ public sealed class PanelCronometro : MonoBehaviour
             resetButton.onClick.AddListener(HandleResetPressed);
         }
 
-        if (finalizeButton != null)
+        if (graphExampleSequence != null)
         {
-            finalizeButton.onClick.AddListener(HandleFinalizePressed);
+            graphExampleSequence.SequenceCompleted += HandleExampleCompleted;
         }
 
         if (graphPlacementScoreManager != null)
@@ -157,7 +158,7 @@ public sealed class PanelCronometro : MonoBehaviour
         UpdateDisplay();
     }
 
-    private void HandleScoreChanged(int currentScore, int maximumScore)
+    private void HandleScoreChanged(float currentScore, float maximumScore)
     {
         score = currentScore;
         UpdateDisplay();
@@ -293,7 +294,7 @@ public sealed class PanelCronometro : MonoBehaviour
         {
             if (graphPlacementScoreManager != null)
             {
-                scoreText.text = $"Puntaje: {graphPlacementScoreManager.CurrentScore}/{graphPlacementScoreManager.MaximumScore}";
+                scoreText.text = $"Puntaje: {FormatScore(graphPlacementScoreManager.CurrentScore)}/{FormatScore(graphPlacementScoreManager.MaximumScore)}";
             }
             else
             {
@@ -308,6 +309,12 @@ public sealed class PanelCronometro : MonoBehaviour
 
         UpdateButtonLayout();
     }
+
+    private static string FormatScore(float value)
+    {
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
 
     private void UpdateButtonLayout()
     {

@@ -120,10 +120,12 @@ public class RandomObjectSpawner : MonoBehaviour
         MovementController mc = clone.GetComponent<MovementController>();
         if (mc != null)
         {
-            if (TrafficManager.Instance != null)
+            TrafficManager trafficManager = TrafficManager.Instance;
+            GraphTrafficRoad sourceRoad = GetComponentInParent<GraphTrafficRoad>();
+            if (trafficManager != null)
             {
-                TrafficManager.Instance.RegistrarClon(mc);
-                TrafficManager.Instance.RegisterSpawnTime(mc);
+                trafficManager.RegistrarClon(mc, sourceRoad);
+                trafficManager.RegisterSpawnTime(mc);
             }
         }
     }
