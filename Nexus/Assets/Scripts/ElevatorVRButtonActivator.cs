@@ -5,7 +5,6 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 {
     private const float MovementThreshold = 0.05f;
     private const float PositionChangeThreshold = 0.001f;
-    private const float DescentHorizontalCorrectionThreshold = 0.01f;
     private const int SettledFramesRequired = 8;
 
     private InputAction[] controllerButtonActions;
@@ -13,10 +12,11 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
     private bool playerInside;
     private Collider playerCollider;
     private Transform playerTransform;
+    private CharacterController playerCharacterController;
     private bool waitingForMovement;
     private bool elevatorMoving;
-    private bool correctingDescent;
-    private Vector3 descentLocalPlayerPosition;
+    private Vector3 activationStartPosition;
+    private Vector3 previousElevatorPosition;
     private float activationStartY;
     private float previousY;
     private int settledFrames;
@@ -32,10 +32,10 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
         controllerButtonActions = new[]
         {
-            CreateButtonAction("ElevatorLeftPrimary", "<XRController>{LeftHand}/primaryButton", "<XRController>{LeftHand}/{PrimaryButton}", "<XRController>{LeftHand}/{PrimaryAction}", "<XRController>/{PrimaryAction}"),
-            CreateButtonAction("ElevatorLeftSecondary", "<XRController>{LeftHand}/secondaryButton", "<XRController>{LeftHand}/{SecondaryButton}", "<XRController>/secondaryButton"),
-            CreateButtonAction("ElevatorRightPrimary", "<XRController>{RightHand}/primaryButton", "<XRController>{RightHand}/{PrimaryButton}", "<XRController>{RightHand}/{PrimaryAction}", "<XRController>/{PrimaryAction}"),
-            CreateButtonAction("ElevatorRightSecondary", "<XRController>{RightHand}/secondaryButton", "<XRController>{RightHand}/{SecondaryButton}", "<XRController>/secondaryButton")
+            CreateButtonAction("ElevatorLeftPrimary", "<XRController>{LeftHand}/{PrimaryButton}"),
+            CreateButtonAction("ElevatorLeftSecondary", "<XRController>{LeftHand}/{SecondaryButton}"),
+            CreateButtonAction("ElevatorRightPrimary", "<XRController>{RightHand}/{PrimaryButton}"),
+            CreateButtonAction("ElevatorRightSecondary", "<XRController>{RightHand}/{SecondaryButton}")
         };
 
         foreach (InputAction action in controllerButtonActions)
@@ -66,6 +66,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         }
         else if (elevatorMoving)
         {
+            CarryPlayerWithElevator();
             MonitorMovementEnd();
         }
 
@@ -75,11 +76,6 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         }
 
         ActivateOriginalElevatorTrigger();
-    }
-
-    private void LateUpdate()
-    {
-        CorrectDescentHorizontalDrift();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -102,7 +98,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             if (!waitingForMovement && !elevatorMoving)
             {
                 playerTransform = null;
-                correctingDescent = false;
+                playerCharacterController = null;
                 DisableFloorChangeTrigger();
             }
         }
@@ -117,8 +113,8 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
         playerInside = true;
         playerCollider = other;
-        CharacterController characterController = other.GetComponentInParent<CharacterController>();
-        playerTransform = characterController != null ? characterController.transform : other.transform;
+        playerCharacterController = other.GetComponentInParent<CharacterController>();
+        playerTransform = playerCharacterController != null ? playerCharacterController.transform : other.transform;
     }
 
     private void ActivateOriginalElevatorTrigger()
@@ -128,31 +124,48 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             return;
         }
 
-        activationStartY = transform.position.y;
+        activationStartPosition = transform.position;
+        previousElevatorPosition = activationStartPosition;
+        activationStartY = activationStartPosition.y;
         previousY = activationStartY;
         settledFrames = 0;
         waitingForMovement = true;
-        correctingDescent = false;
         floorChangeTrigger.enabled = true;
         floorChangeTrigger.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.DontRequireReceiver);
     }
 
     private void MonitorMovementStart()
     {
-        float verticalDisplacement = transform.position.y - activationStartY;
-        if (Mathf.Abs(verticalDisplacement) <= MovementThreshold)
+        float currentY = transform.position.y;
+        if (Mathf.Abs(currentY - activationStartY) <= MovementThreshold)
         {
             return;
         }
 
         waitingForMovement = false;
         elevatorMoving = true;
-        previousY = transform.position.y;
+        CarryPlayerWithElevator();
+        previousY = currentY;
+    }
 
-        if (verticalDisplacement < 0f && playerTransform != null)
+    private void CarryPlayerWithElevator()
+    {
+        Vector3 currentElevatorPosition = transform.position;
+        Vector3 elevatorDelta = currentElevatorPosition - previousElevatorPosition;
+        previousElevatorPosition = currentElevatorPosition;
+
+        if (playerTransform == null || elevatorDelta.sqrMagnitude <= Mathf.Epsilon)
         {
-            descentLocalPlayerPosition = transform.InverseTransformPoint(playerTransform.position);
-            correctingDescent = true;
+            return;
+        }
+
+        if (playerCharacterController != null && playerCharacterController.enabled)
+        {
+            playerCharacterController.Move(elevatorDelta);
+        }
+        else
+        {
+            playerTransform.position += elevatorDelta;
         }
     }
 
@@ -177,34 +190,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         }
 
         elevatorMoving = false;
-        correctingDescent = false;
         DisableFloorChangeTrigger();
-    }
-
-    private void CorrectDescentHorizontalDrift()
-    {
-        if (!correctingDescent || playerTransform == null)
-        {
-            return;
-        }
-
-        Vector3 expectedPosition = transform.TransformPoint(new Vector3(
-            descentLocalPlayerPosition.x,
-            0f,
-            descentLocalPlayerPosition.z));
-        Vector3 currentPosition = playerTransform.position;
-        Vector2 horizontalError = new Vector2(
-            expectedPosition.x - currentPosition.x,
-            expectedPosition.z - currentPosition.z);
-
-        if (horizontalError.sqrMagnitude <= DescentHorizontalCorrectionThreshold * DescentHorizontalCorrectionThreshold)
-        {
-            return;
-        }
-
-        currentPosition.x = expectedPosition.x;
-        currentPosition.z = expectedPosition.z;
-        playerTransform.position = currentPosition;
     }
 
     private void DisableFloorChangeTrigger()
