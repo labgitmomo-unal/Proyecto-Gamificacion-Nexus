@@ -35,10 +35,10 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
         controllerButtonActions = new[]
         {
-            CreateButtonAction("ElevatorLeftPrimary", "<XRController>{LeftHand}/{PrimaryButton}"),
-            CreateButtonAction("ElevatorLeftSecondary", "<XRController>{LeftHand}/{SecondaryButton}"),
-            CreateButtonAction("ElevatorRightPrimary", "<XRController>{RightHand}/{PrimaryButton}"),
-            CreateButtonAction("ElevatorRightSecondary", "<XRController>{RightHand}/{SecondaryButton}")
+            CreateButtonAction("ElevatorLeftPrimary", "<XRController>{LeftHand}/primaryButton"),
+            CreateButtonAction("ElevatorLeftSecondary", "<XRController>{LeftHand}/secondaryButton"),
+            CreateButtonAction("ElevatorRightPrimary", "<XRController>{RightHand}/primaryButton"),
+            CreateButtonAction("ElevatorRightSecondary", "<XRController>{RightHand}/secondaryButton")
         };
 
         foreach (InputAction action in controllerButtonActions)
