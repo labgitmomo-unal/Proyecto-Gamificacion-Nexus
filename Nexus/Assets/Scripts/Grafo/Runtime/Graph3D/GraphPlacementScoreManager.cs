@@ -14,6 +14,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
 
     [SerializeField] private Transform nodeRoot;
     [SerializeField] private GraphExampleSequence exampleSequence;
+    [SerializeField] private GraphTrafficRoad[] expectedRoads = Array.Empty<GraphTrafficRoad>();
     [SerializeField] private float enterRadius = DefaultEnterRadius;
     [SerializeField] private float exitRadius = DefaultExitRadius;
     [SerializeField] private float stableContactSeconds = DefaultStableContactSeconds;
@@ -25,6 +26,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     private readonly List<GraphTrafficRoad> roads = new List<GraphTrafficRoad>();
     private readonly List<GraphEdge> edges = new List<GraphEdge>();
     private readonly HashSet<GraphTrafficRoad> warnedRoads = new HashSet<GraphTrafficRoad>();
+    private readonly HashSet<string> warnedEdgePairs = new HashSet<string>();
     private float evaluationTimer;
     private float lastPublishedScore;
     private float lastPublishedMaximum;
@@ -55,7 +57,18 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         ClampConfiguration();
         DiscoverTargets();
         DiscoverRoads();
+        RefreshEdges();
         PublishScore(true);
+    }
+
+    private void OnEnable()
+    {
+        GraphEdge.TopologyChanged += HandleTopologyChanged;
+    }
+
+    private void OnDisable()
+    {
+        GraphEdge.TopologyChanged -= HandleTopologyChanged;
     }
 
     private void Update()
@@ -77,6 +90,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         ClampConfiguration();
         DiscoverTargets();
         DiscoverRoads();
+        RefreshEdges();
         ClearEvaluationState();
 
         if (nodeRoot == null)
@@ -101,7 +115,14 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         PublishScore(true);
     }
 
-    /// <summary>Stops score evaluation and clears all node-to-reference assignments.</summary>
+    /// <summary>Stops score evaluation while preserving the final score for the session.</summary>
+    public void EndEvaluation()
+    {
+        IsEvaluationActive = false;
+        evaluationTimer = 0f;
+    }
+
+    /// <summary>Stops evaluation and clears all node-to-reference assignments.</summary>
     public void ResetEvaluation()
     {
         IsEvaluationActive = false;
@@ -110,19 +131,19 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         ClearEvaluationState();
         DiscoverTargets();
         DiscoverRoads();
+        RefreshEdges();
         CurrentScore = 0f;
         PublishScore(true);
+    }
+
+    private void HandleTopologyChanged()
+    {
+        RefreshEdges();
     }
 
     private void DiscoverTargets()
     {
         targets.Clear();
-        if (transform == null)
-        {
-            MaximumScore = 0f;
-            return;
-        }
-
         var seenTargets = new HashSet<Transform>();
         for (var index = 0; index < transform.childCount; index++)
         {
@@ -137,27 +158,82 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     private void DiscoverRoads()
     {
         roads.Clear();
+        MaximumScore = 0f;
+        var telemetryAdapter = FindAnyObjectByType<GraphTrafficTelemetryAdapter>();
+        var candidates = new List<GraphTrafficRoad>();
         var seenRoads = new HashSet<GraphTrafficRoad>();
-        var seenPairs = new HashSet<string>();
-        var discoveredRoads = FindObjectsByType<GraphTrafficRoad>(FindObjectsSortMode.None);
-        foreach (var road in discoveredRoads)
+        if (expectedRoads == null)
+        {
+            Debug.LogWarning("GraphPlacementScoreManager no tiene una lista determinista de carreteras.", this);
+            return;
+        }
+
+        foreach (var road in expectedRoads)
         {
             if (road == null || !seenRoads.Add(road))
                 continue;
-
             if (!road.IsConfigured)
             {
-                WarnIncompleteRoad(road);
+                WarnRoadOnce(road, $"GraphPlacementScoreManager ignora la carretera incompleta '{road.RoadName}'.");
                 continue;
             }
-
-            var pairKey = GetIntersectionPairKey(road.StartIntersection, road.EndIntersection);
-            if (!seenPairs.Add(pairKey))
+            if (telemetryAdapter == null || !telemetryAdapter.CanObserveRoad(road))
             {
-                WarnRoadOnce(road, $"GraphPlacementScoreManager ignora la carretera duplicada '{road.RoadName}'.");
+                WarnRoadOnce(road, $"GraphPlacementScoreManager ignora la carretera no observable '{road.RoadName}'.");
                 continue;
             }
 
+            candidates.Add(road);
+        }
+
+        var pairGroups = new Dictionary<string, List<GraphTrafficRoad>>();
+        var spawnerGroups = new Dictionary<int, List<GraphTrafficRoad>>();
+        foreach (var road in candidates)
+        {
+            var pairKey = GetIntersectionPairKey(road.StartIntersection, road.EndIntersection);
+            if (!pairGroups.TryGetValue(pairKey, out var pairGroup))
+            {
+                pairGroup = new List<GraphTrafficRoad>();
+                pairGroups.Add(pairKey, pairGroup);
+            }
+            pairGroup.Add(road);
+
+            var spawnerId = road.SpawnerRoot.GetInstanceID();
+            if (!spawnerGroups.TryGetValue(spawnerId, out var spawnerGroup))
+            {
+                spawnerGroup = new List<GraphTrafficRoad>();
+                spawnerGroups.Add(spawnerId, spawnerGroup);
+            }
+            spawnerGroup.Add(road);
+        }
+
+        var invalidRoads = new HashSet<GraphTrafficRoad>();
+        foreach (var pairGroup in pairGroups.Values)
+        {
+            if (pairGroup.Count <= 1)
+                continue;
+            foreach (var road in pairGroup)
+            {
+                invalidRoads.Add(road);
+                WarnRoadOnce(road, $"GraphPlacementScoreManager invalida la pareja de intersecciones duplicada de '{road.RoadName}'.");
+            }
+        }
+
+        foreach (var spawnerGroup in spawnerGroups.Values)
+        {
+            if (spawnerGroup.Count <= 1)
+                continue;
+            foreach (var road in spawnerGroup)
+            {
+                invalidRoads.Add(road);
+                WarnRoadOnce(road, $"GraphPlacementScoreManager invalida el spawner duplicado de '{road.RoadName}'.");
+            }
+        }
+
+        foreach (var road in candidates)
+        {
+            if (invalidRoads.Contains(road))
+                continue;
             roads.Add(road);
         }
 
@@ -272,7 +348,6 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             assignedNodes.Add(state.Occupant);
         }
 
-        RefreshEdges();
         RefreshRoadSnapshots();
         PublishRoadScore();
     }
@@ -304,11 +379,18 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             if (startNode == null || endNode == null || startNode == endNode)
                 continue;
 
-            var edge = FindPersistentEdge(startNode, endNode);
-            if (edge == null)
+            var matchingEdges = FindPersistentEdges(startNode, endNode);
+            if (matchingEdges.Count == 0)
                 continue;
+            if (matchingEdges.Count > 1)
+            {
+                var pairKey = $"{startNode.GetInstanceID()}:{endNode.GetInstanceID()}";
+                if (warnedEdgePairs.Add(pairKey))
+                    Debug.LogWarning($"GraphPlacementScoreManager encontró conexiones duplicadas entre los nodos de '{road.RoadName}'.", road);
+                continue;
+            }
 
-            var selectedColor = GraphTrafficColorUtility.Classify(edge.SelectedEdgeColor);
+            var selectedColor = GraphTrafficColorUtility.Classify(matchingEdges[0].SelectedEdgeColor);
             score += GraphTrafficColorUtility.CalculateScore(road.ExpectedColor, selectedColor);
         }
 
@@ -316,19 +398,9 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         PublishScore(false);
     }
 
-    private GraphNode3D GetOccupant(Transform target)
+    private List<GraphEdge> FindPersistentEdges(GraphNode3D firstNode, GraphNode3D secondNode)
     {
-        foreach (var state in targets)
-        {
-            if (state.Target == target && state.IsOccupied)
-                return state.Occupant;
-        }
-
-        return null;
-    }
-
-    private GraphEdge FindPersistentEdge(GraphNode3D firstNode, GraphNode3D secondNode)
-    {
+        var matchingEdges = new List<GraphEdge>();
         foreach (var edge in edges)
         {
             if (edge == null || !edge.gameObject.activeInHierarchy || edge.PreserveOnReset
@@ -339,7 +411,18 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             var endNode = edge.EndSocket.AssignedOwnerNode;
             if ((startNode == firstNode && endNode == secondNode)
                 || (startNode == secondNode && endNode == firstNode))
-                return edge;
+                matchingEdges.Add(edge);
+        }
+
+        return matchingEdges;
+    }
+
+    private GraphNode3D GetOccupant(Transform target)
+    {
+        foreach (var state in targets)
+        {
+            if (state.Target == target && state.IsOccupied)
+                return state.Occupant;
         }
 
         return null;
@@ -396,11 +479,6 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         lastPublishedScore = CurrentScore;
         lastPublishedMaximum = MaximumScore;
         ScoreChanged?.Invoke(CurrentScore, MaximumScore);
-    }
-
-    private void WarnIncompleteRoad(GraphTrafficRoad road)
-    {
-        WarnRoadOnce(road, $"GraphPlacementScoreManager ignora la carretera incompleta '{road.RoadName}'.");
     }
 
     private void WarnRoadOnce(GraphTrafficRoad road, string message)

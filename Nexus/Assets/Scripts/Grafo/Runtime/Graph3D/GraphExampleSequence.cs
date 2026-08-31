@@ -21,6 +21,7 @@ public sealed class GraphExampleSequence : MonoBehaviour
     [SerializeField] private float nodeSettleDuration = DefaultNodeSettleDuration;
 
     private bool sequenceRunning;
+    private Coroutine sequenceCoroutine;
     private bool sequenceFailed;
 
     /// <summary>Raised when the example finishes moving the nodes and connecting the socket.</summary>
@@ -55,7 +56,7 @@ public sealed class GraphExampleSequence : MonoBehaviour
             return;
         }
 
-        StartCoroutine(RunSequence());
+        sequenceCoroutine = StartCoroutine(RunSequence());
     }
 
     /// <summary>Returns whether the example sequence is currently moving nodes or sockets.</summary>
@@ -64,10 +65,29 @@ public sealed class GraphExampleSequence : MonoBehaviour
         return sequenceRunning;
     }
 
+    /// <summary>Cancels the demonstration without raising its completion event.</summary>
+    public void CancelSequence()
+    {
+        if (sequenceCoroutine != null)
+        {
+            StopCoroutine(sequenceCoroutine);
+            sequenceCoroutine = null;
+        }
+
+        sequenceRunning = false;
+        sequenceFailed = false;
+        markedSocket?.CancelDrag();
+        targetSocket?.CancelDrag();
+        firstExampleNode?.SetReleasedPhysicsState();
+        secondExampleNode?.SetReleasedPhysicsState();
+        SetExampleSocketInterpolation(RigidbodyInterpolation.Interpolate);
+    }
+
     private IEnumerator RunSequence()
     {
         if (!AreReferencesValid())
         {
+            sequenceCoroutine = null;
             yield break;
         }
 
@@ -81,10 +101,12 @@ public sealed class GraphExampleSequence : MonoBehaviour
         if (sequenceFailed)
         {
             sequenceRunning = false;
+            sequenceCoroutine = null;
             yield break;
         }
 
         sequenceRunning = false;
+        sequenceCoroutine = null;
         SequenceCompleted?.Invoke();
     }
 

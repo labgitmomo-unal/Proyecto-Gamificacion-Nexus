@@ -12,6 +12,8 @@ public sealed class GraphTrafficRoad : MonoBehaviour
     [SerializeField] private Transform endIntersection;
     [SerializeField] private Transform spawnerRoot;
     [SerializeField] private MovementController routeTemplate;
+    [SerializeField] private Transform spawnPoint;
+    [SerializeField] private Transform despawnPoint;
     [SerializeField] private int whiteMaximumVehicles = DefaultWhiteMaximumVehicles;
     [SerializeField] private int yellowMaximumVehicles = DefaultYellowMaximumVehicles;
     [SerializeField] private int orangeMaximumVehicles = DefaultOrangeMaximumVehicles;
@@ -23,9 +25,11 @@ public sealed class GraphTrafficRoad : MonoBehaviour
     public Transform EndIntersection => endIntersection;
     public Transform SpawnerRoot => spawnerRoot;
     public MovementController RouteTemplate => routeTemplate;
+    public Transform SpawnPoint => spawnPoint;
+    public Transform DespawnPoint => despawnPoint;
     public string RoadName => string.IsNullOrWhiteSpace(roadName) ? name : roadName;
 
-    /// <summary>Refreshes the read-only traffic snapshot and expected traffic color.</summary>
+    /// <summary>Refreshes this road's read-only traffic snapshot from the observer.</summary>
     public void RefreshTrafficSnapshot()
     {
         if (!ValidateConfiguration())
@@ -35,12 +39,12 @@ public sealed class GraphTrafficRoad : MonoBehaviour
             return;
         }
 
-        var trafficManager = TrafficManager.Instance;
-        ActiveVehicleCount = trafficManager == null ? 0 : trafficManager.CountActiveVehicles(this);
+        var telemetryAdapter = FindAnyObjectByType<GraphTrafficTelemetryAdapter>();
+        ActiveVehicleCount = telemetryAdapter == null ? 0 : telemetryAdapter.GetActiveVehicleCount(this);
         ExpectedColor = ClassifyTraffic(ActiveVehicleCount);
     }
 
-    /// <summary>Returns whether a transform is the configured runtime spawner for this road.</summary>
+    /// <summary>Returns whether a transform is this road's configured runtime spawner.</summary>
     public bool OwnsSpawner(Transform candidate)
     {
         return candidate != null && spawnerRoot != null && candidate == spawnerRoot;
@@ -62,10 +66,13 @@ public sealed class GraphTrafficRoad : MonoBehaviour
         if (!isActiveAndEnabled || startIntersection == null || endIntersection == null
             || startIntersection == endIntersection || !startIntersection.gameObject.activeInHierarchy
             || !endIntersection.gameObject.activeInHierarchy || spawnerRoot == null
-            || !spawnerRoot.gameObject.activeInHierarchy || routeTemplate == null)
+            || routeTemplate == null || spawnPoint == null || despawnPoint == null
+            || !spawnerRoot.gameObject.activeInHierarchy
+            || !spawnPoint.gameObject.activeInHierarchy || !despawnPoint.gameObject.activeInHierarchy)
             return false;
 
-        if (routeTemplate.transform.parent != spawnerRoot.parent)
+        if (!spawnerRoot.IsChildOf(transform) || !routeTemplate.transform.IsChildOf(transform)
+            || !spawnPoint.IsChildOf(transform) || !despawnPoint.IsChildOf(transform))
             return false;
 
         return HasRuntimeSpawner();
@@ -76,11 +83,7 @@ public sealed class GraphTrafficRoad : MonoBehaviour
         var behaviours = spawnerRoot.GetComponents<MonoBehaviour>();
         foreach (var behaviour in behaviours)
         {
-            if (behaviour == null)
-                continue;
-
-            var typeName = behaviour.GetType().Name;
-            if (typeName == "DLNK_RandomObjectSpawner" || typeName == "RandomObjectSpawner")
+            if (behaviour != null && behaviour.GetType().Name == "DLNK_RandomObjectSpawner")
                 return true;
         }
 

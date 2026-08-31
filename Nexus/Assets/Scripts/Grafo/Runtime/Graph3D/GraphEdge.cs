@@ -5,7 +5,7 @@ using UnityEngine;
 public sealed class GraphEdge : MonoBehaviour
 {
     private const float DefaultLineWidth = 0.05f;
-    private static readonly Color ExampleEdgeColor = new Color(1f, 0.85f, 0f, 1f);
+    private static readonly Color ExampleEdgeColor = new Color(1f, 0.92f, 0.02f, 1f);
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     private LineRenderer _lineRenderer;
@@ -16,6 +16,8 @@ public sealed class GraphEdge : MonoBehaviour
     private Vector3 _freeEndPosition;
     private Color _edgeColor = Color.white;
     private bool _usesFreeEnd;
+
+    public static event System.Action TopologyChanged;
 
     public bool PreserveOnReset { get; private set; }
 
@@ -60,6 +62,7 @@ public sealed class GraphEdge : MonoBehaviour
         Initialize(startPoint, endPoint, edgeMaterial, width, color);
         _startSocket?.RegisterEdge(this);
         _endSocket?.RegisterEdge(this);
+        TopologyChanged?.Invoke();
     }
 
     /// <summary>Initializes an edge from world-space transforms.</summary>
@@ -120,6 +123,7 @@ public sealed class GraphEdge : MonoBehaviour
     {
         _startSocket?.NotifyEdgeRemoved(this);
         _endSocket?.NotifyEdgeRemoved(this);
+        TopologyChanged?.Invoke();
     }
 
     private void LateUpdate()

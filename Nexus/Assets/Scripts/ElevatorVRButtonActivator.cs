@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 
 public sealed class ElevatorVRButtonActivator : MonoBehaviour
 {
     private const float MovementThreshold = 0.05f;
     private const float PositionChangeThreshold = 0.001f;
+    private const float MovementStartTimeout = 5f;
     private const int SettledFramesRequired = 8;
 
     private InputAction[] controllerButtonActions;
@@ -13,22 +15,23 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
     private Collider playerCollider;
     private Transform playerTransform;
     private CharacterController playerCharacterController;
+    private LocomotionProvider[] playerLocomotionProviders;
+    private bool[] locomotionProviderStates;
+    private bool characterControllerState;
     private bool waitingForMovement;
     private bool elevatorMoving;
-    private Vector3 activationStartPosition;
-    private Vector3 previousElevatorPosition;
+    private bool playerAttached;
+    private Transform previousPlayerParent;
+    private Vector3 lockedLocalPosition;
     private float activationStartY;
     private float previousY;
+    private float movementStartElapsed;
     private int settledFrames;
 
     private void Awake()
     {
         floorChangeTrigger = GetComponent<FloorChangeTrigger>();
-
-        if (floorChangeTrigger != null)
-        {
-            floorChangeTrigger.enabled = false;
-        }
+        DisableFloorChangeTrigger();
 
         controllerButtonActions = new[]
         {
@@ -44,8 +47,18 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        DisableFloorChangeTrigger();
+        waitingForMovement = false;
+        elevatorMoving = false;
+        DetachPlayerFromElevator();
+    }
+
     private void OnDestroy()
     {
+        DetachPlayerFromElevator();
+
         if (controllerButtonActions == null)
         {
             return;
@@ -66,7 +79,6 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         }
         else if (elevatorMoving)
         {
-            CarryPlayerWithElevator();
             MonitorMovementEnd();
         }
 
@@ -75,7 +87,26 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             return;
         }
 
-        ActivateOriginalElevatorTrigger();
+        ActivateElevator();
+    }
+
+    private void LateUpdate()
+    {
+        if (!playerAttached || playerTransform == null)
+        {
+            return;
+        }
+
+        Vector3 localPosition = playerTransform.localPosition;
+        if (Mathf.Abs(localPosition.x - lockedLocalPosition.x) <= PositionChangeThreshold &&
+            Mathf.Abs(localPosition.z - lockedLocalPosition.z) <= PositionChangeThreshold)
+        {
+            return;
+        }
+
+        localPosition.x = lockedLocalPosition.x;
+        localPosition.z = lockedLocalPosition.z;
+        playerTransform.localPosition = localPosition;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -117,56 +148,45 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         playerTransform = playerCharacterController != null ? playerCharacterController.transform : other.transform;
     }
 
-    private void ActivateOriginalElevatorTrigger()
+    private void ActivateElevator()
     {
-        if (floorChangeTrigger == null || playerCollider == null)
+        if (floorChangeTrigger == null || playerCollider == null || playerTransform == null)
         {
             return;
         }
 
-        activationStartPosition = transform.position;
-        previousElevatorPosition = activationStartPosition;
-        activationStartY = activationStartPosition.y;
+        activationStartY = transform.position.y;
         previousY = activationStartY;
+        movementStartElapsed = 0f;
         settledFrames = 0;
         waitingForMovement = true;
+
+        AttachPlayerToElevator();
         floorChangeTrigger.enabled = true;
         floorChangeTrigger.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.DontRequireReceiver);
     }
 
     private void MonitorMovementStart()
     {
+        movementStartElapsed += Time.deltaTime;
         float currentY = transform.position.y;
-        if (Mathf.Abs(currentY - activationStartY) <= MovementThreshold)
+
+        if (Mathf.Abs(currentY - activationStartY) > MovementThreshold)
+        {
+            waitingForMovement = false;
+            elevatorMoving = true;
+            previousY = currentY;
+            return;
+        }
+
+        if (movementStartElapsed < MovementStartTimeout)
         {
             return;
         }
 
         waitingForMovement = false;
-        elevatorMoving = true;
-        CarryPlayerWithElevator();
-        previousY = currentY;
-    }
-
-    private void CarryPlayerWithElevator()
-    {
-        Vector3 currentElevatorPosition = transform.position;
-        Vector3 elevatorDelta = currentElevatorPosition - previousElevatorPosition;
-        previousElevatorPosition = currentElevatorPosition;
-
-        if (playerTransform == null || elevatorDelta.sqrMagnitude <= Mathf.Epsilon)
-        {
-            return;
-        }
-
-        if (playerCharacterController != null && playerCharacterController.enabled)
-        {
-            playerCharacterController.Move(elevatorDelta);
-        }
-        else
-        {
-            playerTransform.position += elevatorDelta;
-        }
+        DisableFloorChangeTrigger();
+        DetachPlayerFromElevator();
     }
 
     private void MonitorMovementEnd()
@@ -191,6 +211,66 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
         elevatorMoving = false;
         DisableFloorChangeTrigger();
+        DetachPlayerFromElevator();
+    }
+
+    private void AttachPlayerToElevator()
+    {
+        if (playerAttached || playerTransform == null)
+        {
+            return;
+        }
+
+        previousPlayerParent = playerTransform.parent;
+        playerLocomotionProviders = playerTransform.GetComponentsInChildren<LocomotionProvider>(true);
+        locomotionProviderStates = new bool[playerLocomotionProviders.Length];
+
+        for (int i = 0; i < playerLocomotionProviders.Length; i++)
+        {
+            locomotionProviderStates[i] = playerLocomotionProviders[i].enabled;
+            playerLocomotionProviders[i].enabled = false;
+        }
+
+        if (playerCharacterController != null)
+        {
+            characterControllerState = playerCharacterController.enabled;
+            playerCharacterController.enabled = false;
+        }
+
+        playerTransform.SetParent(transform, true);
+        lockedLocalPosition = playerTransform.localPosition;
+        playerAttached = true;
+    }
+
+    private void DetachPlayerFromElevator()
+    {
+        if (playerAttached && playerTransform != null)
+        {
+            playerTransform.SetParent(previousPlayerParent, true);
+        }
+
+        if (playerLocomotionProviders != null && locomotionProviderStates != null)
+        {
+            int count = Mathf.Min(playerLocomotionProviders.Length, locomotionProviderStates.Length);
+            for (int i = 0; i < count; i++)
+            {
+                if (playerLocomotionProviders[i] != null)
+                {
+                    playerLocomotionProviders[i].enabled = locomotionProviderStates[i];
+                }
+            }
+        }
+
+        if (playerCharacterController != null)
+        {
+            playerCharacterController.enabled = characterControllerState;
+        }
+
+        playerAttached = false;
+        previousPlayerParent = null;
+        lockedLocalPosition = Vector3.zero;
+        playerLocomotionProviders = null;
+        locomotionProviderStates = null;
     }
 
     private void DisableFloorChangeTrigger()

@@ -11,23 +11,22 @@ public enum GraphTrafficColor
 public static class GraphTrafficColorUtility
 {
     private const float DefaultColorTolerance = 0.12f;
+    private static readonly Color[] ReferenceColors =
+    {
+        new Color(1f, 1f, 1f, 1f),
+        new Color(1f, 0.92f, 0.02f, 1f),
+        new Color(1f, 0.5f, 0f, 1f),
+        new Color(1f, 0f, 0f, 1f)
+    };
 
     public static GraphTrafficColor Classify(Color color, float tolerance = DefaultColorTolerance)
     {
-        var candidates = new[]
-        {
-            new Color(1f, 1f, 1f, 1f),
-            new Color(1f, 0.85f, 0f, 1f),
-            new Color(1f, 0.5f, 0f, 1f),
-            new Color(1f, 0f, 0f, 1f)
-        };
-
         var clampedTolerance = Mathf.Max(tolerance, 0f);
         var bestColor = GraphTrafficColor.White;
         var bestDistance = float.MaxValue;
-        for (var index = 0; index < candidates.Length; index++)
+        for (var index = 0; index < ReferenceColors.Length; index++)
         {
-            var distance = ColorDistance(color, candidates[index]);
+            var distance = ColorDistance(color, ReferenceColors[index]);
             if (distance < bestDistance)
             {
                 bestDistance = distance;

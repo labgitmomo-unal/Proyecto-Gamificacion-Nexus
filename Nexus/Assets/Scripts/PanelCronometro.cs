@@ -75,6 +75,10 @@ public sealed class PanelCronometro : MonoBehaviour
         {
             graphPlacementScoreManager.ScoreChanged += HandleScoreChanged;
         }
+        else
+        {
+            Debug.LogWarning("PanelCronometro no tiene GraphPlacementScoreManager asignado; se usará Puntaje: 0/0.", this);
+        }
 
         elapsedSeconds = 0f;
         sessionActive = false;
@@ -144,6 +148,7 @@ public sealed class PanelCronometro : MonoBehaviour
         sessionActive = false;
         isRunning = false;
         showStopOptions = true;
+        graphPlacementScoreManager?.EndEvaluation();
         CancelPendingExample();
         startAudio?.Stop();
         demonstrationAudio?.Stop();
@@ -197,6 +202,7 @@ public sealed class PanelCronometro : MonoBehaviour
     /// <summary>Restores playable graph nodes and removes player-created edges.</summary>
     public void ResetGraph()
     {
+        graphExampleSequence?.CancelSequence();
         var nodes = FindObjectsByType<GraphNode3D>(FindObjectsSortMode.None);
         var sockets = new List<GraphSocket3D>(FindObjectsByType<GraphSocket3D>(FindObjectsSortMode.None));
 
@@ -256,6 +262,7 @@ public sealed class PanelCronometro : MonoBehaviour
         sessionActive = false;
         isRunning = false;
         showStopOptions = false;
+        graphPlacementScoreManager?.EndEvaluation();
         UpdateDisplay();
         StartNonoReturnSequence();
     }
