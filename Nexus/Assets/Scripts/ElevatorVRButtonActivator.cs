@@ -1,9 +1,12 @@
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 
 public sealed class ElevatorVRButtonActivator : MonoBehaviour
 {
+    private const int TargetFloor = 2;
+    private const bool UseOriginalFloor = true;
     private const float MovementThreshold = 0.05f;
     private const float PositionChangeThreshold = 0.001f;
     private const float MovementStartTimeout = 5f;
@@ -31,11 +34,12 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
     private void Awake()
     {
         floorChangeTrigger = GetComponent<FloorChangeTrigger>();
+        ConfigureRuntimeFloorTargets();
         DisableFloorChangeTrigger();
 
         controllerButtonActions = new[]
         {
-            CreateButtonAction("ElevatorLeftPrimary", "<XRController>{LeftHand}/primaryButton"),
+            CreateButtonAction("ElevatorLeftPrimary", "<XRController>{LeftHand}/primaryButton", "<Keyboard>/l"),
             CreateButtonAction("ElevatorLeftSecondary", "<XRController>{LeftHand}/secondaryButton"),
             CreateButtonAction("ElevatorRightPrimary", "<XRController>{RightHand}/primaryButton"),
             CreateButtonAction("ElevatorRightSecondary", "<XRController>{RightHand}/secondaryButton")
@@ -68,6 +72,42 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         {
             action.Disable();
             action.Dispose();
+        }
+    }
+
+    private void ConfigureRuntimeFloorTargets()
+    {
+        SetIntegerField(typeof(Elevator), GetComponent<Elevator>(), "targetFloor", TargetFloor);
+        SetIntegerField(typeof(FloorChangeTrigger), floorChangeTrigger, "targetFloor", TargetFloor);
+        SetBooleanField(typeof(Elevator), GetComponent<Elevator>(), "useOriginalFloor", UseOriginalFloor);
+        SetBooleanField(typeof(FloorChangeTrigger), floorChangeTrigger, "useOriginalFloor", UseOriginalFloor);
+    }
+
+    private static void SetIntegerField(System.Type componentType, object component, string fieldName, int value)
+    {
+        if (component == null)
+        {
+            return;
+        }
+
+        FieldInfo field = componentType.GetField(fieldName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (field != null && field.FieldType == typeof(int))
+        {
+            field.SetValue(component, value);
+        }
+    }
+
+    private static void SetBooleanField(System.Type componentType, object component, string fieldName, bool value)
+    {
+        if (component == null)
+        {
+            return;
+        }
+
+        FieldInfo field = componentType.GetField(fieldName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (field != null && field.FieldType == typeof(bool))
+        {
+            field.SetValue(component, value);
         }
     }
 
@@ -172,10 +212,11 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         settledFrames = 0;
         waitingForMovement = true;
 
-        AttachPlayerToElevator();
         floorChangeTrigger.enabled = true;
         floorChangeTrigger.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.DontRequireReceiver);
-        Debug.Log($"[Elevator] FloorChangeTrigger enabled, message sent. Elevator isMoving={GetComponent<Elevator>().IsMoving()}");
+        floorChangeTrigger.SendMessage("OnTriggerStay", playerCollider, SendMessageOptions.DontRequireReceiver);
+        AttachPlayerToElevator();
+        Debug.Log("[Elevator] FloorChangeTrigger enabled, trigger messages sent.");
     }
 
     private void MonitorMovementStart()
