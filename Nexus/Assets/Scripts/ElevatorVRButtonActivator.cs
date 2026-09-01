@@ -82,11 +82,17 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             MonitorMovementEnd();
         }
 
-        if (!playerInside || waitingForMovement || elevatorMoving || !WasControllerButtonPressed())
+        bool buttonPressed = WasControllerButtonPressed();
+        if (playerInside)
+        {
+            Debug.Log($"[Elevator] Update: playerInside=true, waitingForMovement={waitingForMovement}, elevatorMoving={elevatorMoving}, buttonPressed={buttonPressed}");
+        }
+        if (!playerInside || waitingForMovement || elevatorMoving || !buttonPressed)
         {
             return;
         }
 
+        Debug.Log($"[Elevator] Button pressed! Activating elevator.");
         ActivateElevator();
     }
 
@@ -137,6 +143,8 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
     private void RegisterPlayer(Collider other)
     {
+        Debug.Log($"[Elevator] RegisterPlayer called. Tag={other.tag}, ComparePlayer={other.CompareTag("Player")}, rootTag={other.transform.root.tag}, GO={other.gameObject.name}");
+
         if (!other.CompareTag("Player"))
         {
             return;
@@ -146,15 +154,18 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         playerCollider = other;
         playerCharacterController = other.GetComponentInParent<CharacterController>();
         playerTransform = playerCharacterController != null ? playerCharacterController.transform : other.transform;
+        Debug.Log($"[Elevator] Player registered. playerInside={playerInside}, collider={other.gameObject.name}");
     }
 
     private void ActivateElevator()
     {
         if (floorChangeTrigger == null || playerCollider == null || playerTransform == null)
         {
+            Debug.Log($"[Elevator] ActivateElevator ABORTED: trigger={floorChangeTrigger != null}, collider={playerCollider != null}, transform={playerTransform != null}");
             return;
         }
 
+        Debug.Log($"[Elevator] ActivateElevator: Enabling FloorChangeTrigger and sending OnTriggerEnter...");
         activationStartY = transform.position.y;
         previousY = activationStartY;
         movementStartElapsed = 0f;
@@ -164,6 +175,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
         AttachPlayerToElevator();
         floorChangeTrigger.enabled = true;
         floorChangeTrigger.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.DontRequireReceiver);
+        Debug.Log($"[Elevator] FloorChangeTrigger enabled, message sent. Elevator isMoving={GetComponent<Elevator>().IsMoving()}");
     }
 
     private void MonitorMovementStart()
@@ -293,10 +305,17 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
     private bool WasControllerButtonPressed()
     {
+        if (controllerButtonActions == null)
+        {
+            Debug.Log("[Elevator] WasControllerButtonPressed: controllerButtonActions is NULL!");
+            return false;
+        }
+
         foreach (InputAction action in controllerButtonActions)
         {
             if (action.WasPressedThisFrame())
             {
+                Debug.Log($"[Elevator] Button detected: {action.name}");
                 return true;
             }
         }
