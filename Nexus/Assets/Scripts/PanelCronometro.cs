@@ -17,6 +17,8 @@ public sealed class PanelCronometro : MonoBehaviour
     [SerializeField] private AudioSource startAudio;
     [SerializeField] private AudioSource demonstrationAudio;
     [SerializeField] private AudioSource completionAudio;
+    [SerializeField] private AudioSource returnAudio;
+    [SerializeField] private Transform nonoIndicationPoint;
     [SerializeField] private Nono_Guide nonoGuide;
     [SerializeField] private Transform elevatorRef;
     [SerializeField] private Transform boardingPointRef;
@@ -98,11 +100,19 @@ public sealed class PanelCronometro : MonoBehaviour
         {
             graphPlacementScoreManager.ScoreChanged -= HandleScoreChanged;
         }
+
+        Nono_Guide guide = nonoGuide != null ? nonoGuide : Nono_Guide.Instance;
+        if (guide != null)
+            guide.OnReturnSequenceCompleted -= OnReturnCompleted;
     }
 
     private void Start()
     {
         UpdateDisplay();
+
+        Nono_Guide guide = nonoGuide != null ? nonoGuide : Nono_Guide.Instance;
+        if (guide != null)
+            guide.OnReturnSequenceCompleted += OnReturnCompleted;
     }
 
     private void Update()
@@ -283,6 +293,25 @@ public sealed class PanelCronometro : MonoBehaviour
         if (audioSource != null)
         {
             audioSource.Play();
+        }
+    }
+
+    private void OnReturnCompleted()
+    {
+        StartCoroutine(PlayReturnAudioAndFly());
+    }
+
+    private IEnumerator PlayReturnAudioAndFly()
+    {
+        PlayAudio(returnAudio);
+
+        if (returnAudio != null)
+            yield return new WaitWhile(() => returnAudio.isPlaying);
+
+        if (nonoIndicationPoint != null && Nono_Guide.Instance != null)
+        {
+            Nono_Guide.Instance.FlyTo(nonoIndicationPoint);
+            Debug.Log("[PanelCronometro] Audio de retorno finalizado. Nono volando al punto de indicación.");
         }
     }
 

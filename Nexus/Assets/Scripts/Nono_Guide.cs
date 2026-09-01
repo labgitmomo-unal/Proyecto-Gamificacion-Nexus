@@ -28,6 +28,7 @@ public class Nono_Guide : MonoBehaviour
     public bool IsMoving => isMoving;
     public bool IsElevatorSequenceActive => elevatorPhase != ElevatorSequencePhase.None;
     public event Action OnArrived;
+    public event Action OnReturnSequenceCompleted;
 
     [Header("Elevator Sequence")]
     [SerializeField] private float elevatorMovementThreshold = 0.05f;
@@ -492,8 +493,8 @@ public class Nono_Guide : MonoBehaviour
                 seqElevator = null;
                 seqBoardingPoint = null;
                 seqElevatorTopPoint = null;
-                seqFinalDestination = null;
                 OnArrived -= HandleElevatorSequenceArrival;
+                OnReturnSequenceCompleted?.Invoke();
                 break;
         }
     }
