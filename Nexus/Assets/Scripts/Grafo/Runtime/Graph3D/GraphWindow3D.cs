@@ -13,6 +13,7 @@ public sealed class GraphWindow3D : MonoBehaviour
     private Collider[] _overlapBuffer;
     private GraphSocket3D _anchorSocket;
     private GraphSocket3D _assignedSocket;
+    private float _lastCheckTime;
 
     public GraphSocket3D AnchorSocket => _anchorSocket;
     public GraphSocket3D AssignedSocket => _assignedSocket;
@@ -24,6 +25,9 @@ public sealed class GraphWindow3D : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (Time.time - _lastCheckTime < 0.2f) return;
+        _lastCheckTime = Time.time;
+
         if (_assignedSocket != null && _assignedSocket.isActiveAndEnabled && !_assignedSocket.IsFreeBody)
             return;
 

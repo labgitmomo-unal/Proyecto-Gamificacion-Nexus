@@ -37,7 +37,7 @@ public class BridgeTeleportTrigger : MonoBehaviour
             _fadeCanvasGroup = CreateFadeOverlay();
 
         if (_xrOrigin == null)
-            _xrOrigin = FindObjectOfType<XROrigin>();
+            _xrOrigin = FindAnyObjectByType<XROrigin>();
 
         if (bridgeControl == null)
             bridgeControl = FindFirstObjectByType<BridgeControlManager>();

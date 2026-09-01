@@ -1,8 +1,6 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.Playables;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 
 public class Cinematic_1_Controller : MonoBehaviour
 {
@@ -13,37 +11,63 @@ public class Cinematic_1_Controller : MonoBehaviour
     public Camera vistaPilotoCamera;
     public GameObject nexusLogo;
     private GameObject _xrCamera;
+    private Camera _cinematicCamera;
+    private float _savedFarClip;
     public TrafficManager trafficManager;
     public BridgeControlManager bridgeControl;
     public AudioSource Challenge_Indicator_1;
-    private LODGroup[] _cachedLODGroups;
-    private Camera _cinematicCamera;
-    private UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset _urpAsset;
-    private float _timeOffset;
 
-    void Start()
+    private void Start()
     {
+        QuestOptimizer.ApplyQuestSettings();
+
         if (SuppressStart)
         {
             SuppressStart = false;
             return;
         }
-        _cachedLODGroups = FindObjectsByType<LODGroup>(FindObjectsSortMode.None);
-        forcaLODsBaixos(true);
         OcultarNiebla(false);
-        SuspenderAdaptiveQuality(true);
-        SuspenderTrafficCleanup(true);
-        if (VirtualCamera != null)
-            _cinematicCamera = VirtualCamera.GetComponent<Camera>();
-        _urpAsset = GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
-        AjustarLimitesTrafico(true);
-        AjustarFarClip(true);
-        FindAndDisableXRCamera();
-        VirtualCamera.SetActive(true);
-        director.stopped += OnCinematicEnd;
+        if (VirtualCamera != null && VirtualCamera.activeSelf)
+            VirtualCamera.SetActive(false);
+        if (director != null)
+            director.stopped += OnCinematicEnd;
         MostrarCongestion();
-        StartCoroutine(ForzarGC(65f));
-        StartCoroutine(IniciarVentanas());
+        StartCoroutine(WaitForDirector());
+    }
+
+    private IEnumerator WaitForDirector()
+    {
+        while (director == null) yield return null;
+        while (double.IsNaN(director.time) || director.time < 0.0) yield return null;
+        yield return null;
+        if (VirtualCamera != null)
+        {
+            _cinematicCamera = VirtualCamera.GetComponent<Camera>();
+            if (_cinematicCamera != null)
+            {
+                _savedFarClip = _cinematicCamera.farClipPlane;
+                _cinematicCamera.farClipPlane = 150f;
+            }
+            VirtualCamera.SetActive(true);
+        }
+        FindAndDisableXRCamera();
+    }
+
+    private void OnCinematicEnd(PlayableDirector d)
+    {
+        StopAllCoroutines();
+        if (_cinematicCamera != null)
+        {
+            _cinematicCamera.farClipPlane = _savedFarClip;
+            _cinematicCamera = null;
+        }
+        if (VirtualCamera != null)
+            VirtualCamera.SetActive(false);
+        if (vistaPilotoCamera != null)
+            vistaPilotoCamera.enabled = false;
+        StartCoroutine(ShowLogoThenEnableXR());
+        if (Challenge_Indicator_1 != null)
+            Challenge_Indicator_1.Play();
     }
 
     private void FindAndDisableXRCamera()
@@ -61,8 +85,8 @@ public class Cinematic_1_Controller : MonoBehaviour
             _xrCamera.SetActive(false);
             return;
         }
+        var allCameras = FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         var virtualCam = VirtualCamera != null ? VirtualCamera.GetComponent<Camera>() : null;
-        var allCameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
         foreach (var cam in allCameras)
         {
             if (cam != virtualCam && cam != vistaPilotoCamera)
@@ -74,52 +98,6 @@ public class Cinematic_1_Controller : MonoBehaviour
                     _xrCamera.SetActive(false);
                     return;
                 }
-            }
-        }
-    }
-
-    private IEnumerator IniciarVentanas()
-    {
-        while (director == null) yield return null;
-        while (double.IsNaN(director.time) || director.time < 0.0) yield return null;
-        double lastTime = director.time;
-        while (director.time <= lastTime)
-        {
-            lastTime = director.time;
-            yield return null;
-        }
-        _timeOffset = Time.time - (float)director.time;
-        Debug.Log("[Cinematic] Director started. timeOffset=" + _timeOffset.ToString("F3") + "s");
-        StartCoroutine(VentanaFarClip(38f, 43f, 53f, 58f));
-        StartCoroutine(VentanaFarClip(55f, 65f, 82f, 87f));
-        StartCoroutine(VentanaFarClip(85f, 90f, 103f, 108f));
-    }
-
-    void OnCinematicEnd(PlayableDirector d)
-    {
-        forcaLODsBaixos(false);
-        OcultarNiebla(false);
-        VirtualCamera.SetActive(false);
-        AjustarFarClip(false);
-        if (vistaPilotoCamera != null) vistaPilotoCamera.enabled = false;
-        AjustarLimitesTrafico(false);
-        SuspenderAdaptiveQuality(false);
-        // --- NO reactivar la limpieza ni RestaurarTrafico para mantener tráfico congelado ---
-        // SuspenderTrafficCleanup(false);
-        // RestaurarTrafico();
-        StartCoroutine(ShowLogoThenEnableXR());
-        Challenge_Indicator_1.Play();
-    }
-
-    private void forcaLODsBaixos(bool ativo)
-    {
-        for (int i = 0; i < _cachedLODGroups.Length; i++)
-        {
-            var lg = _cachedLODGroups[i];
-            if (lg == null) continue;
-            if (lg.name.Contains("StreetBuilding") || lg.name.Contains("Building") || lg.name.Contains("Rounded"))
-            {
-                lg.ForceLOD(ativo ? 2 : -1);
             }
         }
     }
@@ -136,129 +114,20 @@ public class Cinematic_1_Controller : MonoBehaviour
         }
     }
 
-    private void AjustarFarClip(bool reducir)
-    {
-        if (_cinematicCamera != null) _cinematicCamera.farClipPlane = 150f;
-        QualitySettings.lodBias = reducir ? 0.4f : 0.3f;
-        if (_urpAsset != null) _urpAsset.renderScale = reducir ? 0.8f : 1.0f;
-    }
-
-    private void AjustarLimitesTrafico(bool cinematicActiva)
-    {
-        var cleanup = FindFirstObjectByType<TrafficCleanup>();
-        if (cleanup != null)
-        {
-            if (cinematicActiva)
-            {
-                cleanup.maxTrafficCars = 80;
-                cleanup.maxDistanceFromCamera = 300f;
-            }
-            else
-            {
-                cleanup.maxTrafficCars = 80;
-                cleanup.maxDistanceFromCamera = 300f;
-            }
-        }
-    }
-
-    private void SuspenderAdaptiveQuality(bool suspender)
-    {
-        var aq = FindFirstObjectByType<AdaptiveQuality>();
-        if (aq != null) aq.SetCinematicMode(suspender);
-    }
-
-    private void SuspenderTrafficCleanup(bool suspender)
-    {
-        var tc = FindFirstObjectByType<TrafficCleanup>();
-        if (tc != null)
-        {
-            if (suspender)
-                tc.CancelInvoke("Cleanup");
-            else
-                tc.InvokeRepeating("Cleanup", 2f, 0.5f);
-        }
-    }
-
-    private IEnumerator ForzarGC(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        System.GC.Collect();
-    }
-
-    private IEnumerator VentanaFarClip(float inicio, float llegada, float fin, float restaurado)
-    {
-        float realTarget = inicio + _timeOffset;
-        if (realTarget > Time.time)
-            yield return new WaitForSeconds(realTarget - Time.time);
-        float farTarget = 50f;
-        float duracion = llegada - inicio;
-        float t = 0f;
-        if (duracion > 0.01f)
-        {
-            float farStart = _cinematicCamera != null ? _cinematicCamera.farClipPlane : 150f;
-            while (t < duracion)
-            {
-                t += Time.deltaTime;
-                if (_cinematicCamera != null)
-                    _cinematicCamera.farClipPlane = Mathf.Lerp(farStart, farTarget, t / duracion);
-                yield return null;
-            }
-            if (_cinematicCamera != null) _cinematicCamera.farClipPlane = farTarget;
-        }
-        if (_urpAsset != null) _urpAsset.renderScale = 0.65f;
-        QualitySettings.lodBias = 0.1f;
-        for (int i = 0; i < _cachedLODGroups.Length; i++)
-            _cachedLODGroups[i].ForceLOD(_cachedLODGroups[i].lodCount - 1);
-        yield return new WaitForSeconds(fin - llegada);
-        duracion = restaurado - fin;
-        t = 0f;
-        if (duracion > 0.01f)
-        {
-            float farStart = farTarget;
-            farTarget = 150f;
-            while (t < duracion)
-            {
-                t += Time.deltaTime;
-                if (_cinematicCamera != null)
-                    _cinematicCamera.farClipPlane = Mathf.Lerp(farStart, farTarget, t / duracion);
-                yield return null;
-            }
-            if (_cinematicCamera != null) _cinematicCamera.farClipPlane = farTarget;
-        }
-        if (_urpAsset != null) _urpAsset.renderScale = 0.8f;
-        QualitySettings.lodBias = 0.4f;
-        for (int i = 0; i < _cachedLODGroups.Length; i++)
-            _cachedLODGroups[i].ForceLOD(-1);
-        forcaLODsBaixos(true);
-    }
-
     public void MostrarCongestion()
     {
-        // Aplicar solo velocidad para el trancón, SIN tocar intervalos de spawn
-        // Los intervalos fijos de cada RandomObjectSpawner permanecen inalterados
         if (trafficManager != null)
             trafficManager.SetVelocidad(0.5f);
         else
             TrafficManager.Instance?.SetVelocidad(0.5f);
-        
-        // Log para depuración: verificar que los spawners tienen intervalos configurados
-        var spawners = FindObjectsByType<RandomObjectSpawner>(FindObjectsSortMode.None);
-        foreach (var sp in spawners)
-        {
-            Debug.Log($"[Cinematic] Spawner {sp.gameObject.name}: min={sp.minSpawnInterval:F2}, max={sp.maxSpawnInterval:F2}, override={(sp.IntervalOverrideMin >= 0 ? sp.IntervalOverrideMin : "none")}");
-        }
     }
 
     public void RestaurarTrafico()
     {
-        // No modificar nada - mantener tráfico congelado exactamente como estaba al inicio de la cinemática
-        Debug.Log("[Cinematic_1_Control] Cinemática terminada - tráfico congelado.", this);
-    }
-
-    IEnumerator RestoreTrafficAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        RestaurarTrafico();
+        if (trafficManager != null)
+            trafficManager.SetVelocidad(2f);
+        else
+            TrafficManager.Instance?.SetVelocidad(2f);
     }
 
     private IEnumerator ShowLogoThenEnableXR()

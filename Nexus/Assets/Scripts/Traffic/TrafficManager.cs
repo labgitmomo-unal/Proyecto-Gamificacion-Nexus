@@ -33,7 +33,7 @@ public class TrafficManager : MonoBehaviour
         = new Dictionary<MovementController, float>();
     private readonly Dictionary<MovementController, GraphTrafficRoad> roadByVehicle
         = new Dictionary<MovementController, GraphTrafficRoad>();
-    private readonly List<MovementController> clonesActivos = new List<MovementController>();
+    private readonly HashSet<MovementController> clonesActivos = new HashSet<MovementController>();
 
     public event System.Action<MovementController> VehicleRegistered;
     public event System.Action<MovementController> VehicleUnregistered;
@@ -135,7 +135,7 @@ public class TrafficManager : MonoBehaviour
             template.initialVelocity = velocidadesOriginales[template] * multiplicador * spawnerMultiplier;
         }
 
-        clonesActivos.RemoveAll(movementController => movementController == null);
+        RemoveNullClones();
         foreach (var movementController in clonesActivos)
         {
             var baseVelocity = ObtenerVelocidadBasePorDireccion(movementController.initialVelocity);
@@ -155,7 +155,7 @@ public class TrafficManager : MonoBehaviour
         var spawnerMultiplier = multiplicadoresPorPlantilla[plantilla];
         plantilla.initialVelocity = velocidadesOriginales[plantilla] * globalMultiplier * Mathf.Max(spawnerMultiplier, 0.01f);
 
-        clonesActivos.RemoveAll(movementController => movementController == null);
+        RemoveNullClones();
         foreach (var movementController in clonesActivos)
         {
             if (!DireccionesCoinciden(movementController.initialVelocity, velocidadesOriginales[plantilla]))
@@ -194,7 +194,7 @@ public class TrafficManager : MonoBehaviour
     /// <summary>Returns the current registry of spawned vehicles.</summary>
     public List<MovementController> ObtenerClones()
     {
-        clonesActivos.RemoveAll(movementController => movementController == null);
+        RemoveNullClones();
         var staleMappings = new List<MovementController>();
         foreach (var pair in roadByVehicle)
         {
@@ -203,7 +203,7 @@ public class TrafficManager : MonoBehaviour
         }
         foreach (var staleMapping in staleMappings)
             roadByVehicle.Remove(staleMapping);
-        return clonesActivos;
+        return new List<MovementController>(clonesActivos);
     }
 
     /// <summary>Registers the time of a vehicle spawn for cleanup integrations.</summary>
@@ -232,6 +232,11 @@ public class TrafficManager : MonoBehaviour
         if (first.sqrMagnitude < 0.0001f || second.sqrMagnitude < 0.0001f)
             return false;
         return Vector3.Dot(first.normalized, second.normalized) > 0.9f;
+    }
+
+    private void RemoveNullClones()
+    {
+        clonesActivos.RemoveWhere(mc => mc == null);
     }
 
     private float ObtenerMultiplicadorPorDireccion(Vector3 velocidadActual)

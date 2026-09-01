@@ -11,10 +11,12 @@ public sealed class TrafficTelemetryReader : MonoBehaviour
     [SerializeField] private float refreshInterval = DefaultRefreshInterval;
 
     private readonly HashSet<MovementController> activeVehicles = new HashSet<MovementController>();
+    private readonly HashSet<MovementController> _snapshotBuffer = new HashSet<MovementController>();
     private TrafficManager subscribedManager;
     private float refreshTimer;
     private int activeVehicleCount;
     private int spawnedVehicleCount;
+    private GraphTrafficRoad[] _cachedRoads;
 
     public int ActiveVehicleCount => activeVehicleCount;
     public int SpawnedVehicleCount => spawnedVehicleCount;
@@ -62,8 +64,9 @@ public sealed class TrafficTelemetryReader : MonoBehaviour
         if (manager == null)
             return 0;
 
-        var roads = FindObjectsByType<GraphTrafficRoad>(FindObjectsSortMode.None);
-        foreach (var road in roads)
+        if (_cachedRoads == null)
+            _cachedRoads = FindObjectsByType<GraphTrafficRoad>(FindObjectsSortMode.None);
+        foreach (var road in _cachedRoads)
         {
             if (road != null && road.OwnsSpawner(spawner.transform))
                 return manager.CountActiveVehicles(road);
@@ -87,19 +90,19 @@ public sealed class TrafficTelemetryReader : MonoBehaviour
             return;
         }
 
-        var snapshot = new HashSet<MovementController>();
+        _snapshotBuffer.Clear();
         var registeredVehicles = manager.ObtenerClones();
         if (registeredVehicles != null)
         {
             foreach (var vehicle in registeredVehicles)
             {
                 if (vehicle != null && vehicle.gameObject.activeInHierarchy)
-                    snapshot.Add(vehicle);
+                    _snapshotBuffer.Add(vehicle);
             }
         }
 
         activeVehicles.Clear();
-        foreach (var vehicle in snapshot)
+        foreach (var vehicle in _snapshotBuffer)
             activeVehicles.Add(vehicle);
 
         activeVehicleCount = activeVehicles.Count;

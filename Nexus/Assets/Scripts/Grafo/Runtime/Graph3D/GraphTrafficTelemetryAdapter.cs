@@ -36,6 +36,8 @@ public sealed class GraphTrafficTelemetryAdapter : MonoBehaviour
         = new Dictionary<MovementController, float>();
     private readonly HashSet<int> warnedAmbiguousVehicles = new HashSet<int>();
     private readonly HashSet<GraphTrafficRoad> warnedRoads = new HashSet<GraphTrafficRoad>();
+    private readonly HashSet<MovementController> _activeSetBuffer = new HashSet<MovementController>();
+    private readonly List<MovementController> _staleBuffer = new List<MovementController>();
     private float refreshTimer;
     private int spawnedVehicleCount;
     private int activeVehicleCount;
@@ -96,14 +98,16 @@ public sealed class GraphTrafficTelemetryAdapter : MonoBehaviour
     public void RefreshSnapshot()
     {
         ClampConfiguration();
-        var activeControllers = FindObjectsByType<MovementController>(FindObjectsSortMode.None);
-        var activeSet = new HashSet<MovementController>();
+        var activeControllers = TrafficManager.Instance != null
+            ? TrafficManager.Instance.ObtenerClones()
+            : new List<MovementController>(FindObjectsByType<MovementController>(FindObjectsSortMode.None));
+        _activeSetBuffer.Clear();
         foreach (var controller in activeControllers)
         {
             if (controller == null || !controller.gameObject.activeInHierarchy || IsRouteTemplate(controller))
                 continue;
 
-            activeSet.Add(controller);
+            _activeSetBuffer.Add(controller);
             if (records.TryGetValue(controller, out var record))
             {
                 if (IsAtDespawnPoint(record.SourceRoad, controller.transform))
@@ -121,25 +125,25 @@ public sealed class GraphTrafficTelemetryAdapter : MonoBehaviour
             TryAttribute(controller);
         }
 
-        var staleVehicles = new List<MovementController>();
+        _staleBuffer.Clear();
         foreach (var pair in records)
         {
-            if (pair.Key == null || !activeSet.Contains(pair.Key) || !pair.Key.gameObject.activeInHierarchy)
-                staleVehicles.Add(pair.Key);
+            if (pair.Key == null || !_activeSetBuffer.Contains(pair.Key) || !pair.Key.gameObject.activeInHierarchy)
+                _staleBuffer.Add(pair.Key);
         }
 
-        foreach (var vehicle in staleVehicles)
+        foreach (var vehicle in _staleBuffer)
             RemoveRecord(vehicle);
 
-        var stalePending = new List<MovementController>();
+        _staleBuffer.Clear();
         foreach (var pair in pendingAttributions)
         {
-            if (pair.Key == null || !activeSet.Contains(pair.Key)
+            if (pair.Key == null || !_activeSetBuffer.Contains(pair.Key)
                 || Time.time - pair.Value >= attributionTimeout)
-                stalePending.Add(pair.Key);
+                _staleBuffer.Add(pair.Key);
         }
 
-        foreach (var vehicle in stalePending)
+        foreach (var vehicle in _staleBuffer)
             pendingAttributions.Remove(vehicle);
 
         PublishCounts();

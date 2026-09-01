@@ -11,7 +11,7 @@ public class RandomObjectSpawner : MonoBehaviour
     public Vector3 minScale = Vector3.one;
     public Vector3 maxScale = Vector3.one;
     public float keepAspectRatio = 1f;
-    public bool usePooling = false;
+    public bool usePooling = true;
 
     private Queue<GameObject> pool = new Queue<GameObject>();
     private Dictionary<GameObject, MovementController> cloneToTemplate = new Dictionary<GameObject, MovementController>();
@@ -26,6 +26,13 @@ public class RandomObjectSpawner : MonoBehaviour
     private void Awake()
     {
         ConfigureFixedInterval();
+
+        if (Application.platform != RuntimePlatform.Android)
+            return;
+
+        usePooling = true;
+        minSpawnInterval = Mathf.Max(minSpawnInterval, 0.5f);
+        maxSpawnInterval = Mathf.Max(maxSpawnInterval, minSpawnInterval + 0.25f);
     }
 
     private void ConfigureFixedInterval()

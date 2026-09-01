@@ -14,7 +14,10 @@ public sealed class GraphTrafficSpawnerAdapter : MonoBehaviour
     [SerializeField] private float refreshInterval = DefaultRefreshInterval;
 
     private readonly HashSet<MovementController> observedVehicles = new HashSet<MovementController>();
+    private readonly List<MovementController> _staleBuffer = new List<MovementController>();
     private float refreshTimer;
+    private bool? _hasRuntimeSpawnerCache;
+    private float _hasRuntimeSpawnerCheckTime;
 
     private void Awake()
     {
@@ -52,7 +55,7 @@ public sealed class GraphTrafficSpawnerAdapter : MonoBehaviour
     {
         if (road == null || runtimeSpawner == null || routeTemplate == null || !road.IsConfigured)
             return;
-        if (!HasRuntimeSpawner())
+        if (!HasRuntimeSpawnerCached())
             return;
 
         var trafficManager = TrafficManager.Instance;
@@ -60,28 +63,18 @@ public sealed class GraphTrafficSpawnerAdapter : MonoBehaviour
             return;
 
         var registeredVehicles = trafficManager.ObtenerClones();
-        var activeControllers = FindObjectsByType<MovementController>(FindObjectsSortMode.None);
-        foreach (var controller in activeControllers)
-        {
-            if (!IsPotentialVehicle(controller) || registeredVehicles.Contains(controller))
-                continue;
-
-            trafficManager.RegistrarClon(controller, road);
-            observedVehicles.Add(controller);
-        }
-
-        var staleVehicles = new List<MovementController>();
+        _staleBuffer.Clear();
         foreach (var vehicle in observedVehicles)
         {
             if (vehicle == null || !vehicle.gameObject.activeInHierarchy)
             {
                 if (vehicle != null)
                     trafficManager.DesregistrarClon(vehicle);
-                staleVehicles.Add(vehicle);
+                _staleBuffer.Add(vehicle);
             }
         }
 
-        foreach (var vehicle in staleVehicles)
+        foreach (var vehicle in _staleBuffer)
             observedVehicles.Remove(vehicle);
     }
 
@@ -99,6 +92,16 @@ public sealed class GraphTrafficSpawnerAdapter : MonoBehaviour
             return false;
 
         return Vector3.Dot(templateVelocity.normalized, candidateVelocity.normalized) >= MinimumDirectionDot;
+    }
+
+    private bool HasRuntimeSpawnerCached()
+    {
+        if (_hasRuntimeSpawnerCache.HasValue && Time.time - _hasRuntimeSpawnerCheckTime < 2f)
+            return _hasRuntimeSpawnerCache.Value;
+
+        _hasRuntimeSpawnerCheckTime = Time.time;
+        _hasRuntimeSpawnerCache = HasRuntimeSpawner();
+        return _hasRuntimeSpawnerCache.Value;
     }
 
     private bool HasRuntimeSpawner()

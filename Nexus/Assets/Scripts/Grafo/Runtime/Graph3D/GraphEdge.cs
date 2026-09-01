@@ -16,6 +16,8 @@ public sealed class GraphEdge : MonoBehaviour
     private Vector3 _freeEndPosition;
     private Color _edgeColor = Color.white;
     private bool _usesFreeEnd;
+    private Vector3 _lastStartPos;
+    private Vector3 _lastEndPos;
 
     public static event System.Action TopologyChanged;
 
@@ -128,6 +130,12 @@ public sealed class GraphEdge : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (_startPoint == null) return;
+        var startPos = _startPoint.position;
+        var endPos = _endPoint != null ? _endPoint.position : _freeEndPosition;
+        if (startPos == _lastStartPos && endPos == _lastEndPos) return;
+        _lastStartPos = startPos;
+        _lastEndPos = endPos;
         Refresh();
     }
 

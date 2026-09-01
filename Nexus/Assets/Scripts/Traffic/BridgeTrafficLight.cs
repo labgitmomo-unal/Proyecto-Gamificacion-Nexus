@@ -3,30 +3,39 @@ using UnityEngine;
 [RequireComponent(typeof(Renderer))]
 public class BridgeTrafficLight : MonoBehaviour
 {
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+
     private BridgeControlManager bridgeControl;
     private Renderer myRenderer;
-    private Material mat;
+    private Material sharedMaterial;
+    private MaterialPropertyBlock propertyBlock;
     private Color colorOriginal;
+    private int currentState = -1;
 
-    void Start()
+    private void Start()
     {
-        bridgeControl = FindAnyObjectByType<BridgeControlManager>(FindObjectsInactive.Include);
+        bridgeControl = BridgeControlManager.Instance;
         myRenderer = GetComponent<Renderer>();
-        if (myRenderer == null) return;
+        if (myRenderer == null)
+            return;
 
-        mat = myRenderer.material;
-        colorOriginal = mat.GetColor("_EmissionColor");
-        mat.EnableKeyword("_EMISSION");
+        sharedMaterial = myRenderer.sharedMaterial;
+        if (sharedMaterial == null)
+            return;
 
-        ActualizarLuces(estado: 0);
+        propertyBlock = new MaterialPropertyBlock();
+        colorOriginal = sharedMaterial.GetColor(EmissionColorId);
+        sharedMaterial.EnableKeyword("_EMISSION");
+        ActualizarLuces(0);
     }
 
-    void Update()
+    private void Update()
     {
         if (bridgeControl == null)
         {
-            bridgeControl = FindAnyObjectByType<BridgeControlManager>(FindObjectsInactive.Include);
-            return;
+            bridgeControl = BridgeControlManager.Instance;
+            if (bridgeControl == null)
+                return;
         }
 
         int nuevoEstado = 0;
@@ -35,24 +44,25 @@ public class BridgeTrafficLight : MonoBehaviour
         else if (bridgeControl.IsActive)
             nuevoEstado = bridgeControl.IsReleased ? 2 : 1;
 
-        ActualizarLuces(nuevoEstado);
+        if (nuevoEstado != currentState)
+            ActualizarLuces(nuevoEstado);
     }
 
     private void ActualizarLuces(int estado)
     {
-        if (mat == null) return;
+        if (myRenderer == null || propertyBlock == null || estado == currentState)
+            return;
 
-        switch (estado)
+        Color color = estado switch
         {
-            case 0:
-                mat.SetColor("_EmissionColor", colorOriginal);
-                break;
-            case 1:
-                mat.SetColor("_EmissionColor", Color.red);
-                break;
-            case 2:
-                mat.SetColor("_EmissionColor", Color.green);
-                break;
-        }
+            1 => Color.red,
+            2 => Color.green,
+            _ => colorOriginal
+        };
+
+        myRenderer.GetPropertyBlock(propertyBlock);
+        propertyBlock.SetColor(EmissionColorId, color);
+        myRenderer.SetPropertyBlock(propertyBlock);
+        currentState = estado;
     }
 }

@@ -158,7 +158,7 @@ public class ButtonSpawner : MonoBehaviour
         foreach (var b in lista.botones)
             if (Mathf.Approximately(b.ponderacion, 1f)) totalObjetivo++;
 
-        var progreso = UnityEngine.Object.FindObjectOfType<ProgresoAbstraccion>();
+        var progreso = UnityEngine.Object.FindFirstObjectByType<ProgresoAbstraccion>();
         if (progreso != null)
             progreso.InicializarConTotal(totalObjetivo);
         else
@@ -176,7 +176,7 @@ public class ButtonSpawner : MonoBehaviour
         {
             tmpText.text               = datos.texto;
             tmpText.color              = color;
-            tmpText.enableWordWrapping = true;
+            tmpText.textWrappingMode  = TextWrappingModes.Normal;
             tmpText.overflowMode       = TextOverflowModes.Truncate;
             tmpText.enableAutoSizing   = true;
             tmpText.fontSizeMin        = fontSizeMin;

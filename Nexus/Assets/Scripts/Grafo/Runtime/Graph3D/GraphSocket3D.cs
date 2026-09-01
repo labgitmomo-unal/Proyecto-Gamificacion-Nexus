@@ -59,6 +59,7 @@ public sealed class GraphSocket3D : MonoBehaviour
     private Renderer _renderer;
     private Light[] _lights;
     private Collider[] _interactionColliders;
+    private bool _isAnchored;
 
     private void Awake()
     {
@@ -72,6 +73,7 @@ public sealed class GraphSocket3D : MonoBehaviour
         _interactionColliders = GetComponents<Collider>();
         ConfigurePhysicsBody();
         CacheOriginalAnchorPose();
+        DisableRealtimeLightsForPerformance();
         SetAlwaysOnVisualState();
     }
 
@@ -85,7 +87,7 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     private void Update()
     {
-        SanitizeTransform();
+        if (!_isAnchored) SanitizeTransform();
         if (_temporaryLine == null)
             return;
 
@@ -655,6 +657,8 @@ public sealed class GraphSocket3D : MonoBehaviour
 
     private void SetAlwaysOnVisualState()
     {
+        _isAnchored = originalWindowAnchor != null && attachedWindowAnchor != null;
+
         if (_renderer != null)
         {
             _renderer.enabled = true;
@@ -669,10 +673,20 @@ public sealed class GraphSocket3D : MonoBehaviour
         {
             if (socketLight == null)
                 continue;
-            socketLight.transform.localPosition = Vector3.zero;
-            socketLight.transform.localRotation = Quaternion.identity;
-            socketLight.enabled = true;
-            socketLight.color = edgeColor;
+            socketLight.enabled = false;
+        }
+    }
+
+    private void DisableRealtimeLightsForPerformance()
+    {
+        if (_lights == null)
+            return;
+        foreach (var socketLight in _lights)
+        {
+            if (socketLight == null)
+                continue;
+            socketLight.shadows = LightShadows.None;
+            socketLight.renderMode = LightRenderMode.ForceVertex;
         }
     }
 

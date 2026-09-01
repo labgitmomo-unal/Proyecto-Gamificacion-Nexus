@@ -1,15 +1,18 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Camera))]
 public sealed class MapViewController : MonoBehaviour
 {
+    private const int AndroidRenderTextureSize = 256;
+
     [SerializeField] private Camera mapCamera;
     [SerializeField] private RawImage displayImage;
     [SerializeField] private GameObject presentationObject;
-    [SerializeField] private int renderTextureSize = 2048;
-    [SerializeField] private int antiAliasing = 4;
+    [SerializeField] private int renderTextureSize = 1024;
+    [SerializeField] private int antiAliasing = 1;
     [SerializeField] private float mapYawOffsetDegrees = 180f;
 
     private RenderTexture _renderTexture;
@@ -18,6 +21,12 @@ public sealed class MapViewController : MonoBehaviour
 
     private void Awake()
     {
+        if (Application.platform == RuntimePlatform.Android)
+        {
+            renderTextureSize = Mathf.Min(renderTextureSize, AndroidRenderTextureSize);
+            antiAliasing = 1;
+        }
+
         if (mapCamera == null)
             mapCamera = GetComponent<Camera>();
         if (mapCamera == null || displayImage == null || presentationObject == null)
@@ -31,6 +40,16 @@ public sealed class MapViewController : MonoBehaviour
             Debug.LogWarning($"[{nameof(MapViewController)}] {name}: renderTextureSize debe ser mayor que cero y antiAliasing debe ser 1, 2, 4 u 8.", this);
             enabled = false;
             return;
+        }
+        if (Application.platform == RuntimePlatform.Android)
+        {
+            mapCamera.stereoTargetEye = StereoTargetEyeMask.None;
+            mapCamera.allowHDR = false;
+            mapCamera.allowMSAA = false;
+            mapCamera.useOcclusionCulling = true;
+            var cameraData = mapCamera.GetComponent<UniversalAdditionalCameraData>();
+            if (cameraData != null)
+                cameraData.allowXRRendering = false;
         }
         if (!Mathf.Approximately(mapYawOffsetDegrees, 0f))
             transform.Rotate(0f, mapYawOffsetDegrees, 0f, Space.World);

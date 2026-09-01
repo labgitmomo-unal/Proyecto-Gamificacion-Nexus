@@ -14,11 +14,28 @@ public class TrafficCleanup : MonoBehaviour
     private bool authMode;
     // Track spawn time for each cloned vehicle
     private Dictionary<MovementController, float> spawnTimes = new Dictionary<MovementController, float>();
+    private static readonly System.Comparison<MovementController> SortByDistance =
+        (a, b) =>
+        {
+            if (a == null || b == null) return 0;
+            var cam = Camera.main;
+            if (cam == null) return 0;
+            var camPos = cam.transform.position;
+            float da = (camPos - a.transform.position).sqrMagnitude;
+            float db = (camPos - b.transform.position).sqrMagnitude;
+            return db.CompareTo(da);
+        };
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+
+        if (Application.platform == RuntimePlatform.Android)
+        {
+            maxTrafficCars = Mathf.Min(maxTrafficCars, 40);
+            maxDistanceFromCamera = Mathf.Min(maxDistanceFromCamera, 200f);
+        }
     }
 
     void Start()
@@ -74,11 +91,11 @@ public class TrafficCleanup : MonoBehaviour
                     continue; // Vehicle too new, skip cleanup
             }
 
-            float dist = cam != null
-                ? Vector3.Distance(cam.transform.position, mc.transform.position)
+            float distSq = cam != null
+                ? (cam.transform.position - mc.transform.position).sqrMagnitude
                 : 0f;
 
-            if (dist > maxDistanceFromCamera || mc.transform.position.y < -100f)
+            if (distSq > maxDistanceFromCamera * maxDistanceFromCamera || mc.transform.position.y < -100f)
                 toRemove.Add(mc);
             // If we skipped due to min time, we don't add to remove
         }
@@ -87,13 +104,7 @@ public class TrafficCleanup : MonoBehaviour
         if (exceso > 0)
         {
             // Sort by distance (farthest first) to decide what to remove
-            clones.Sort((a, b) =>
-            {
-                if (a == null || b == null) return 0;
-                float da = cam != null ? Vector3.Distance(cam.transform.position, a.transform.position) : 0f;
-                float db = cam != null ? Vector3.Distance(cam.transform.position, b.transform.position) : 0f;
-                return db.CompareTo(da);
-            });
+            clones.Sort(SortByDistance);
             for (int i = 0; i < clones.Count && toRemove.Count < exceso; i++)
             {
                 MovementController mc = clones[i];

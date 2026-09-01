@@ -29,6 +29,8 @@ public sealed class GraphTrafficRoad : MonoBehaviour
     public Transform DespawnPoint => despawnPoint;
     public string RoadName => string.IsNullOrWhiteSpace(roadName) ? name : roadName;
 
+    private GraphTrafficTelemetryAdapter _cachedTelemetryAdapter;
+
     /// <summary>Refreshes this road's read-only traffic snapshot from the observer.</summary>
     public void RefreshTrafficSnapshot()
     {
@@ -39,8 +41,9 @@ public sealed class GraphTrafficRoad : MonoBehaviour
             return;
         }
 
-        var telemetryAdapter = FindAnyObjectByType<GraphTrafficTelemetryAdapter>();
-        ActiveVehicleCount = telemetryAdapter == null ? 0 : telemetryAdapter.GetActiveVehicleCount(this);
+        if (_cachedTelemetryAdapter == null)
+            _cachedTelemetryAdapter = FindAnyObjectByType<GraphTrafficTelemetryAdapter>();
+        ActiveVehicleCount = _cachedTelemetryAdapter == null ? 0 : _cachedTelemetryAdapter.GetActiveVehicleCount(this);
         ExpectedColor = ClassifyTraffic(ActiveVehicleCount);
     }
 

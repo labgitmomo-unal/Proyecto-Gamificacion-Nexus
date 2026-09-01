@@ -3,7 +3,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class GraphRenderDistanceController : MonoBehaviour
 {
-    [SerializeField] private float maximumVisibleDistance = 140f;
+    [SerializeField] private float maximumVisibleDistance = 60f;
     [SerializeField] private float distanceHysteresis = 3f;
 
     private Renderer[] _renderers;
@@ -22,11 +22,10 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private void LateUpdate()
     {
-        var activeViewerCamera = FindActiveViewerCamera();
-        if (activeViewerCamera != null)
-            _viewerCamera = activeViewerCamera;
-
         if (_viewerCamera == null || !_viewerCamera.isActiveAndEnabled)
+            _viewerCamera = Camera.main;
+
+        if (_viewerCamera == null)
             return;
 
         UpdateVisibility(false);
@@ -80,11 +79,11 @@ public sealed class GraphRenderDistanceController : MonoBehaviour
 
     private void UpdateVisibility(bool force)
     {
-        var distance = Vector3.Distance(transform.position, _viewerCamera.transform.position);
+        var distanceSq = (transform.position - _viewerCamera.transform.position).sqrMagnitude;
         var threshold = _isVisible
             ? maximumVisibleDistance + distanceHysteresis
             : maximumVisibleDistance - distanceHysteresis;
-        var shouldBeVisible = distance <= Mathf.Max(0f, threshold);
+        var shouldBeVisible = distanceSq <= Mathf.Max(0f, threshold * threshold);
 
         if (!force && shouldBeVisible == _isVisible)
             return;

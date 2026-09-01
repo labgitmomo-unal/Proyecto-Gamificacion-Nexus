@@ -61,6 +61,11 @@ public class BridgeControlManager : MonoBehaviour
     // a la velocidad controlada, sin importar de qué spawner vengan.
     private List<MovementController> _allTemplates = new List<MovementController>();
 
+    // Cache para ObtenerTodosLosMovementControllers (1s interval)
+    private float _lastFindTime;
+    private List<MovementController> _cachedControllers;
+    private HashSet<MovementController> _freezerCached = new HashSet<MovementController>();
+
     private void RebuildTemplateCache()
     {
         _allTemplates.Clear();
@@ -180,8 +185,22 @@ public class BridgeControlManager : MonoBehaviour
 
     private List<MovementController> ObtenerTodosLosMovementControllers()
     {
-        return new List<MovementController>(
+        if (Time.time - _lastFindTime < 1f && _cachedControllers != null)
+            return _cachedControllers;
+
+        _lastFindTime = Time.time;
+
+        // First: active clones from TrafficManager (most common case)
+        if (TrafficManager.Instance != null)
+        {
+            _cachedControllers = TrafficManager.Instance.ObtenerClones();
+            return _cachedControllers;
+        }
+
+        // Fallback: inactive templates (bridge spawner)
+        _cachedControllers = new List<MovementController>(
             FindObjectsByType<MovementController>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+        return _cachedControllers;
     }
 
     private BridgeCarFreezer ObtenerOCongelar(MovementController mc)
@@ -210,6 +229,7 @@ public class BridgeControlManager : MonoBehaviour
         ReleaseCount = 0;
         _releaseTimer = 0f;
         _freezers.Clear();
+        _freezerCached.Clear();
         RebuildTemplateCache();
 
         var tc = FindFirstObjectByType<TrafficCleanup>();
@@ -295,8 +315,9 @@ public class BridgeControlManager : MonoBehaviour
             foreach (var mc in ObtenerTodosLosMovementControllers())
             {
                 if (mc == null || mc == spawnerTemplate) continue;
-                if (mc.GetComponent<BridgeCarFreezer>() == null)
-                    _freezers.Add(ObtenerOCongelar(mc));
+                if (_freezerCached.Contains(mc)) continue;
+                _freezerCached.Add(mc);
+                _freezers.Add(ObtenerOCongelar(mc));
             }
         }
     }
@@ -447,7 +468,7 @@ public class BridgeControlManager : MonoBehaviour
     /// <param name="on">true para pausar, false para reanudar</param>
     public void PauseSpawnerByName(string spawnerName, bool on)
     {
-        foreach (var sp in FindObjectsByType<RandomObjectSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var sp in _spawners)
         {
             if (sp != null && sp.gameObject.name == spawnerName)
             {
