@@ -45,6 +45,10 @@ namespace PatternPuzzle
         [Tooltip("Audio que indica al jugador que debe hacer despues de completar el Reto 1 (por ejemplo, dirigirse al indicador del Reto 2).")]
         public AudioSource reto1CompletadoAudio;
 
+        [Header("Audio Reto 2 - Explicación")]
+        [Tooltip("Audio que explica el Reto 2. Se reproduce cuando el jugador entra al SM_Teleport_Indicator (2).")]
+        public AudioSource reto2IntroAudio;
+
         public Transform nonoDestination;
         public bool IsIntroPlaying { get; private set; }
 
@@ -157,6 +161,15 @@ public void OnReto1Completado()
         // PAUSA SOLO el Car Line Spawner (2), los demás siguen igual
         BridgeControlManager.Instance.PauseSpawnerByName("Car Line Spawner (2)", true);
     }
+
+        public void PlayReto2Intro()
+        {
+            if (reto2IntroAudio != null && reto2IntroAudio.clip != null)
+            {
+                reto2IntroAudio.Play();
+                Debug.Log("[Nivel_Patrones_Organizer] Audio de explicación del Reto 2 reproduciéndose.");
+            }
+        }
 
         private IEnumerator WaitForReto1Audio()
         {
