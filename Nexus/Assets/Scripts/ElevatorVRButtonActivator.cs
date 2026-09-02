@@ -205,16 +205,17 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             return;
         }
 
-        Debug.Log($"[Elevator] ActivateElevator: Calling ChangeFloor directly...");
+        Debug.Log("[Elevator] Activating FloorChangeTrigger...");
         activationStartY = transform.position.y;
         previousY = activationStartY;
         movementStartElapsed = 0f;
         settledFrames = 0;
         waitingForMovement = true;
 
-        floorChangeTrigger.ChangeFloor();
+        floorChangeTrigger.enabled = true;
+        floorChangeTrigger.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.DontRequireReceiver);
         AttachPlayerToElevator();
-        Debug.Log($"[Elevator] ChangeFloor called. isMoving={GetComponent<Elevator>().IsMoving()}");
+        Debug.Log("[Elevator] FloorChangeTrigger enabled and OnTriggerEnter sent.");
     }
 
     private void MonitorMovementStart()

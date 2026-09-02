@@ -39,6 +39,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     private sealed class TargetState
     {
         public Transform Target;
+        public Collider DetectionCollider;
         public GraphNode3D Occupant;
         public GraphNode3D Candidate;
         public float CandidateSince;
@@ -49,7 +50,6 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     {
         public TargetState State;
         public GraphNode3D Node;
-        public float DistanceSquared;
     }
 
     private void Awake()
@@ -151,7 +151,15 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             if (target == null || !target.gameObject.activeInHierarchy || !seenTargets.Add(target))
                 continue;
 
-            targets.Add(new TargetState { Target = target });
+            var detectionCollider = target.GetComponentInChildren<BoxCollider>(true);
+            if (detectionCollider == null || !detectionCollider.enabled)
+                continue;
+
+            targets.Add(new TargetState
+            {
+                Target = target,
+                DetectionCollider = detectionCollider
+            });
         }
     }
 
@@ -269,7 +277,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
 
             if (!IsTargetUsable(state.Target)
                 || !IsNodeUsable(state.Occupant)
-                || DistanceSquaredOnLocalXZ(state.Occupant.transform, state.Target) > exitRadius * exitRadius)
+                || !IsNodeOverlappingTarget(state.Occupant, state))
             {
                 ReleaseOccupant(state);
                 continue;
@@ -292,20 +300,18 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
                 if (!IsNodeUsable(node) || assignedNodes.Contains(node))
                     continue;
 
-                var distanceSquared = DistanceSquaredOnLocalXZ(node.transform, state.Target);
-                if (distanceSquared <= enterRadius * enterRadius)
+                if (IsNodeOverlappingTarget(node, state))
                 {
                     candidates.Add(new PlacementCandidate
                     {
                         State = state,
-                        Node = node,
-                        DistanceSquared = distanceSquared
+                        Node = node
                     });
                 }
             }
         }
 
-        candidates.Sort((left, right) => left.DistanceSquared.CompareTo(right.DistanceSquared));
+        candidates.Sort((left, right) => string.CompareOrdinal(left.State.Target.name, right.State.Target.name));
         var matchedTargets = new HashSet<TargetState>();
         var matchedNodes = new HashSet<GraphNode3D>();
         foreach (var candidate in candidates)
@@ -333,7 +339,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             }
 
             if (!IsNodeUsable(state.Candidate)
-                || DistanceSquaredOnLocalXZ(state.Candidate.transform, state.Target) > enterRadius * enterRadius)
+                || !IsNodeOverlappingTarget(state.Candidate, state))
             {
                 state.Candidate = null;
                 continue;
@@ -461,13 +467,34 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             && (!ignoreExampleNodes || exampleSequence == null || !exampleSequence.IsExampleNode(node));
     }
 
-    private float DistanceSquaredOnLocalXZ(Transform nodeTransform, Transform targetTransform)
+    private bool IsNodeOverlappingTarget(GraphNode3D node, TargetState state)
     {
-        var nodePosition = transform.InverseTransformPoint(nodeTransform.position);
-        var targetPosition = transform.InverseTransformPoint(targetTransform.position);
-        var deltaX = nodePosition.x - targetPosition.x;
-        var deltaZ = nodePosition.z - targetPosition.z;
-        return deltaX * deltaX + deltaZ * deltaZ;
+        if (node == null || state == null || state.DetectionCollider == null
+            || !state.DetectionCollider.enabled || !state.DetectionCollider.gameObject.activeInHierarchy)
+            return false;
+
+        var box = state.DetectionCollider as BoxCollider;
+        if (box == null)
+            return false;
+
+        var scale = box.transform.lossyScale;
+        var halfExtents = new Vector3(
+            Mathf.Abs(box.size.x * scale.x) * 0.5f,
+            Mathf.Abs(box.size.y * scale.y) * 0.5f,
+            Mathf.Abs(box.size.z * scale.z) * 0.5f);
+        var center = box.transform.TransformPoint(box.center);
+        var overlaps = Physics.OverlapBox(center, halfExtents, box.transform.rotation, Physics.AllLayers, QueryTriggerInteraction.Collide);
+        foreach (var overlap in overlaps)
+        {
+            if (overlap == null || overlap == box)
+                continue;
+
+            var overlappingNode = overlap.GetComponentInParent<GraphNode3D>();
+            if (overlappingNode == node)
+                return true;
+        }
+
+        return false;
     }
 
     private void PublishScore(bool force)
