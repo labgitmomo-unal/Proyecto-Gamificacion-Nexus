@@ -23,7 +23,7 @@ public sealed class MapMarker : MonoBehaviour
         _trackingEnabled = ValidateReferences();
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (!_trackingEnabled || !ValidateReferences())
         {
@@ -57,11 +57,11 @@ public sealed class MapMarker : MonoBehaviour
 
     private bool ValidateReferences()
     {
-        if (targetTransform != null && mapCamera != null && _markerRect != null && mapRect != null && mapCanvas != null && mapCamera.isActiveAndEnabled)
+        if (targetTransform != null && mapCamera != null && _markerRect != null && mapRect != null && mapCanvas != null)
             return true;
         if (!_warnedMissingReferences)
         {
-            Debug.LogWarning($"[{nameof(MapMarker)}] {name}: faltan targetTransform, mapCamera, RectTransform del mapa, Canvas o una cámara activa. El seguimiento se desactivará.", this);
+            Debug.LogWarning($"[MapMarker] {name}: faltan targetTransform, mapCamera, RectTransform del mapa, Canvas o una cámara activa. El seguimiento se desactivará.", this);
             _warnedMissingReferences = true;
         }
         return false;

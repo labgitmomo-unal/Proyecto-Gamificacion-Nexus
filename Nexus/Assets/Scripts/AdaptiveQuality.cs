@@ -5,8 +5,8 @@ using UnityEngine.Rendering.Universal;
 public class AdaptiveQuality : MonoBehaviour
 {
     public float checkInterval = 1f;
-    public int targetFPS = 72;
-    public int lowFPSTreshold = 50;
+    public int targetFPS = 90;
+    public int lowFPSTreshold = 70;
 
     private const int FrameSampleCount = 60;
     private const float MinimumNormalRenderScale = 0.5f;
@@ -19,7 +19,7 @@ public class AdaptiveQuality : MonoBehaviour
     private float[] frameTimes;
     private int index;
     private float renderScale;
-    private float shadowDist = 8f;
+    private float shadowDist = 6f;
     private bool cinematicMode;
 
     private void Awake()

@@ -4,10 +4,10 @@ using UnityEngine.Rendering.Universal;
 
 public class QuestOptimizer : MonoBehaviour
 {
-    private const int TargetFrameRate = 72;
-    private const float MaximumQuestRenderScale = 0.8f;
+    private const int TargetFrameRate = 90;
+    private const float MaximumQuestRenderScale = 0.6f;
     private const int MaximumQuestLODLevel = 0;
-    private const float QuestShadowDistance = 8f;
+    private const float QuestShadowDistance = 6f;
 
     private void Awake()
     {
@@ -44,6 +44,9 @@ public class QuestOptimizer : MonoBehaviour
         foreach (var camera in cameras)
         {
             if (camera == null)
+                continue;
+
+            if (camera.GetComponent<MapViewController>() != null)
                 continue;
 
             camera.allowHDR = false;
