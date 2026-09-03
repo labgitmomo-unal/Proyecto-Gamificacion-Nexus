@@ -14,6 +14,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
     private InputAction[] controllerButtonActions;
     private FloorChangeTrigger floorChangeTrigger;
+    private Elevator elevator;
     private bool playerInside;
     private Collider playerCollider;
     private Transform playerTransform;
@@ -34,6 +35,7 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
     private void Awake()
     {
         floorChangeTrigger = GetComponent<FloorChangeTrigger>();
+        elevator = GetComponent<Elevator>();
         ConfigureRuntimeFloorTargets();
         DisableFloorChangeTrigger();
 
@@ -199,23 +201,22 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
     private void ActivateElevator()
     {
-        if (floorChangeTrigger == null || playerCollider == null || playerTransform == null)
+        if (elevator == null || playerCollider == null || playerTransform == null)
         {
-            Debug.Log($"[Elevator] ActivateElevator ABORTED: trigger={floorChangeTrigger != null}, collider={playerCollider != null}, transform={playerTransform != null}");
+            Debug.Log($"[Elevator] ActivateElevator ABORTED: elevator={elevator != null}, collider={playerCollider != null}, transform={playerTransform != null}");
             return;
         }
 
-        Debug.Log("[Elevator] Activating FloorChangeTrigger...");
+        Debug.Log("[Elevator] Activating elevator directly...");
         activationStartY = transform.position.y;
         previousY = activationStartY;
         movementStartElapsed = 0f;
         settledFrames = 0;
         waitingForMovement = true;
 
-        floorChangeTrigger.enabled = true;
-        floorChangeTrigger.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.DontRequireReceiver);
+        elevator.ChangeTargetFloor(TargetFloor);
         AttachPlayerToElevator();
-        Debug.Log("[Elevator] FloorChangeTrigger enabled and OnTriggerEnter sent.");
+        Debug.Log("[Elevator] elevator.ChangeTargetFloor called.");
     }
 
     private void MonitorMovementStart()
