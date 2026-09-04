@@ -5,7 +5,8 @@ using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 
 public sealed class ElevatorVRButtonActivator : MonoBehaviour
 {
-    private const int TargetFloor = 2;
+    private const int FloorA = 1;
+    private const int FloorB = 2;
     private const bool UseOriginalFloor = true;
     private const float MovementThreshold = 0.05f;
     private const float PositionChangeThreshold = 0.001f;
@@ -79,8 +80,8 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
 
     private void ConfigureRuntimeFloorTargets()
     {
-        SetIntegerField(typeof(Elevator), GetComponent<Elevator>(), "targetFloor", TargetFloor);
-        SetIntegerField(typeof(FloorChangeTrigger), floorChangeTrigger, "targetFloor", TargetFloor);
+        SetIntegerField(typeof(Elevator), GetComponent<Elevator>(), "targetFloor", FloorB);
+        SetIntegerField(typeof(FloorChangeTrigger), floorChangeTrigger, "targetFloor", FloorB);
         SetBooleanField(typeof(Elevator), GetComponent<Elevator>(), "useOriginalFloor", UseOriginalFloor);
         SetBooleanField(typeof(FloorChangeTrigger), floorChangeTrigger, "useOriginalFloor", UseOriginalFloor);
     }
@@ -207,14 +208,17 @@ public sealed class ElevatorVRButtonActivator : MonoBehaviour
             return;
         }
 
-        Debug.Log("[Elevator] Activating elevator directly...");
+        int currentFloor = elevator.GetCurrentFloor();
+        int destinationFloor = currentFloor == FloorA ? FloorB : FloorA;
+
+        Debug.Log($"[Elevator] Activating elevator: currentFloor={currentFloor}, destinationFloor={destinationFloor}");
         activationStartY = transform.position.y;
         previousY = activationStartY;
         movementStartElapsed = 0f;
         settledFrames = 0;
         waitingForMovement = true;
 
-        elevator.ChangeTargetFloor(TargetFloor);
+        elevator.ChangeTargetFloor(destinationFloor);
         AttachPlayerToElevator();
         Debug.Log("[Elevator] elevator.ChangeTargetFloor called.");
     }
