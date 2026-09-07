@@ -98,11 +98,7 @@ public class Nono_Guide : MonoBehaviour
             if (progreso.Indicator_Challenge_2 != null) audioSources.Add(progreso.Indicator_Challenge_2);
         }
 
-        var challenge = FindFirstObjectByType<Challenge_Progress>();
-        if (challenge != null && challenge.Explain_Challenge_2 != null)
-        {
-            audioSources.Add(challenge.Explain_Challenge_2);
-        }
+
 
         var cinematic = FindFirstObjectByType<Cinematic_1_Controller>();
         if (cinematic != null && cinematic.Challenge_Indicator_1 != null)

@@ -26,6 +26,15 @@ public class BridgeTeleportTrigger : MonoBehaviour
     [Tooltip("Si se deja vacio, se busca automaticamente en la escena. Al teletransportar al Nivel_Patrones se lanza el semáforo en ROJO (FreezeBridge).")]
     public BridgeControlManager bridgeControl;
 
+    [Header("Neblina")]
+    [Tooltip("Densidad de neblina después del teletransporte. Dejar en 0 para sin neblina.")]
+    [Range(0f, 1f)]
+    public float fogDensityAfterTeleport = 0.01f;
+    [Tooltip("Distancia de inicio de neblina después del teletransporte.")]
+    public float fogStartDistance = 50f;
+    [Tooltip("Distancia final de neblina después del teletransporte.")]
+    public float fogEndDistance = 300f;
+
     private CanvasGroup _fadeCanvasGroup;
     private XROrigin _xrOrigin;
     private bool _teleported = false;
@@ -98,6 +107,9 @@ public class BridgeTeleportTrigger : MonoBehaviour
         else if (timerToStart != null)
             timerToStart.Start_Timer();
 
+        // Reducir neblina después del teletransporte
+        ApplyFogReduction();
+
         // Desactivar este GameObject (ya no necesario)
         gameObject.SetActive(false);
     }
@@ -118,6 +130,16 @@ public class BridgeTeleportTrigger : MonoBehaviour
         }
 
         _fadeCanvasGroup.alpha = to;
+    }
+
+    private void ApplyFogReduction()
+    {
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        RenderSettings.fogDensity = fogDensityAfterTeleport;
+        RenderSettings.fogStartDistance = fogStartDistance;
+        RenderSettings.fogEndDistance = fogEndDistance;
+        Debug.Log($"[BridgeTeleportTrigger] Neblina reducida: densidad={fogDensityAfterTeleport}, inicio={fogStartDistance}, fin={fogEndDistance}");
     }
 
     private CanvasGroup CreateFadeOverlay()

@@ -23,7 +23,6 @@ public class Challenge_Progress : MonoBehaviour
     [SerializeField] private Transform finalDestinationRef;
 
     [Header("Audios")]
-    public AudioSource Explain_Challenge_2;
     [SerializeField] private AudioSource Challenge_Complete_Sound;
     public AudioSource Indicator_Challenge_3;
 
@@ -48,17 +47,11 @@ public class Challenge_Progress : MonoBehaviour
         if (itemsScrollView != null)
             itemsScrollView.enabled = false;
 
-        StartCoroutine(Play_Intro_And_Start());
+        StartChallengeImmediate();
     }
 
-    private IEnumerator Play_Intro_And_Start()
+    private void StartChallengeImmediate()
     {
-        if (Explain_Challenge_2 != null)
-        {
-            Explain_Challenge_2.Play();
-            yield return new WaitWhile(() => Explain_Challenge_2.isPlaying);
-        }
-
         if (itemsScrollView != null)
             itemsScrollView.enabled = true;
 
