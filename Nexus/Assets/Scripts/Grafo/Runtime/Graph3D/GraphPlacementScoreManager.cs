@@ -11,6 +11,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     private const float DefaultEvaluationInterval = 0.10f;
     private const float MinimumPositiveValue = 0.0001f;
     private const float PointsPerRoad = 2f;
+    private const float PointsPerTarget = 1f;
 
     [SerializeField] private Transform nodeRoot;
     [SerializeField] private GraphExampleSequence exampleSequence;
@@ -19,13 +20,14 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     [SerializeField] private float exitRadius = DefaultExitRadius;
     [SerializeField] private float stableContactSeconds = DefaultStableContactSeconds;
     [SerializeField] private float evaluationInterval = DefaultEvaluationInterval;
-    [SerializeField] private bool ignoreExampleNodes = true;
+    [SerializeField] private bool ignoreExampleNodes = false;
 
     private readonly List<TargetState> targets = new List<TargetState>();
     private readonly List<GraphNode3D> playableNodes = new List<GraphNode3D>();
     private readonly List<GraphTrafficRoad> roads = new List<GraphTrafficRoad>();
     private readonly List<GraphEdge> edges = new List<GraphEdge>();
     private readonly HashSet<GraphTrafficRoad> warnedRoads = new HashSet<GraphTrafficRoad>();
+    private readonly HashSet<Transform> warnedTargets = new HashSet<Transform>();
     private readonly HashSet<string> warnedEdgePairs = new HashSet<string>();
     private float evaluationTimer;
     private float lastPublishedScore;
@@ -55,10 +57,6 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     private void Awake()
     {
         ClampConfiguration();
-        DiscoverTargets();
-        DiscoverRoads();
-        RefreshEdges();
-        PublishScore(true);
     }
 
     private void OnEnable()
@@ -145,20 +143,22 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
     {
         targets.Clear();
         var seenTargets = new HashSet<Transform>();
-        for (var index = 0; index < transform.childCount; index++)
+        var sensors = GetComponentsInChildren<BoxCollider>(true);
+        foreach (var sensor in sensors)
         {
-            var target = transform.GetChild(index);
-            if (target == null || !target.gameObject.activeInHierarchy || !seenTargets.Add(target))
+            if (sensor == null || !sensor.enabled || !sensor.gameObject.activeInHierarchy)
                 continue;
 
-            var detectionCollider = target.GetComponentInChildren<BoxCollider>(true);
-            if (detectionCollider == null || !detectionCollider.enabled)
+            var target = sensor.transform.parent;
+            if (target == null || target.parent != transform || !target.gameObject.activeInHierarchy)
+                continue;
+            if (!seenTargets.Add(target))
                 continue;
 
             targets.Add(new TargetState
             {
                 Target = target,
-                DetectionCollider = detectionCollider
+                DetectionCollider = sensor
             });
         }
     }
@@ -173,6 +173,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         if (expectedRoads == null)
         {
             Debug.LogWarning("GraphPlacementScoreManager no tiene una lista determinista de carreteras.", this);
+            MaximumScore = targets.Count * PointsPerTarget;
             return;
         }
 
@@ -245,7 +246,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
             roads.Add(road);
         }
 
-        MaximumScore = roads.Count * PointsPerRoad;
+        MaximumScore = targets.Count * PointsPerTarget + roads.Count * PointsPerRoad;
     }
 
     private void DiscoverPlayableNodes()
@@ -375,9 +376,83 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         }
     }
 
+    private float CalculateOccupiedTargetScore()
+    {
+        var occupiedNodes = new HashSet<GraphNode3D>();
+        var score = 0f;
+        foreach (var state in targets)
+        {
+            if (!state.IsOccupied || !IsNodeUsable(state.Occupant) || !occupiedNodes.Add(state.Occupant))
+                continue;
+
+            score += PointsPerTarget;
+        }
+
+        return score;
+    }
+
+    private void RefreshPreservedEdgeColors()
+    {
+        foreach (var edge in edges)
+        {
+            if (edge == null || !edge.PreserveOnReset)
+                continue;
+
+            var road = FindRoadForEdge(edge);
+            if (road == null)
+                edge.ClearDisplayedTrafficColor();
+            else
+                edge.SetDisplayedTrafficColor(road.ExpectedColor);
+        }
+    }
+
+    private GraphTrafficRoad FindRoadForEdge(GraphEdge edge)
+    {
+        if (edge == null || edge.StartSocket == null || edge.EndSocket == null)
+            return null;
+
+        var firstTarget = GetTargetForNode(edge.StartSocket.AssignedOwnerNode);
+        var secondTarget = GetTargetForNode(edge.EndSocket.AssignedOwnerNode);
+        if (firstTarget == null || secondTarget == null)
+            return null;
+
+        return FindRoadForPair(firstTarget, secondTarget);
+    }
+
+    private Transform GetTargetForNode(GraphNode3D node)
+    {
+        if (node == null)
+            return null;
+
+        foreach (var state in targets)
+        {
+            if (state.IsOccupied && state.Occupant == node)
+                return state.Target;
+        }
+
+        return null;
+    }
+
+    private GraphTrafficRoad FindRoadForPair(Transform first, Transform second)
+    {
+        foreach (var road in roads)
+        {
+            if (road == null)
+                continue;
+
+            if ((road.StartIntersection == first && road.EndIntersection == second)
+                || (road.StartIntersection == second && road.EndIntersection == first))
+                return road;
+        }
+
+        return null;
+    }
+
+
     private void PublishRoadScore()
     {
-        var score = 0f;
+        RefreshPreservedEdgeColors();
+        var score = CalculateOccupiedTargetScore();
         foreach (var road in roads)
         {
             var startNode = GetOccupant(road.StartIntersection);
@@ -409,7 +484,7 @@ public sealed class GraphPlacementScoreManager : MonoBehaviour
         var matchingEdges = new List<GraphEdge>();
         foreach (var edge in edges)
         {
-            if (edge == null || !edge.gameObject.activeInHierarchy || edge.PreserveOnReset
+            if (edge == null || !edge.gameObject.activeInHierarchy
                 || edge.StartSocket == null || edge.EndSocket == null)
                 continue;
 

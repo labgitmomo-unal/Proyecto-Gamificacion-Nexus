@@ -19,6 +19,11 @@ public static class GraphTrafficColorUtility
         new Color(1f, 0f, 0f, 1f)
     };
 
+    public static Color ToColor(GraphTrafficColor color)
+    {
+        return ReferenceColors[(int)color];
+    }
+
     public static GraphTrafficColor Classify(Color color, float tolerance = DefaultColorTolerance)
     {
         var clampedTolerance = Mathf.Max(tolerance, 0f);

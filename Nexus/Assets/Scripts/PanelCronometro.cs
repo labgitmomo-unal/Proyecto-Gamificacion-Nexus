@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public sealed class PanelCronometro : MonoBehaviour
@@ -117,6 +118,11 @@ public sealed class PanelCronometro : MonoBehaviour
 
     private void Update()
     {
+        if (Keyboard.current != null && Keyboard.current.semicolonKey.wasPressedThisFrame)
+        {
+            ToggleTimer();
+        }
+
         if (!isRunning)
         {
             return;

@@ -5,7 +5,6 @@ using UnityEngine;
 public sealed class GraphEdge : MonoBehaviour
 {
     private const float DefaultLineWidth = 0.05f;
-    private static readonly Color ExampleEdgeColor = new Color(1f, 0.92f, 0.02f, 1f);
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     private LineRenderer _lineRenderer;
@@ -16,6 +15,8 @@ public sealed class GraphEdge : MonoBehaviour
     private Vector3 _freeEndPosition;
     private Color _edgeColor = Color.white;
     private bool _usesFreeEnd;
+    private bool _hasDisplayedTrafficColor;
+    private GraphTrafficColor _displayedTrafficColor;
 
     public static event System.Action TopologyChanged;
 
@@ -26,12 +27,32 @@ public sealed class GraphEdge : MonoBehaviour
     internal Transform EndPoint => _endPoint;
     internal Color EdgeColor => _edgeColor;
     internal Color SelectedEdgeColor => _edgeColor;
-    private Color EffectiveColor => PreserveOnReset ? ExampleEdgeColor : _edgeColor;
+    private Color EffectiveColor => _hasDisplayedTrafficColor
+        ? GraphTrafficColorUtility.ToColor(_displayedTrafficColor)
+        : _edgeColor;
 
     /// <summary>Marks this edge as the demonstration edge that survives a graph reset.</summary>
     public void SetPreserveOnReset(bool preserve)
     {
         PreserveOnReset = preserve;
+        if (!preserve)
+            _hasDisplayedTrafficColor = false;
+        ApplyColor();
+    }
+
+    internal void SetDisplayedTrafficColor(GraphTrafficColor color)
+    {
+        _displayedTrafficColor = color;
+        _hasDisplayedTrafficColor = true;
+        ApplyColor();
+    }
+
+    internal void ClearDisplayedTrafficColor()
+    {
+        if (!_hasDisplayedTrafficColor)
+            return;
+
+        _hasDisplayedTrafficColor = false;
         ApplyColor();
     }
 

@@ -3,9 +3,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class GraphTrafficRoad : MonoBehaviour
 {
-    private const int DefaultWhiteMaximumVehicles = 2;
-    private const int DefaultYellowMaximumVehicles = 6;
-    private const int DefaultOrangeMaximumVehicles = 12;
+    private const int DefaultWhiteMaximumVehicles = 5;
+    private const int DefaultYellowMaximumVehicles = 15;
+    private const int DefaultOrangeMaximumVehicles = 25;
 
     [SerializeField] private string roadName;
     [SerializeField] private Transform startIntersection;
